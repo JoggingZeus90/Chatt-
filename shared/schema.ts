@@ -31,6 +31,17 @@ export const messages = pgTable("messages", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const roomMembers = pgTable("room_members", {
+  id: serial("id").primaryKey(),
+  roomId: integer("room_id")
+    .references(() => rooms.id)
+    .notNull(),
+  userId: integer("user_id")
+    .references(() => users.id)
+    .notNull(),
+  joinedAt: timestamp("joined_at").notNull().defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -50,3 +61,4 @@ export type User = typeof users.$inferSelect;
 export type Room = typeof rooms.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 export type MessageWithUser = Message & { user: User };
+export type RoomMember = typeof roomMembers.$inferSelect;

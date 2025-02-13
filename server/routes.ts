@@ -18,7 +18,7 @@ export function registerRoutes(app: Express): Server {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const parsed = insertRoomSchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).send(parsed.error.message);
-    
+
     const room = await storage.createRoom({
       ...parsed.data,
       createdById: req.user.id,
@@ -43,6 +43,43 @@ export function registerRoutes(app: Express): Server {
       userId: req.user.id,
     });
     res.status(201).json(message);
+  });
+
+  // Delete room (only by creator)
+  app.delete("/api/rooms/:roomId", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      await storage.deleteRoom(parseInt(req.params.roomId), req.user.id);
+      res.sendStatus(200);
+    } catch (error) {
+      if (error instanceof Error && error.message === "Unauthorized") {
+        res.status(403).send("Only room creator can delete the room");
+      } else {
+        res.status(500).send("Internal server error");
+      }
+    }
+  });
+
+  // Join room
+  app.post("/api/rooms/:roomId/join", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    await storage.joinRoom(parseInt(req.params.roomId), req.user.id);
+    res.sendStatus(200);
+  });
+
+  // Leave room
+  app.post("/api/rooms/:roomId/leave", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    await storage.leaveRoom(parseInt(req.params.roomId), req.user.id);
+    res.sendStatus(200);
+  });
+
+  // Get room members
+  app.get("/api/rooms/:roomId/members", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const members = await storage.getRoomMembers(parseInt(req.params.roomId));
+    res.json(members);
   });
 
   // Online status
