@@ -84,7 +84,7 @@ export default function ChatPage() {
     };
 
     updateStatus();
-    const interval = setInterval(updateStatus, 30000);
+    const interval = setInterval(updateStatus, 3000);
 
     const handleBeforeUnload = async () => {
       if (user) {
