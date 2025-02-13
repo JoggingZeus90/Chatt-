@@ -55,9 +55,28 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getMessages(roomId: number): Promise<MessageWithUser[]> {
-    const messagesQuery = db.select({...messages, user: users}).from(messages).where(eq(messages.roomId, roomId)).orderBy(messages.createdAt);
-    const messagesResult = await messagesQuery;
-    return messagesResult;
+    const messagesWithUsers = await db
+      .select()
+      .from(messages)
+      .innerJoin(users, eq(messages.userId, users.id))
+      .where(eq(messages.roomId, roomId))
+      .orderBy(messages.createdAt);
+
+    return messagesWithUsers.map(row => ({
+      id: row.messages.id,
+      content: row.messages.content,
+      roomId: row.messages.roomId,
+      userId: row.messages.userId,
+      createdAt: row.messages.createdAt,
+      user: {
+        id: row.users.id,
+        username: row.users.username,
+        password: row.users.password,
+        isOnline: row.users.isOnline,
+        lastSeen: row.users.lastSeen,
+        avatarUrl: row.users.avatarUrl,
+      }
+    }));
   }
 
   async createMessage(message: Omit<Message, "id" | "createdAt">): Promise<Message> {
@@ -80,16 +99,34 @@ export class DatabaseStorage implements IStorage {
   }
 
   async leaveRoom(roomId: number, userId: number): Promise<void> {
-    await db.delete(roomMembers).where(eq(roomMembers.roomId, roomId), eq(roomMembers.userId, userId));
+    await db.delete(roomMembers)
+      .where(eq(roomMembers.roomId, roomId))
+      .where(eq(roomMembers.userId, userId));
   }
 
   async getRoomMembers(roomId: number): Promise<User[]> {
-    const members = await db.select({...users}).from(roomMembers).innerJoin(users, eq(roomMembers.userId, users.id)).where(eq(roomMembers.roomId, roomId));
-    return members;
+    const result = await db
+      .select({
+        id: users.id,
+        username: users.username,
+        password: users.password,
+        isOnline: users.isOnline,
+        lastSeen: users.lastSeen,
+        avatarUrl: users.avatarUrl,
+      })
+      .from(roomMembers)
+      .innerJoin(users, eq(roomMembers.userId, users.id))
+      .where(eq(roomMembers.roomId, roomId));
+
+    return result;
   }
 
   async isRoomMember(roomId: number, userId: number): Promise<boolean> {
-    const [member] = await db.select().from(roomMembers).where(eq(roomMembers.roomId, roomId), eq(roomMembers.userId, userId));
+    const [member] = await db
+      .select()
+      .from(roomMembers)
+      .where(eq(roomMembers.roomId, roomId))
+      .where(eq(roomMembers.userId, userId));
     return !!member;
   }
 
