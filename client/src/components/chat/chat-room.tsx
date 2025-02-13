@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Room, MessageWithUser } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Send, Loader2 } from "lucide-react";
+import { OnlineCount } from "./online-count";
 
 export default function ChatRoom({ room }: { room: Room }) {
   const [message, setMessage] = useState("");
@@ -50,6 +51,9 @@ export default function ChatRoom({ room }: { room: Room }) {
     <div className="flex flex-col h-full">
       <div className="border-b p-4">
         <h2 className="font-semibold">{room.name}</h2>
+        <p className="text-sm text-muted-foreground">
+          <OnlineCount roomId={room.id} />
+        </p>
       </div>
       <div className="flex-1 overflow-auto p-4">
         {isLoading ? (
