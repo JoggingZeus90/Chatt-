@@ -27,6 +27,7 @@ export function MessageBubble({ message }: { message: MessageWithUser }) {
             username={message.user.username}
             isOnline={message.user.isOnline}
             lastSeen={new Date(message.user.lastSeen)}
+            avatarUrl={message.user.avatarUrl}
           />
         </div>
       )}
