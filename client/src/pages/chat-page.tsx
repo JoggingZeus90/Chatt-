@@ -17,6 +17,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Avatar,
+  AvatarImage,
+  AvatarFallback,
+} from "@/components/ui/avatar";
 
 export default function ChatPage() {
   const { user, logoutMutation } = useAuth();
@@ -34,8 +39,8 @@ export default function ChatPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
-      setIsCreateDialogOpen(false); // Close dialog on success
-      form.reset(); // Reset form
+      setIsCreateDialogOpen(false);
+      form.reset();
     },
   });
 
@@ -61,7 +66,6 @@ export default function ChatPage() {
       try {
         await apiRequest("POST", `/api/users/${user.id}/status`, { isOnline: true });
       } catch (error) {
-        // Silently handle 401 errors after logout
         if (error instanceof Error && error.message.includes("401")) {
           return;
         }
@@ -69,9 +73,7 @@ export default function ChatPage() {
       }
     };
 
-    // Initial status update
     updateStatus();
-
     const interval = setInterval(updateStatus, 30000);
 
     const handleBeforeUnload = async () => {
@@ -79,7 +81,6 @@ export default function ChatPage() {
         try {
           await apiRequest("POST", `/api/users/${user.id}/status`, { isOnline: false });
         } catch (error) {
-          // Ignore errors on page unload
           console.error("Failed to update status on unload:", error);
         }
       }
@@ -90,7 +91,6 @@ export default function ChatPage() {
     return () => {
       clearInterval(interval);
       window.removeEventListener("beforeunload", handleBeforeUnload);
-      // Don't try to update status on cleanup if we're logging out
       if (user && !logoutMutation.isPending) {
         updateStatus();
       }
@@ -184,28 +184,41 @@ export default function ChatPage() {
             </div>
           ))}
         </div>
-        <div className="pt-4 border-t mt-4 flex gap-2">
-          <Button
-            variant="outline"
-            className="flex-1 transition-transform hover:scale-105 hover:text-red-500 hover:border-red-500"
-            onClick={() => logoutMutation.mutate()}
-            disabled={logoutMutation.isPending}
-          >
-            {logoutMutation.isPending ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <LogOut className="mr-2 h-4 w-4" />
-            )}
-            Logout
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => window.location.href = '/settings'}
-            className="flex-1 transition-transform hover:scale-105"
-          >
-            <Settings className="mr-2 h-4 w-4" />
-            Settings
-          </Button>
+        <div className="pt-4 border-t mt-4 space-y-4">
+          {/* User Profile Section */}
+          <div className="flex items-center justify-between p-2 bg-secondary/50 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={user?.avatarUrl} />
+                <AvatarFallback>{user?.username?.[0].toUpperCase()}</AvatarFallback>
+              </Avatar>
+              <span className="font-medium text-sm">{user?.username}</span>
+            </div>
+          </div>
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="flex-1 transition-transform hover:scale-105 hover:text-red-500 hover:border-red-500"
+              onClick={() => logoutMutation.mutate()}
+              disabled={logoutMutation.isPending}
+            >
+              {logoutMutation.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <LogOut className="mr-2 h-4 w-4" />
+              )}
+              Logout
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => window.location.href = '/settings'}
+              className="flex-1 transition-transform hover:scale-105"
+            >
+              <Settings className="mr-2 h-4 w-4" />
+              Settings
+            </Button>
+          </div>
         </div>
       </div>
       <div className="flex-1">
