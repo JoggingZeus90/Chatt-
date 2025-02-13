@@ -224,9 +224,11 @@ export default function ChatPage() {
                               required
                             />
                           </div>
-                          <Button type="submit" className="w-full">
-                            Save Changes
-                          </Button>
+                          <DialogClose asChild>
+                            <Button type="submit" className="w-full">
+                              Save Changes
+                            </Button>
+                          </DialogClose>
                         </form>
                       </DialogContent>
                     </Dialog>
