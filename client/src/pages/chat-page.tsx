@@ -187,7 +187,7 @@ export default function ChatPage() {
         <div className="pt-4 border-t mt-4 flex gap-2">
           <Button
             variant="outline"
-            className="flex-1 transition-transform hover:scale-105"
+            className="flex-1 transition-transform hover:scale-105 hover:text-red-500 hover:border-red-500"
             onClick={() => logoutMutation.mutate()}
             disabled={logoutMutation.isPending}
           >
