@@ -10,7 +10,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Label } from "@/components/ui/label";
 import ChatRoom from "@/components/chat/chat-room";
 import { useState, useEffect } from "react";
-import { MoreVertical, Trash2, LogOut, Plus, Loader2, UserPlus, Settings } from "lucide-react";
+import { MoreVertical, Trash2, LogOut, Plus, Loader2, Settings } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +21,7 @@ import {
 export default function ChatPage() {
   const { user, logoutMutation } = useAuth();
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   const { data: rooms, isLoading } = useQuery<Room[]>({
     queryKey: ["/api/rooms"],
@@ -33,31 +34,14 @@ export default function ChatPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
+      setIsCreateDialogOpen(false); // Close dialog on success
+      form.reset(); // Reset form
     },
   });
 
   const deleteRoomMutation = useMutation({
     mutationFn: async (roomId: number) => {
       await apiRequest("DELETE", `/api/rooms/${roomId}`);
-    },
-    onSuccess: () => {
-      setSelectedRoom(null);
-      queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
-    },
-  });
-
-  const joinRoomMutation = useMutation({
-    mutationFn: async (roomId: number) => {
-      await apiRequest("POST", `/api/rooms/${roomId}/join`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
-    },
-  });
-
-  const leaveRoomMutation = useMutation({
-    mutationFn: async (roomId: number) => {
-      await apiRequest("POST", `/api/rooms/${roomId}/leave`);
     },
     onSuccess: () => {
       setSelectedRoom(null);
@@ -126,7 +110,7 @@ export default function ChatPage() {
       <div className="w-64 border-r bg-muted/50 p-4 flex flex-col">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-semibold">Chat Rooms</h2>
-          <Dialog>
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button size="icon" variant="ghost">
                 <Plus className="h-4 w-4" />
