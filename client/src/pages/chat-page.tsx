@@ -190,18 +190,46 @@ export default function ChatPage() {
                     </DropdownMenuItem>
                   )}
                   {room.createdById === user?.id && (
-                    <DropdownMenuItem
-                      onClick={() => {
-                        const newName = window.prompt("Enter new room name:", room.name);
-                        if (newName && newName !== room.name) {
-                          apiRequest("PATCH", `/api/rooms/${room.id}`, { name: newName })
-                            .then(() => queryClient.invalidateQueries({ queryKey: ["/api/rooms"] }));
-                        }
-                      }}
-                    >
-                      <Settings className="h-4 w-4 mr-2" />
-                      Edit Name
-                    </DropdownMenuItem>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                          <Settings className="h-4 w-4 mr-2" />
+                          Edit Name
+                        </DropdownMenuItem>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Edit Room Name</DialogTitle>
+                        </DialogHeader>
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            const formData = new FormData(e.currentTarget);
+                            const newName = formData.get("name") as string;
+                            if (newName && newName !== room.name) {
+                              apiRequest("PATCH", `/api/rooms/${room.id}`, { name: newName })
+                                .then(() => queryClient.invalidateQueries({ queryKey: ["/api/rooms"] }));
+                            }
+                            (e.target as HTMLFormElement).reset();
+                            (e.target as HTMLFormElement).closest("dialog")?.close();
+                          }}
+                          className="space-y-4"
+                        >
+                          <div className="space-y-2">
+                            <Label htmlFor="name">Room Name</Label>
+                            <Input
+                              id="name"
+                              name="name"
+                              defaultValue={room.name}
+                              required
+                            />
+                          </div>
+                          <Button type="submit" className="w-full">
+                            Save Changes
+                          </Button>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
