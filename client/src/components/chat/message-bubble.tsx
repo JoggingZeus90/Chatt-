@@ -17,12 +17,6 @@ export function MessageBubble({ message }: { message: MessageWithUser }) {
     >
       {!isOwn && (
         <div className="flex items-center gap-2">
-          <Avatar className="h-8 w-8">
-            <AvatarImage src={message.user.avatarUrl} />
-            <AvatarFallback>
-              {message.user.username[0].toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
           <UserStatus
             username={message.user.username}
             isOnline={message.user.isOnline}
