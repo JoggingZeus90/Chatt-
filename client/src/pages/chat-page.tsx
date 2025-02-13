@@ -122,7 +122,7 @@ export default function ChatPage() {
         <Button
           variant="ghost"
           size="icon"
-          className="absolute top-2 right-2"
+          className="absolute top-2 left-2"
           onClick={() => useSidebar().toggleSidebar()}
         >
           <PanelLeftClose className="h-4 w-4" />
