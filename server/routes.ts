@@ -61,6 +61,21 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  app.patch("/api/rooms/:roomId", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const room = await storage.updateRoomName(parseInt(req.params.roomId), req.user.id, req.body.name);
+      res.json(room);
+    } catch (error) {
+      if (error instanceof Error && error.message === "Unauthorized") {
+        res.status(403).send("Only room creator can update the room name");
+      } else {
+        res.status(500).send("Internal server error");
+      }
+    }
+  });
+
   // Join room
   app.post("/api/rooms/:roomId/join", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);

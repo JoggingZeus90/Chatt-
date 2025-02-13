@@ -189,6 +189,20 @@ export default function ChatPage() {
                       Leave Room
                     </DropdownMenuItem>
                   )}
+                  {room.createdById === user?.id && (
+                    <DropdownMenuItem
+                      onClick={() => {
+                        const newName = window.prompt("Enter new room name:", room.name);
+                        if (newName && newName !== room.name) {
+                          apiRequest("PATCH", `/api/rooms/${room.id}`, { name: newName })
+                            .then(() => queryClient.invalidateQueries({ queryKey: ["/api/rooms"] }));
+                        }
+                      }}
+                    >
+                      <Settings className="h-4 w-4 mr-2" />
+                      Edit Name
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

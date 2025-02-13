@@ -94,6 +94,18 @@ export class DatabaseStorage implements IStorage {
     await db.delete(roomMembers).where(eq(roomMembers.roomId, roomId));
   }
 
+  async updateRoomName(roomId: number, userId: number, name: string): Promise<typeof rooms.$inferSelect> {
+    const [room] = await db.select().from(rooms).where(eq(rooms.id, roomId));
+    if (!room || room.createdById !== userId) {
+      throw new Error("Unauthorized");
+    }
+    const [updatedRoom] = await db.update(rooms)
+      .set({ name })
+      .where(eq(rooms.id, roomId))
+      .returning();
+    return updatedRoom;
+  }
+
   async joinRoom(roomId: number, userId: number): Promise<void> {
     await db.insert(roomMembers).values({ roomId, userId, joinedAt: new Date() });
   }
