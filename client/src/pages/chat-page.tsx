@@ -10,7 +10,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Label } from "@/components/ui/label";
 import ChatRoom from "@/components/chat/chat-room";
 import { useState, useEffect } from "react";
-import { MoreVertical, Trash2, LogOut, Plus, Loader2, Settings } from "lucide-react";
+import { MoreVertical, Trash2, LogOut, Plus, Loader2, Settings, PanelLeftClose } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,6 +22,7 @@ import {
   AvatarImage,
   AvatarFallback,
 } from "@/components/ui/avatar";
+import { useSidebar } from "@/components/ui/sidebar";
 
 export default function ChatPage() {
   const { user, logoutMutation } = useAuth();
@@ -117,7 +118,15 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-screen">
-      <div className="w-64 border-r bg-muted/50 p-4 flex flex-col">
+      <div className="w-64 border-r bg-muted/50 p-4 flex flex-col relative">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute top-2 right-2"
+          onClick={() => useSidebar().toggleSidebar()}
+        >
+          <PanelLeftClose className="h-4 w-4" />
+        </Button>
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-semibold">Chat Rooms</h2>
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
