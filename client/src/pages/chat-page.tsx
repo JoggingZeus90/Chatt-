@@ -118,7 +118,7 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-screen">
-      <div className="w-64 border-r bg-muted/50 p-4 pt-12 flex flex-col relative">
+      <div className="w-64 border-r bg-muted/50 p-4 flex flex-col relative">
         <Button
           variant="ghost"
           size="icon"
