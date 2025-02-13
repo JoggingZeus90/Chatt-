@@ -1,183 +1,108 @@
 import { IStorage } from "./types";
-import { InsertUser, User, Room, Message, MessageWithUser } from "@shared/schema";
+import { users, type User, type InsertUser, rooms, type Room, messages, type Message, roomMembers, type RoomMember } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 import session from "express-session";
-import createMemoryStore from "memorystore";
+import connectPg from "connect-pg-simple";
+import { pool } from "./db";
+import { MessageWithUser } from "@shared/schema";
 
-interface RoomMember {
-  id: number;
-  roomId: number;
-  userId: number;
-  joinedAt: Date;
-}
 
-const MemoryStore = createMemoryStore(session);
+const PostgresSessionStore = connectPg(session);
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private rooms: Map<number, Room>;
-  private messages: Map<number, Message>;
-  private roomMembers: Map<number, RoomMember>;
+export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
-  currentId: number;
 
   constructor() {
-    this.users = new Map();
-    this.rooms = new Map();
-    this.messages = new Map();
-    this.roomMembers = new Map();
-    this.currentId = 1;
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000,
+    this.sessionStore = new PostgresSessionStore({
+      pool,
+      createTableIfMissing: true,
     });
   }
 
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentId++;
-    const user: User = {
-      ...insertUser,
-      id,
-      isOnline: false,
-      lastSeen: new Date(),
-    };
-    this.users.set(id, user);
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
     return user;
   }
 
   async updateUserStatus(userId: number, isOnline: boolean): Promise<void> {
-    const user = await this.getUser(userId);
-    if (!user) return;
-
-    user.isOnline = isOnline;
-    user.lastSeen = new Date();
-    this.users.set(userId, user);
+    await db
+      .update(users)
+      .set({ isOnline, lastSeen: new Date() })
+      .where(eq(users.id, userId));
   }
 
   async getRooms(): Promise<Room[]> {
-    return Array.from(this.rooms.values());
+    return db.select().from(rooms);
   }
 
   async createRoom(room: Omit<Room, "id" | "createdAt">): Promise<Room> {
-    const id = this.currentId++;
-    const newRoom: Room = {
-      ...room,
-      id,
-      createdAt: new Date(),
-    };
-    this.rooms.set(id, newRoom);
+    const [newRoom] = await db.insert(rooms).values(room).returning();
     return newRoom;
   }
 
   async getMessages(roomId: number): Promise<MessageWithUser[]> {
-    const messages = Array.from(this.messages.values())
-      .filter((m) => m.roomId === roomId)
-      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
-
-    return Promise.all(
-      messages.map(async (message) => {
-        const user = await this.getUser(message.userId);
-        return { ...message, user: user! };
-      }),
-    );
+    const messagesQuery = db.select({...messages, user: users}).from(messages).where(eq(messages.roomId, roomId)).orderBy(messages.createdAt);
+    const messagesResult = await messagesQuery;
+    return messagesResult;
   }
 
   async createMessage(message: Omit<Message, "id" | "createdAt">): Promise<Message> {
-    const id = this.currentId++;
-    const newMessage: Message = {
-      ...message,
-      id,
-      createdAt: new Date(),
-    };
-    this.messages.set(id, newMessage);
+    const [newMessage] = await db.insert(messages).values(message).returning();
     return newMessage;
   }
 
   async deleteRoom(roomId: number, userId: number): Promise<void> {
-    const room = this.rooms.get(roomId);
+    const [room] = await db.select().from(rooms).where(eq(rooms.id, roomId));
     if (!room || room.createdById !== userId) {
       throw new Error("Unauthorized");
     }
-
-    // Delete all messages in the room
-    for (const [messageId, message] of this.messages.entries()) {
-      if (message.roomId === roomId) {
-        this.messages.delete(messageId);
-      }
-    }
-
-    // Delete all room members
-    for (const [memberId, member] of this.roomMembers.entries()) {
-      if (member.roomId === roomId) {
-        this.roomMembers.delete(memberId);
-      }
-    }
-
-    // Delete the room
-    this.rooms.delete(roomId);
+    await db.delete(rooms).where(eq(rooms.id, roomId));
+    await db.delete(messages).where(eq(messages.roomId, roomId));
+    await db.delete(roomMembers).where(eq(roomMembers.roomId, roomId));
   }
 
   async joinRoom(roomId: number, userId: number): Promise<void> {
-    const room = this.rooms.get(roomId);
-    if (!room) throw new Error("Room not found");
-
-    const id = this.currentId++;
-    const member: RoomMember = {
-      id,
-      roomId,
-      userId,
-      joinedAt: new Date(),
-    };
-    this.roomMembers.set(id, member);
+    await db.insert(roomMembers).values({ roomId, userId, joinedAt: new Date() });
   }
 
   async leaveRoom(roomId: number, userId: number): Promise<void> {
-    for (const [memberId, member] of this.roomMembers.entries()) {
-      if (member.roomId === roomId && member.userId === userId) {
-        this.roomMembers.delete(memberId);
-        return;
-      }
-    }
+    await db.delete(roomMembers).where(eq(roomMembers.roomId, roomId), eq(roomMembers.userId, userId));
   }
 
   async getRoomMembers(roomId: number): Promise<User[]> {
-    const members = Array.from(this.roomMembers.values())
-      .filter((member) => member.roomId === roomId);
-
-    return Promise.all(
-      members.map(async (member) => {
-        const user = await this.getUser(member.userId);
-        return user!;
-      })
-    );
+    const members = await db.select({...users}).from(roomMembers).innerJoin(users, eq(roomMembers.userId, users.id)).where(eq(roomMembers.roomId, roomId));
+    return members;
   }
 
   async isRoomMember(roomId: number, userId: number): Promise<boolean> {
-    return Array.from(this.roomMembers.values()).some(
-      (member) => member.roomId === roomId && member.userId === userId
-    );
+    const [member] = await db.select().from(roomMembers).where(eq(roomMembers.roomId, roomId), eq(roomMembers.userId, userId));
+    return !!member;
   }
 
   async updateUserProfile(userId: number, updates: { avatarUrl?: string }): Promise<User> {
-    const user = await this.getUser(userId);
+    const [user] = await db
+      .update(users)
+      .set(updates)
+      .where(eq(users.id, userId))
+      .returning();
+
     if (!user) throw new Error("User not found");
-
-    const updatedUser = {
-      ...user,
-      ...updates,
-    };
-
-    this.users.set(userId, updatedUser);
-    return updatedUser;
+    return user;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
