@@ -89,6 +89,17 @@ export function registerRoutes(app: Express): Server {
     res.sendStatus(200);
   });
 
+  // Update user profile
+  app.patch("/api/user/profile", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    const user = await storage.updateUserProfile(req.user.id, {
+      avatarUrl: req.body.avatarUrl,
+    });
+
+    res.json(user);
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

@@ -10,7 +10,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Label } from "@/components/ui/label";
 import ChatRoom from "@/components/chat/chat-room";
 import { useState, useEffect } from "react";
-import { MoreVertical, Trash2, LogOut, Plus, Loader2, UserPlus } from "lucide-react";
+import { MoreVertical, Trash2, LogOut, Plus, Loader2, UserPlus, Settings } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -187,10 +187,10 @@ export default function ChatPage() {
             </div>
           ))}
         </div>
-        <div className="pt-4 border-t mt-4">
+        <div className="pt-4 border-t mt-4 flex gap-2">
           <Button
             variant="outline"
-            className="w-full"
+            className="flex-1"
             onClick={() => logoutMutation.mutate()}
             disabled={logoutMutation.isPending}
           >
@@ -200,6 +200,14 @@ export default function ChatPage() {
               <LogOut className="mr-2 h-4 w-4" />
             )}
             Logout
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => window.location.href = '/settings'}
+            className="flex-1"
+          >
+            <Settings className="mr-2 h-4 w-4" />
+            Settings
           </Button>
         </div>
       </div>

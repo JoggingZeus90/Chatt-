@@ -165,6 +165,19 @@ export class MemStorage implements IStorage {
       (member) => member.roomId === roomId && member.userId === userId
     );
   }
+
+  async updateUserProfile(userId: number, updates: { avatarUrl?: string }): Promise<User> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+
+    const updatedUser = {
+      ...user,
+      ...updates,
+    };
+
+    this.users.set(userId, updatedUser);
+    return updatedUser;
+  }
 }
 
 export const storage = new MemStorage();
