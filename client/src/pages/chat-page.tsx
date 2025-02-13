@@ -187,7 +187,7 @@ export default function ChatPage() {
         <div className="pt-4 border-t mt-4 flex gap-2">
           <Button
             variant="outline"
-            className="flex-1"
+            className="flex-1 transition-transform hover:scale-105"
             onClick={() => logoutMutation.mutate()}
             disabled={logoutMutation.isPending}
           >
@@ -201,7 +201,7 @@ export default function ChatPage() {
           <Button
             variant="outline"
             onClick={() => window.location.href = '/settings'}
-            className="flex-1"
+            className="flex-1 transition-transform hover:scale-105"
           >
             <Settings className="mr-2 h-4 w-4" />
             Settings
