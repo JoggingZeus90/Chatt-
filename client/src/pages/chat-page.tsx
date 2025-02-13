@@ -54,6 +54,16 @@ export default function ChatPage() {
     },
   });
 
+  const leaveRoomMutation = useMutation({
+    mutationFn: async (roomId: number) => {
+      await apiRequest("POST", `/api/rooms/${roomId}/leave`);
+    },
+    onSuccess: () => {
+      setSelectedRoom(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
+    },
+  });
+
   const form = useForm({
     resolver: zodResolver(insertRoomSchema),
   });
