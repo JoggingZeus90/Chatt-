@@ -1,4 +1,5 @@
 import { MessageWithUser } from "@shared/schema";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { format } from "date-fns";
@@ -15,11 +16,19 @@ export function MessageBubble({ message }: { message: MessageWithUser }) {
       })}
     >
       {!isOwn && (
-        <UserStatus
-          username={message.user.username}
-          isOnline={message.user.isOnline}
-          lastSeen={new Date(message.user.lastSeen)}
-        />
+        <div className="flex items-center gap-2">
+          <Avatar className="h-8 w-8">
+            <AvatarImage src={message.user.avatarUrl} />
+            <AvatarFallback>
+              {message.user.username[0].toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <UserStatus
+            username={message.user.username}
+            isOnline={message.user.isOnline}
+            lastSeen={new Date(message.user.lastSeen)}
+          />
+        </div>
       )}
       <div
         className={cn(
