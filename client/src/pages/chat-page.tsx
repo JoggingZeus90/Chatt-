@@ -73,19 +73,31 @@ export default function ChatPage() {
   useEffect(() => {
     if (!user) return;
 
-    apiRequest("POST", `/api/users/${user.id}/status`, { isOnline: true });
-
-    const updateStatus = () => {
-      if (user) {
-        apiRequest("POST", `/api/users/${user.id}/status`, { isOnline: true });
+    const updateStatus = async () => {
+      try {
+        await apiRequest("POST", `/api/users/${user.id}/status`, { isOnline: true });
+      } catch (error) {
+        // Silently handle 401 errors after logout
+        if (error instanceof Error && error.message.includes("401")) {
+          return;
+        }
+        console.error("Failed to update status:", error);
       }
     };
 
+    // Initial status update
+    updateStatus();
+
     const interval = setInterval(updateStatus, 30000);
 
-    const handleBeforeUnload = () => {
+    const handleBeforeUnload = async () => {
       if (user) {
-        apiRequest("POST", `/api/users/${user.id}/status`, { isOnline: false });
+        try {
+          await apiRequest("POST", `/api/users/${user.id}/status`, { isOnline: false });
+        } catch (error) {
+          // Ignore errors on page unload
+          console.error("Failed to update status on unload:", error);
+        }
       }
     };
 
@@ -94,11 +106,12 @@ export default function ChatPage() {
     return () => {
       clearInterval(interval);
       window.removeEventListener("beforeunload", handleBeforeUnload);
-      if (user) {
-        apiRequest("POST", `/api/users/${user.id}/status`, { isOnline: false });
+      // Don't try to update status on cleanup if we're logging out
+      if (user && !logoutMutation.isPending) {
+        updateStatus();
       }
     };
-  }, [user]);
+  }, [user, logoutMutation.isPending]);
 
   if (isLoading) {
     return (
