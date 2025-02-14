@@ -113,7 +113,7 @@ export default function ChatRoom({ room }: { room: Room }) {
 
     try {
       await sendMessageMutation.mutateAsync({
-        content: message.trim() || "Shared a file",
+        content: message.trim() || (mediaFile ? `Sent ${mediaFile.type.includes('image') ? 'an image' : 'a video'}` : ""),
         mediaUrl,
         mediaType,
       });
