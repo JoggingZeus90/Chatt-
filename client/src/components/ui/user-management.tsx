@@ -43,7 +43,7 @@ export function UserManagement() {
   // Separate users by role and status
   const admins = users?.filter(user => user.role === UserRole.ADMIN && !user.suspended) || [];
   const moderators = users?.filter(user => user.role === UserRole.MODERATOR && !user.suspended) || [];
-  const activeUsers = users?.filter(user =>
+  const activeUsers = users?.filter(user => 
     user.role === UserRole.USER && !user.suspended
   ) || [];
   const suspendedUsers = users?.filter(user => user.suspended) || [];
@@ -60,6 +60,30 @@ export function UserManagement() {
         title: "Success",
         description: "User role updated successfully",
       });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const suspendUserMutation = useMutation({
+    mutationFn: async ({ userId, reason }: { userId: number; reason: string }) => {
+      const res = await apiRequest("POST", `/api/users/${userId}/suspend`, { reason });
+      if (!res.ok) throw new Error("Failed to suspend user");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({
+        title: "Success",
+        description: "User suspended successfully",
+      });
+      setSelectedUser(null);
+      setSuspensionReason("");
     },
     onError: (error: Error) => {
       toast({
@@ -314,6 +338,9 @@ export function UserManagement() {
                   }}
                   disabled={suspendUserMutation.isPending}
                 >
+                  {suspendUserMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : null}
                   Suspend User
                 </Button>
               </DialogFooter>
