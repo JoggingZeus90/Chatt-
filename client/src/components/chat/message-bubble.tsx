@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { format } from "date-fns";
 import { UserStatus } from "./user-status";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AlertCircle, Loader2 } from "lucide-react";
 
 export function MessageBubble({ message }: { message: MessageWithUser }) {
@@ -11,24 +11,28 @@ export function MessageBubble({ message }: { message: MessageWithUser }) {
   const isOwn = message.userId === user?.id;
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
+  const imgRef = useRef<HTMLImageElement>(null);
 
   // Ensure we have a full URL for the media
   const mediaUrl = message.mediaUrl 
-    ? message.mediaUrl.startsWith('http') 
-      ? message.mediaUrl 
-      : window.location.origin + message.mediaUrl
+    ? new URL(message.mediaUrl, window.location.origin).toString()
     : null;
 
   useEffect(() => {
-    if (mediaUrl) {
-      console.log('Attempting to load image:', {
-        originalUrl: message.mediaUrl,
-        processedUrl: mediaUrl,
-        mediaType: message.mediaType,
-        timestamp: new Date().toISOString()
+    if (mediaUrl && imgRef.current) {
+      // Reset states when URL changes
+      setImageError(false);
+      setImageLoading(true);
+
+      console.log('Loading image:', {
+        url: mediaUrl,
+        timestamp: new Date().toISOString(),
+        naturalWidth: imgRef.current?.naturalWidth,
+        naturalHeight: imgRef.current?.naturalHeight,
+        complete: imgRef.current?.complete
       });
     }
-  }, [mediaUrl, message.mediaUrl, message.mediaType]);
+  }, [mediaUrl]);
 
   return (
     <div
@@ -68,6 +72,7 @@ export function MessageBubble({ message }: { message: MessageWithUser }) {
               </div>
             )}
             <img
+              ref={imgRef}
               src={mediaUrl}
               alt="Shared image"
               className="rounded-lg max-w-full max-h-64 object-contain"
@@ -75,15 +80,20 @@ export function MessageBubble({ message }: { message: MessageWithUser }) {
                 console.error("Failed to load image:", {
                   url: mediaUrl,
                   error: e,
-                  timestamp: new Date().toISOString()
+                  timestamp: new Date().toISOString(),
+                  target: e.target
                 });
                 setImageError(true);
                 setImageLoading(false);
               }}
-              onLoad={() => {
+              onLoad={(e) => {
+                const img = e.target as HTMLImageElement;
                 console.log("Image loaded successfully:", {
                   url: mediaUrl,
-                  timestamp: new Date().toISOString()
+                  timestamp: new Date().toISOString(),
+                  naturalWidth: img.naturalWidth,
+                  naturalHeight: img.naturalHeight,
+                  complete: img.complete
                 });
                 setImageLoading(false);
               }}

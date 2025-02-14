@@ -62,94 +62,25 @@ export function registerRoutes(app: Express): Server {
     fs.mkdirSync(uploadDir, { recursive: true });
   }
 
-  // Serve static files from uploads directory with debugging and streaming
-  app.use('/uploads', (req, res, next) => {
-    console.log('Static file request:', req.url);
-    const filePath = path.join(uploadDir, req.url);
-    console.log('Full path:', filePath);
-
-    // Check if file exists
-    if (!fs.existsSync(filePath)) {
-      console.error('File not found:', filePath);
-      return res.status(404).send('File not found');
-    }
-
-    try {
-      // Check file permissions
-      fs.accessSync(filePath, fs.constants.R_OK);
-
-      // Get file stats
-      const stat = fs.statSync(filePath);
-      console.log('File stats:', {
-        size: stat.size,
-        permissions: stat.mode,
-        path: filePath
-      });
-
-      // Set appropriate headers
-      res.setHeader('Access-Control-Allow-Origin', '*');
+  // Serve static files from uploads directory
+  app.use('/uploads', express.static(uploadDir, {
+    setHeaders: (res, filePath) => {
+      // Set proper headers for images
+      if (filePath.endsWith('.png')) {
+        res.setHeader('Content-Type', 'image/png');
+      } else if (filePath.endsWith('.jpg') || filePath.endsWith('.jpeg')) {
+        res.setHeader('Content-Type', 'image/jpeg');
+      } else if (filePath.endsWith('.gif')) {
+        res.setHeader('Content-Type', 'image/gif');
+      }
+      // Disable caching
       res.setHeader('Cache-Control', 'no-cache');
-      res.setHeader('Content-Length', stat.size);
-
-      // Set content type based on file extension
-      const ext = path.extname(filePath).toLowerCase();
-      let contentType = 'application/octet-stream';
-      switch (ext) {
-        case '.png':
-          contentType = 'image/png';
-          break;
-        case '.jpg':
-        case '.jpeg':
-          contentType = 'image/jpeg';
-          break;
-        case '.gif':
-          contentType = 'image/gif';
-          break;
-        case '.mp4':
-          contentType = 'video/mp4';
-          break;
-        case '.webm':
-          contentType = 'video/webm';
-          break;
-      }
-      res.setHeader('Content-Type', contentType);
-      console.log('Set content type:', contentType);
-
-      // Stream the file
-      console.log('Starting file stream for:', filePath);
-      const stream = fs.createReadStream(filePath);
-
-      stream.on('error', (error) => {
-        console.error('Stream error:', error);
-        if (!res.headersSent) {
-          res.status(500).send('Error streaming file');
-        }
-      });
-
-      stream.on('end', () => {
-        console.log('Successfully streamed file:', filePath);
-      });
-
-      // Log when client aborts the request
-      req.on('close', () => {
-        console.log('Client closed connection for:', filePath);
-        stream.destroy();
-      });
-
-      stream.pipe(res);
-    } catch (error) {
-      console.error('Error serving file:', error, {
-        filePath,
-        error: error instanceof Error ? error.message : String(error)
-      });
-      if (!res.headersSent) {
-        res.status(500).send('Error serving file');
-      }
+      res.setHeader('Access-Control-Allow-Origin', '*');
     }
-  });
+  }));
 
 
-  // File upload endpoint
+  // File upload endpoint with better error handling
   app.post("/api/upload", upload.single('file'), (req, res) => {
     console.log('Upload request received');
 
@@ -158,12 +89,15 @@ export function registerRoutes(app: Express): Server {
       return res.status(400).json({ error: "No file uploaded" });
     }
 
-    console.log('File uploaded successfully:', req.file);
+    console.log('File uploaded successfully:', {
+      filename: req.file.filename,
+      path: req.file.path,
+      mimetype: req.file.mimetype,
+      size: req.file.size
+    });
 
-    // Return the URL for the uploaded file
     const fileUrl = `/uploads/${req.file.filename}`;
     console.log('Generated file URL:', fileUrl);
-
     res.json({ url: fileUrl });
   });
 
