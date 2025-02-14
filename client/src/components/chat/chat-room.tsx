@@ -41,6 +41,7 @@ const ALLOWED_FILE_TYPES = {
 const WHISPER_COMMAND = "/whisper";
 const SUS_IMAGE_URL = "https://i.ytimg.com/vi/Mw3jK9YwOxk/maxresdefault.jpg";
 const KRATOS_IMAGE_URL = "https://ew.com/thmb/4lmLC5Ark8X7GwPpaATjk738Xao=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/god-of-war-2018-2000-408387a68b78478aaa52d04b8a99c0a0.jpg";
+const VINE_BOOM_URL = "https://www.myinstants.com/media/sounds/vine-boom.mp3";
 
 const TEXT_COMMANDS = {
   "/tableflip": "(╯°□°)╯︵ ┻━┻",
@@ -96,6 +97,7 @@ export default function ChatRoom({ room }: { room: Room }) {
   const { toast } = useToast();
   const [showCommands, setShowCommands] = useState(false);
   const commandsRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   const isOwner = user?.id === room.createdById;
 
@@ -284,6 +286,11 @@ export default function ChatRoom({ room }: { room: Room }) {
       uploadedMediaUrl = SUS_IMAGE_URL;
       uploadedMediaType = 'image';
       messageContent = ''; // Clear the message content since we're sending an image
+      // Play the vine boom sound
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play();
+      }
     } else if (messageContent === '/kratos') {
       uploadedMediaUrl = KRATOS_IMAGE_URL;
       uploadedMediaType = 'image';
@@ -661,6 +668,7 @@ export default function ChatRoom({ room }: { room: Room }) {
           {message.length}/{MAX_MESSAGE_LENGTH} characters
         </div>
       </form>
+      <audio ref={audioRef} src={VINE_BOOM_URL} preload="auto" />
     </div>
   );
 }
