@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext, useEffect } from "react";
+import { createContext, ReactNode, useContext, useEffect, useRef } from "react";
 import {
   useQuery,
   useMutation,
@@ -59,6 +59,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Use replace instead of href to force navigation
       window.location.replace(redirectUrl);
+
+      // Force a complete page reload after a brief delay
+      setTimeout(() => {
+        window.location.reload(true);
+      }, 100);
     } catch (error) {
       console.error('Error during suspension handling:', error);
       // Even if logout fails, force redirect
@@ -66,11 +71,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const {
-    data: user,
-    error,
-    isLoading,
-  } = useQuery<SelectUser | undefined, Error>({
+  // Add a ref to track if suspension handling is in progress
+  const suspensionInProgress = useRef(false);
+
+  const { data: user, error, isLoading } = useQuery<SelectUser | undefined, Error>({
     queryKey: ["/api/user"],
     queryFn: async () => {
       try {
@@ -89,7 +93,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (res.status === 401) return undefined;
           throw new Error("Failed to fetch user data");
         }
-        return res.json();
+        const userData = await res.json();
+
+        // Check for suspension in the response
+        if (userData?.suspended && !suspensionInProgress.current) {
+          suspensionInProgress.current = true;
+          handleSuspension(userData.suspendedReason || 'Account suspended');
+          return undefined;
+        }
+
+        return userData;
       } catch (error) {
         console.error("Error fetching user:", error);
         throw error;
@@ -100,7 +113,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // Handle suspension status changes
-    if (user?.suspended) {
+    if (user?.suspended && !suspensionInProgress.current) {
+      suspensionInProgress.current = true;
       handleSuspension(user.suspendedReason || 'Account suspended');
     }
   }, [user?.suspended]);
