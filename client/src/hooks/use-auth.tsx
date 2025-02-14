@@ -58,6 +58,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             variant: "destructive",
           });
           queryClient.setQueryData(["/api/user"], null);
+          queryClient.clear(); // Clear all cached queries
+          await logoutMutation.mutateAsync(); // Ensure logout completes
           window.location.href = `/auth?suspended=true&reason=${encodeURIComponent(data.reason || '')}`;
           return undefined;
         }
@@ -87,9 +89,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.addEventListener('popstate', lockNavigation);
       window.addEventListener('beforeunload', lockNavigation);
 
-      // Force logout and redirect
-      logoutMutation.mutate();
-      window.location.href = `/auth?suspended=true&reason=${encodeURIComponent(user.suspendedReason || '')}`;
+      // Force logout, clear cache and reload
+      const handleSuspension = async () => {
+        queryClient.clear(); // Clear all cached queries
+        await logoutMutation.mutateAsync();
+        window.location.reload(); // Force page reload
+      };
+
+      handleSuspension();
 
       return () => {
         window.removeEventListener('popstate', lockNavigation);
@@ -115,7 +122,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           variant: "destructive",
         });
         queryClient.setQueryData(["/api/user"], null);
-        window.location.href = `/auth?suspended=true&reason=${encodeURIComponent(user.suspendedReason || '')}`;
+        queryClient.clear(); // Clear all cached queries
+        window.location.reload(); // Force page reload
       } else {
         queryClient.setQueryData(["/api/user"], user);
       }
