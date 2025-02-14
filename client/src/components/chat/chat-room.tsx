@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Room, MessageWithUser } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Send, Loader2, Image, X } from "lucide-react";
+import { Send, Loader2, Image, X, ArrowDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const MAX_MESSAGE_LENGTH = 100;
@@ -21,7 +21,9 @@ export default function ChatRoom({ room }: { room: Room }) {
   const [message, setMessage] = useState("");
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreviewUrl, setMediaPreviewUrl] = useState<string | null>(null);
+  const [showScrollButton, setShowScrollButton] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -68,9 +70,27 @@ export default function ChatRoom({ room }: { room: Room }) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const handleScroll = () => {
+    if (!messagesContainerRef.current) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+    const atBottom = Math.abs(scrollHeight - scrollTop - clientHeight) < 50;
+    setShowScrollButton(!atBottom);
+  };
+
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+      handleScroll(); // Initial check
+    }
+
+    return () => {
+      if (container) {
+        container.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -175,7 +195,10 @@ export default function ChatRoom({ room }: { room: Room }) {
       <div className="border-b p-4">
         <h2 className="font-semibold">{room.name}</h2>
       </div>
-      <div className="flex-1 overflow-auto p-4">
+      <div 
+        className="flex-1 overflow-auto p-4 relative" 
+        ref={messagesContainerRef}
+      >
         {isLoading ? (
           <div className="flex justify-center">
             <Loader2 className="h-6 w-6 animate-spin" />
@@ -186,6 +209,15 @@ export default function ChatRoom({ room }: { room: Room }) {
           ))
         )}
         <div ref={messagesEndRef} />
+        {showScrollButton && (
+          <Button
+            className="fixed bottom-24 right-8 rounded-full shadow-lg"
+            size="icon"
+            onClick={scrollToBottom}
+          >
+            <ArrowDown className="h-4 w-4" />
+          </Button>
+        )}
       </div>
       <form onSubmit={handleSubmit} className="border-t p-4 space-y-4">
         {mediaPreviewUrl && (
