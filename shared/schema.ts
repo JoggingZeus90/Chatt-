@@ -93,7 +93,7 @@ export const updateUserSchema = z.object({
   newPassword: z.string().min(6, "Password must be at least 6 characters").optional(),
   avatarUrl: z.string().url().optional(),
 }).refine((data) => {
-  // If newPassword is provided, currentPassword must also be provided
+  // Only require current password if new password is being set
   if (data.newPassword && !data.currentPassword) {
     return false;
   }
