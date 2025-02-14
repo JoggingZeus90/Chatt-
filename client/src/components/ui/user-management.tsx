@@ -23,6 +23,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { format } from "date-fns";
+import { Loader2 } from "lucide-react";
 
 export function UserManagement() {
   const { user: currentUser, isAdmin, isModerator } = useAuth();
@@ -42,7 +43,7 @@ export function UserManagement() {
   // Separate users by role and status
   const admins = users?.filter(user => user.role === UserRole.ADMIN && !user.suspended) || [];
   const moderators = users?.filter(user => user.role === UserRole.MODERATOR && !user.suspended) || [];
-  const activeUsers = users?.filter(user => 
+  const activeUsers = users?.filter(user =>
     user.role === UserRole.USER && !user.suspended
   ) || [];
   const suspendedUsers = users?.filter(user => user.suspended) || [];
@@ -59,29 +60,6 @@ export function UserManagement() {
         title: "Success",
         description: "User role updated successfully",
       });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const suspendUserMutation = useMutation({
-    mutationFn: async ({ userId, reason }: { userId: number; reason: string }) => {
-      const res = await apiRequest("POST", `/api/users/${userId}/suspend`, { reason });
-      if (!res.ok) throw new Error("Failed to suspend user");
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
-      toast({
-        title: "Success",
-        description: "User suspended successfully",
-      });
-      setSelectedUser(null);
     },
     onError: (error: Error) => {
       toast({
@@ -216,74 +194,94 @@ export function UserManagement() {
             Update Role
           </Button>
           {!user.muted ? (
-            <>
-              <Dialog open={muteDialogUser?.id === user.id} onOpenChange={(open) => !open && setMuteDialogUser(null)}>
-                <DialogTrigger asChild>
-                  <Button 
-                    variant="outline"
-                    onClick={() => setMuteDialogUser(user)}
-                  >
-                    Mute
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Mute User</DialogTitle>
-                    <DialogDescription>
-                      Set the duration and reason for muting {user.username}
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium">Duration (minutes)</label>
-                      <Input
-                        type="number"
-                        value={muteDuration}
-                        onChange={(e) => setMuteDuration(e.target.value)}
-                        min="1"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium">Reason</label>
-                      <Input
-                        value={muteReason}
-                        onChange={(e) => setMuteReason(e.target.value)}
-                        placeholder="Reason for muting"
-                      />
-                    </div>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setMuteReason("");
+                    setMuteDuration("60");
+                    setMuteDialogUser(user);
+                  }}
+                >
+                  Mute
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Mute User</DialogTitle>
+                  <DialogDescription>
+                    Set the duration and reason for muting {user.username}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium">Duration (minutes)</label>
+                    <Input
+                      type="number"
+                      value={muteDuration}
+                      onChange={(e) => setMuteDuration(e.target.value)}
+                      min="1"
+                    />
                   </div>
-                  <DialogFooter>
-                    <Button
-                      variant="secondary"
-                      onClick={() => {
-                        if (muteReason.trim() && parseInt(muteDuration) > 0) {
-                          muteUserMutation.mutate({
-                            userId: user.id,
-                            duration: parseInt(muteDuration),
-                            reason: muteReason,
-                          });
-                        }
-                      }}
-                      disabled={muteUserMutation.isPending}
-                    >
-                      Mute User
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </>
+                  <div>
+                    <label className="text-sm font-medium">Reason</label>
+                    <Input
+                      value={muteReason}
+                      onChange={(e) => setMuteReason(e.target.value)}
+                      placeholder="Reason for muting"
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setMuteDialogUser(null);
+                      setMuteReason("");
+                      setMuteDuration("60");
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="default"
+                    onClick={() => {
+                      if (muteReason.trim() && parseInt(muteDuration) > 0) {
+                        muteUserMutation.mutate({
+                          userId: user.id,
+                          duration: parseInt(muteDuration),
+                          reason: muteReason,
+                        });
+                      }
+                    }}
+                    disabled={muteUserMutation.isPending || !muteReason.trim() || parseInt(muteDuration) <= 0}
+                  >
+                    {muteUserMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : null}
+                    Mute User
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           ) : (
             <Button
               variant="outline"
               onClick={() => unmuteUserMutation.mutate(user.id)}
               disabled={unmuteUserMutation.isPending}
             >
+              {unmuteUserMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : null}
               Unmute
             </Button>
           )}
           <Dialog open={selectedUser?.id === user.id} onOpenChange={(open) => !open && setSelectedUser(null)}>
             <DialogTrigger asChild>
-              <Button 
+              <Button
                 variant="destructive"
                 onClick={() => setSelectedUser(user)}
               >

@@ -18,6 +18,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { format } from 'date-fns';
 
 const MAX_MESSAGE_LENGTH = 100;
 const ALLOWED_FILE_TYPES = {
@@ -186,6 +187,18 @@ export default function ChatRoom({ room }: { room: Room }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim() && !mediaFile) return;
+
+    if (user?.muted) {
+      const mutedUntil = new Date(user.mutedUntil!);
+      if (mutedUntil > new Date()) {
+        toast({
+          title: "You are muted",
+          description: `You cannot send messages until ${format(mutedUntil, 'PPp')}. Reason: ${user.mutedReason}`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
 
     let uploadedMediaUrl: string | undefined;
     let uploadedMediaType: string | undefined;
