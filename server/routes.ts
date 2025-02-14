@@ -75,51 +75,76 @@ export function registerRoutes(app: Express): Server {
     }
 
     try {
+      // Check file permissions
+      fs.accessSync(filePath, fs.constants.R_OK);
+
       // Get file stats
       const stat = fs.statSync(filePath);
+      console.log('File stats:', {
+        size: stat.size,
+        permissions: stat.mode,
+        path: filePath
+      });
 
       // Set appropriate headers
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Content-Length', stat.size);
 
       // Set content type based on file extension
       const ext = path.extname(filePath).toLowerCase();
+      let contentType = 'application/octet-stream';
       switch (ext) {
         case '.png':
-          res.setHeader('Content-Type', 'image/png');
+          contentType = 'image/png';
           break;
         case '.jpg':
         case '.jpeg':
-          res.setHeader('Content-Type', 'image/jpeg');
+          contentType = 'image/jpeg';
           break;
         case '.gif':
-          res.setHeader('Content-Type', 'image/gif');
+          contentType = 'image/gif';
           break;
         case '.mp4':
-          res.setHeader('Content-Type', 'video/mp4');
+          contentType = 'video/mp4';
           break;
         case '.webm':
-          res.setHeader('Content-Type', 'video/webm');
+          contentType = 'video/webm';
           break;
       }
+      res.setHeader('Content-Type', contentType);
+      console.log('Set content type:', contentType);
 
       // Stream the file
-      const stream = fs.createReadStream(filePath);
       console.log('Starting file stream for:', filePath);
+      const stream = fs.createReadStream(filePath);
 
       stream.on('error', (error) => {
         console.error('Stream error:', error);
-        res.status(500).send('Error streaming file');
+        if (!res.headersSent) {
+          res.status(500).send('Error streaming file');
+        }
       });
 
       stream.on('end', () => {
         console.log('Successfully streamed file:', filePath);
       });
 
+      // Log when client aborts the request
+      req.on('close', () => {
+        console.log('Client closed connection for:', filePath);
+        stream.destroy();
+      });
+
       stream.pipe(res);
     } catch (error) {
-      console.error('Error serving file:', error);
-      res.status(500).send('Error serving file');
+      console.error('Error serving file:', error, {
+        filePath,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      if (!res.headersSent) {
+        res.status(500).send('Error serving file');
+      }
     }
   });
 
