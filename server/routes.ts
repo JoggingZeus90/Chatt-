@@ -9,7 +9,12 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import express from 'express';
+import { drizzle } from 'drizzle-orm/neon-serverless';
+import { eq } from 'drizzle-orm';
+import * as schema from "@shared/schema";
+import { pool } from './db';
 
+const db = drizzle({ client: pool, schema });
 const scryptAsync = promisify(scrypt);
 
 // Configure multer for handling file uploads
@@ -96,14 +101,49 @@ export function registerRoutes(app: Express): Server {
     const parsed = insertMessageSchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).send(parsed.error.message);
 
-    const message = await storage.createMessage({
-      content: parsed.data.content,
-      mediaUrl: parsed.data.mediaUrl || null,
-      mediaType: parsed.data.mediaType || null,
-      roomId: parseInt(req.params.roomId),
-      userId: req.user.id,
-    });
-    res.status(201).json(message);
+    try {
+      const message = await storage.createMessage({
+        content: parsed.data.content,
+        mediaUrl: parsed.data.mediaUrl ?? null,
+        mediaType: parsed.data.mediaType ?? null,
+        roomId: parseInt(req.params.roomId),
+        userId: req.user.id,
+      });
+
+      // Get the complete message with user data
+      const [messageWithUser] = await db
+        .select()
+        .from(schema.messages)
+        .innerJoin(schema.users, eq(schema.messages.userId, schema.users.id))
+        .where(eq(schema.messages.id, message.id));
+
+      if (!messageWithUser) {
+        throw new Error('Message not found after creation');
+      }
+
+      const formattedMessage = {
+        id: messageWithUser.messages.id,
+        content: messageWithUser.messages.content,
+        mediaUrl: messageWithUser.messages.mediaUrl,
+        mediaType: messageWithUser.messages.mediaType,
+        roomId: messageWithUser.messages.roomId,
+        userId: messageWithUser.messages.userId,
+        createdAt: messageWithUser.messages.createdAt,
+        user: {
+          id: messageWithUser.users.id,
+          username: messageWithUser.users.username,
+          password: messageWithUser.users.password,
+          isOnline: messageWithUser.users.isOnline,
+          lastSeen: messageWithUser.users.lastSeen,
+          avatarUrl: messageWithUser.users.avatarUrl,
+        }
+      };
+
+      res.status(201).json(formattedMessage);
+    } catch (error) {
+      console.error('Error creating message:', error);
+      res.status(500).send('Error creating message');
+    }
   });
 
   // Delete room (only by creator)
