@@ -49,7 +49,7 @@ const commands = [
   {
     name: 'whisper',
     description: 'Send a private message to a user',
-    format: '/whisper "@username" your message',
+    format: '/whisper "username" your message',
   },
   {
     name: 'tableflip',
@@ -260,7 +260,7 @@ export default function ChatRoom({ room }: { room: Room }) {
       if (!usernameMatch) {
         toast({
           title: "Invalid whisper format",
-          description: `Use the format: /whisper "@username" your message`,
+          description: `Use the format: /whisper "username" your message`,
           variant: "destructive",
         });
         return;
@@ -341,7 +341,7 @@ export default function ChatRoom({ room }: { room: Room }) {
   };
 
   const handleCommandSelect = (command: typeof commands[0]) => {
-    setMessage(`${command.format.split(' ')[0]} "@`);
+    setMessage(`${command.format.split(' ')[0]} "`);
     setShowCommands(false);
     inputRef.current?.focus();
   };
