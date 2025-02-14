@@ -84,9 +84,21 @@ export default function ChatRoom({ room }: { room: Room }) {
           body: formData,
         });
 
-        if (!uploadRes.ok) throw new Error("Upload failed");
+        if (!uploadRes.ok) {
+          throw new Error("Upload failed: " + (await uploadRes.text()));
+        }
+
+        // Check content type to ensure we're getting JSON
+        const contentType = uploadRes.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          throw new Error("Invalid response from server: Expected JSON but got " + contentType);
+        }
 
         const { url } = await uploadRes.json();
+        if (!url) {
+          throw new Error("No URL returned from server");
+        }
+
         mediaUrl = url;
         mediaType = ALLOWED_FILE_TYPES[mediaFile.type as keyof typeof ALLOWED_FILE_TYPES];
       } catch (error) {
@@ -106,7 +118,11 @@ export default function ChatRoom({ room }: { room: Room }) {
         mediaType,
       });
     } catch (error) {
-      console.error("Failed to send message:", error);
+      toast({
+        title: "Failed to send message",
+        description: error instanceof Error ? error.message : "Failed to send message",
+        variant: "destructive",
+      });
     }
   };
 
