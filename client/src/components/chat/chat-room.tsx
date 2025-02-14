@@ -322,7 +322,7 @@ export default function ChatRoom({ room }: { room: Room }) {
         ) : (
           <div className="flex items-center gap-2">
             <h2 className="font-semibold">{room.name}</h2>
-            {isOwner ? (
+            {(isOwner || user?.role === 'admin') && (
               <>
                 <Button
                   size="icon"
@@ -365,7 +365,8 @@ export default function ChatRoom({ room }: { room: Room }) {
                   </AlertDialogContent>
                 </AlertDialog>
               </>
-            ) : (
+            )}
+            {!isOwner && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button
