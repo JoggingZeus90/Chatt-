@@ -348,14 +348,12 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: "Invalid role" });
       }
 
-      await storage.updateUserRole(userId, newRole);
-      res.sendStatus(200);
+      const updatedUser = await storage.updateUserRole(userId, newRole);
+      res.json(updatedUser);
     } catch (error) {
       res.status(500).json({ message: "Failed to update user role" });
     }
   });
-
-  // Add these routes in the registerRoutes function after the existing admin routes
 
   // Admin-only routes for user suspension
   app.post("/api/users/:userId/suspend", requireRole(UserRole.ADMIN), async (req, res) => {
