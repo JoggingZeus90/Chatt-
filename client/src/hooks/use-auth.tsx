@@ -45,20 +45,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const handleSuspension = async (reason: string) => {
     console.log('Handling suspension...', reason);
     try {
-      // Clear all queries first
-      queryClient.clear();
-      // Force logout
+      // First force logout
       await logoutMutation.mutateAsync();
-      console.log('Logout completed, reloading page...');
-      // Force reload after a small delay to ensure logout completes
-      setTimeout(() => {
-        window.location.href = `/auth?suspended=true&reason=${encodeURIComponent(reason || '')}`;
-        window.location.reload();
-      }, 100);
+      console.log('Logout completed');
+
+      // Clear all cached data
+      queryClient.clear();
+      console.log('Cache cleared');
+
+      // Force navigation to auth page with suspension reason
+      const redirectUrl = `/auth?suspended=true&reason=${encodeURIComponent(reason || '')}`;
+      console.log('Redirecting to:', redirectUrl);
+
+      // Use replace instead of href to force navigation
+      window.location.replace(redirectUrl);
     } catch (error) {
       console.error('Error during suspension handling:', error);
-      // Force reload anyway
-      window.location.reload();
+      // Even if logout fails, force redirect
+      window.location.replace(`/auth?suspended=true&reason=${encodeURIComponent(reason || '')}`);
     }
   };
 
@@ -91,31 +95,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw error;
       }
     },
-    refetchInterval: 5000, // Check suspension status more frequently
+    refetchInterval: 5000, // Check suspension status frequently
   });
 
   useEffect(() => {
     // Handle suspension status changes
     if (user?.suspended) {
-      // Prevent navigation
-      const lockNavigation = () => {
-        window.location.href = `/auth?suspended=true&reason=${encodeURIComponent(user.suspendedReason || '')}`;
-        return false;
-      };
-
-      window.history.pushState(null, '', '/auth');
-      window.addEventListener('popstate', lockNavigation);
-      window.addEventListener('beforeunload', lockNavigation);
-
-      // Immediately handle suspension
       handleSuspension(user.suspendedReason || 'Account suspended');
-
-      return () => {
-        window.removeEventListener('popstate', lockNavigation);
-        window.removeEventListener('beforeunload', lockNavigation);
-      };
     }
-  }, [user?.suspended, user?.suspendedReason]);
+  }, [user?.suspended]);
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
