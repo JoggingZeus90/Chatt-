@@ -82,6 +82,7 @@ export default function ChatRoom({ room }: { room: Room }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const [showCommands, setShowCommands] = useState(false);
+  const commandsRef = useRef<HTMLDivElement>(null);
 
   const isOwner = user?.id === room.createdById;
 
@@ -226,6 +227,21 @@ export default function ChatRoom({ room }: { room: Room }) {
       }
     };
   }, []);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (commandsRef.current && !commandsRef.current.contains(event.target as Node)) {
+        setShowCommands(false);
+      }
+    }
+
+    if (showCommands) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [showCommands]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -585,7 +601,7 @@ export default function ChatRoom({ room }: { room: Room }) {
               ref={inputRef}
             />
             {showCommands && (
-              <div className="absolute bottom-full mb-1 left-0 w-full z-50">
+              <div className="absolute bottom-full mb-1 left-0 w-full z-50" ref={commandsRef}>
                 <Command className="border rounded-lg shadow-lg">
                   <CommandInput placeholder="Search commands..." />
                   <CommandList>
