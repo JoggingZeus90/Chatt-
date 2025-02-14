@@ -21,12 +21,14 @@ const scryptAsync = promisify(scrypt);
 const upload = multer({
   storage: multer.diskStorage({
     destination: function (req, file, cb) {
-      // Use client/public/uploads for Vite to serve directly
-      const uploadDir = path.resolve(process.cwd(), 'client', 'public', 'uploads');
+      // Store uploads in the public directory
+      const uploadDir = path.join(process.cwd(), 'client', 'public', 'uploads');
       console.log('Upload directory:', uploadDir);
 
       if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });
+        // Ensure directory has proper permissions
+        fs.chmodSync(uploadDir, 0o755);
       }
       cb(null, uploadDir);
     },
@@ -54,12 +56,14 @@ export function registerRoutes(app: Express): Server {
   setupAuth(app);
 
   // Create uploads directory if it doesn't exist
-  const uploadDir = path.resolve(process.cwd(), 'client', 'public', 'uploads');
+  const uploadDir = path.join(process.cwd(), 'client', 'public', 'uploads');
   console.log('Initializing upload directory:', uploadDir);
 
   if (!fs.existsSync(uploadDir)) {
     console.log('Creating upload directory');
     fs.mkdirSync(uploadDir, { recursive: true });
+    // Ensure directory has proper permissions
+    fs.chmodSync(uploadDir, 0o755);
   }
 
   // File upload endpoint with better error handling
@@ -71,17 +75,26 @@ export function registerRoutes(app: Express): Server {
       return res.status(400).json({ error: "No file uploaded" });
     }
 
-    console.log('File uploaded successfully:', {
-      filename: req.file.filename,
-      path: req.file.path,
-      mimetype: req.file.mimetype,
-      size: req.file.size
-    });
+    try {
+      // Ensure the uploaded file has proper permissions
+      fs.chmodSync(req.file.path, 0o644);
 
-    // Return a URL relative to the client public directory
-    const fileUrl = `/uploads/${req.file.filename}`;
-    console.log('Generated file URL:', fileUrl);
-    res.json({ url: fileUrl });
+      console.log('File uploaded successfully:', {
+        filename: req.file.filename,
+        path: req.file.path,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        permissions: fs.statSync(req.file.path).mode
+      });
+
+      // Return a URL relative to the public directory
+      const fileUrl = `/uploads/${req.file.filename}`;
+      console.log('Generated file URL:', fileUrl);
+      res.json({ url: fileUrl });
+    } catch (error) {
+      console.error('Error during file upload:', error);
+      res.status(500).json({ error: 'Failed to process uploaded file' });
+    }
   });
 
   // Chat rooms

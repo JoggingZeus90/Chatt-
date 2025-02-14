@@ -13,11 +13,11 @@ export function MessageBubble({ message }: { message: MessageWithUser }) {
   const [imageLoading, setImageLoading] = useState(true);
   const imgRef = useRef<HTMLImageElement>(null);
 
-  // Ensure we have a full URL for the media
+  // Create an absolute URL for the media
   const mediaUrl = message.mediaUrl 
     ? message.mediaUrl.startsWith('http') 
       ? message.mediaUrl 
-      : message.mediaUrl // Now the URL is relative to the client public directory
+      : window.location.origin + message.mediaUrl // Ensure we have an absolute URL
     : null;
 
   useEffect(() => {
@@ -28,6 +28,7 @@ export function MessageBubble({ message }: { message: MessageWithUser }) {
 
       console.log('Loading image:', {
         url: mediaUrl,
+        originalUrl: message.mediaUrl,
         timestamp: new Date().toISOString(),
         element: imgRef.current ? {
           complete: imgRef.current.complete,
@@ -37,7 +38,7 @@ export function MessageBubble({ message }: { message: MessageWithUser }) {
         } : null
       });
     }
-  }, [mediaUrl]);
+  }, [mediaUrl, message.mediaUrl]);
 
   return (
     <div
@@ -84,9 +85,9 @@ export function MessageBubble({ message }: { message: MessageWithUser }) {
               onError={(e) => {
                 console.error("Failed to load image:", {
                   url: mediaUrl,
+                  originalUrl: message.mediaUrl,
                   error: e,
                   timestamp: new Date().toISOString(),
-                  target: e.target,
                   currentTarget: {
                     src: (e.currentTarget as HTMLImageElement).src,
                     complete: (e.currentTarget as HTMLImageElement).complete,
@@ -101,6 +102,7 @@ export function MessageBubble({ message }: { message: MessageWithUser }) {
                 const img = e.target as HTMLImageElement;
                 console.log("Image loaded successfully:", {
                   url: mediaUrl,
+                  originalUrl: message.mediaUrl,
                   timestamp: new Date().toISOString(),
                   element: {
                     complete: img.complete,
