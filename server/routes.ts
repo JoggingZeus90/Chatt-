@@ -5,8 +5,39 @@ import { storage } from "./storage";
 import { insertRoomSchema, insertMessageSchema, updateUserSchema } from "@shared/schema";
 import { scrypt, timingSafeEqual } from "crypto";
 import { promisify } from "util";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+import express from 'express';
 
 const scryptAsync = promisify(scrypt);
+
+// Configure multer for handling file uploads
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: function (req, file, cb) {
+      const uploadDir = path.join(process.cwd(), 'uploads');
+      // Create uploads directory if it doesn't exist
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      cb(null, uploadDir);
+    },
+    filename: function (req, file, cb) {
+      // Generate unique filename
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      cb(null, uniqueSuffix + path.extname(file.originalname));
+    }
+  }),
+  fileFilter: function (req, file, cb) {
+    // Accept images and videos only
+    if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
+      cb(null, true);
+    } else {
+      cb(null, false);
+    }
+  }
+});
 
 async function comparePasswords(supplied: string, stored: string) {
   const [hashed, salt] = stored.split(".");
@@ -17,6 +48,20 @@ async function comparePasswords(supplied: string, stored: string) {
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
+
+  // File upload endpoint
+  app.post("/api/upload", upload.single('file'), (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
+    // Return the URL for the uploaded file
+    const fileUrl = `/uploads/${req.file.filename}`;
+    res.json({ url: fileUrl });
+  });
+
+  // Serve uploaded files
+  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
   // Chat rooms
   app.get("/api/rooms", async (req, res) => {
