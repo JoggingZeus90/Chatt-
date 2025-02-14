@@ -14,6 +14,7 @@ import { drizzle } from 'drizzle-orm/neon-serverless';
 import { eq } from 'drizzle-orm';
 import * as schema from "@shared/schema";
 import { pool } from './db';
+import passport from 'passport'; // Import passport
 
 const scryptAsync = promisify(scrypt);
 
@@ -474,6 +475,29 @@ export function registerRoutes(app: Express): Server {
       res.status(500).send("Internal server error");
     }
   });
+
+  app.post("/api/login", (req, res, next) => {
+    console.log('Login attempt for username:', req.body.username);
+    passport.authenticate("local", (err, user, info) => {
+      if (err) {
+        console.error('Authentication error:', err);
+        return next(err);
+      }
+      if (!user) {
+        console.log('Authentication failed:', info?.message || 'Invalid credentials');
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      req.login(user, (err) => {
+        if (err) {
+          console.error('Login error:', err);
+          return next(err);
+        }
+        console.log('User successfully authenticated:', user.username);
+        res.json(user);
+      });
+    })(req, res, next);
+  });
+
 
   const httpServer = createServer(app);
   return httpServer;
