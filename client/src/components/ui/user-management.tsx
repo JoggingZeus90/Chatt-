@@ -28,7 +28,6 @@ import { Loader2 } from "lucide-react";
 export function UserManagement() {
   const { user: currentUser, isAdmin, isModerator } = useAuth();
   const { toast } = useToast();
-  const [selectedRole, setSelectedRole] = useState<string>();
   const [suspensionReason, setSuspensionReason] = useState("");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [muteReason, setMuteReason] = useState("");
@@ -190,6 +189,24 @@ export function UserManagement() {
   }
 
   const UserCard = ({ user, showRoleSelect = true }: { user: User; showRoleSelect?: boolean }) => {
+    const [selectedRole, setSelectedRole] = useState(user.role);
+    const [isChangingRole, setIsChangingRole] = useState(false);
+
+    const handleRoleChange = (newRole: string) => {
+      setSelectedRole(newRole);
+      setIsChangingRole(true);
+    };
+
+    const handleRoleUpdate = () => {
+      if (selectedRole && selectedRole !== user.role) {
+        updateRoleMutation.mutate({
+          userId: user.id,
+          role: selectedRole,
+        });
+      }
+      setIsChangingRole(false);
+    };
+
     return (
       <div className="flex items-center justify-between p-4 border rounded-lg">
         <div>
@@ -207,7 +224,7 @@ export function UserManagement() {
         </div>
         {isAdmin && showRoleSelect && user.id !== currentUser?.id && (
           <div className="flex items-center gap-2">
-            <Select onValueChange={(value) => setSelectedRole(value)} defaultValue={user.role}>
+            <Select value={selectedRole} onValueChange={handleRoleChange}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Select role" />
               </SelectTrigger>
@@ -219,20 +236,18 @@ export function UserManagement() {
                 ))}
               </SelectContent>
             </Select>
-            <Button
-              variant="outline"
-              onClick={() => {
-                if (selectedRole) {
-                  updateRoleMutation.mutate({
-                    userId: user.id,
-                    role: selectedRole,
-                  });
-                }
-              }}
-              disabled={updateRoleMutation.isPending}
-            >
-              Update Role
-            </Button>
+            {isChangingRole && (
+              <Button
+                variant="outline"
+                onClick={handleRoleUpdate}
+                disabled={updateRoleMutation.isPending}
+              >
+                {updateRoleMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : null}
+                Update Role
+              </Button>
+            )}
             {!user.muted ? (
               <Dialog open={muteDialogOpen && selectedMuteUser?.id === user.id} onOpenChange={setMuteDialogOpen}>
                 <DialogTrigger asChild>
