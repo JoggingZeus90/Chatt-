@@ -139,18 +139,6 @@ export default function SettingsPage() {
           Back to Chat
         </Link>
 
-        {/* User Management Section (Admin only) */}
-        {isAdmin && (
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle>User Management</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <UserManagement />
-            </CardContent>
-          </Card>
-        )}
-
         <Card className="mb-8">
           <CardHeader>
             <CardTitle>Appearance</CardTitle>
@@ -168,7 +156,7 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="mb-8">
           <CardHeader>
             <CardTitle>Profile Settings</CardTitle>
           </CardHeader>
@@ -303,6 +291,18 @@ export default function SettingsPage() {
             </Form>
           </CardContent>
         </Card>
+
+        {/* User Management Section (Admin only) - Moved to bottom */}
+        {isAdmin && (
+          <Card>
+            <CardHeader>
+              <CardTitle>User Management</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <UserManagement />
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
