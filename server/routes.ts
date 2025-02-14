@@ -62,7 +62,7 @@ export function registerRoutes(app: Express): Server {
     fs.mkdirSync(uploadDir, { recursive: true });
   }
 
-  // Serve static files from uploads directory with debugging
+  // Serve static files from uploads directory with debugging and streaming
   app.use('/uploads', (req, res, next) => {
     console.log('Static file request:', req.url);
     const filePath = path.join(uploadDir, req.url);
@@ -74,39 +74,55 @@ export function registerRoutes(app: Express): Server {
       return res.status(404).send('File not found');
     }
 
-    // Set appropriate headers
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Cache-Control', 'no-cache');
+    try {
+      // Get file stats
+      const stat = fs.statSync(filePath);
 
-    // Set content type based on file extension
-    const ext = path.extname(filePath).toLowerCase();
-    switch (ext) {
-      case '.png':
-        res.setHeader('Content-Type', 'image/png');
-        break;
-      case '.jpg':
-      case '.jpeg':
-        res.setHeader('Content-Type', 'image/jpeg');
-        break;
-      case '.gif':
-        res.setHeader('Content-Type', 'image/gif');
-        break;
-      case '.mp4':
-        res.setHeader('Content-Type', 'video/mp4');
-        break;
-      case '.webm':
-        res.setHeader('Content-Type', 'video/webm');
-        break;
+      // Set appropriate headers
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Cache-Control', 'no-cache');
+
+      // Set content type based on file extension
+      const ext = path.extname(filePath).toLowerCase();
+      switch (ext) {
+        case '.png':
+          res.setHeader('Content-Type', 'image/png');
+          break;
+        case '.jpg':
+        case '.jpeg':
+          res.setHeader('Content-Type', 'image/jpeg');
+          break;
+        case '.gif':
+          res.setHeader('Content-Type', 'image/gif');
+          break;
+        case '.mp4':
+          res.setHeader('Content-Type', 'video/mp4');
+          break;
+        case '.webm':
+          res.setHeader('Content-Type', 'video/webm');
+          break;
+      }
+
+      // Stream the file
+      const stream = fs.createReadStream(filePath);
+      console.log('Starting file stream for:', filePath);
+
+      stream.on('error', (error) => {
+        console.error('Stream error:', error);
+        res.status(500).send('Error streaming file');
+      });
+
+      stream.on('end', () => {
+        console.log('Successfully streamed file:', filePath);
+      });
+
+      stream.pipe(res);
+    } catch (error) {
+      console.error('Error serving file:', error);
+      res.status(500).send('Error serving file');
     }
-
-    next();
-  }, express.static(uploadDir));
-
-  // Error handling middleware for static files
-  app.use((err: any, req: any, res: any, next: any) => {
-    console.error('Error serving static file:', err);
-    res.status(500).send('Error serving file: ' + err.message);
   });
+
 
   // File upload endpoint
   app.post("/api/upload", upload.single('file'), (req, res) => {
@@ -295,9 +311,9 @@ export function registerRoutes(app: Express): Server {
   return httpServer;
 }
 
-async function comparePasswords(password: string, hash: string):Promise<boolean>{
-    const scryptAsync = promisify(scrypt);
-    const hashBuffer = Buffer.from(hash, 'hex');
-    const newHash = await scryptAsync(password, 'salt', 64);
-    return timingSafeEqual(newHash, hashBuffer);
+async function comparePasswords(password: string, hash: string): Promise<boolean> {
+  const scryptAsync = promisify(scrypt);
+  const hashBuffer = Buffer.from(hash, 'hex');
+  const newHash = await scryptAsync(password, 'salt', 64);
+  return timingSafeEqual(newHash, hashBuffer);
 }

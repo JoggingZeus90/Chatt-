@@ -3,27 +3,32 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { format } from "date-fns";
 import { UserStatus } from "./user-status";
-import { useState } from "react";
-import { AlertCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { AlertCircle, Loader2 } from "lucide-react";
 
 export function MessageBubble({ message }: { message: MessageWithUser }) {
   const { user } = useAuth();
   const isOwn = message.userId === user?.id;
   const [imageError, setImageError] = useState(false);
+  const [imageLoading, setImageLoading] = useState(true);
 
   // Ensure we have a full URL for the media
   const mediaUrl = message.mediaUrl 
     ? message.mediaUrl.startsWith('http') 
       ? message.mediaUrl 
-      : `${window.location.origin}${message.mediaUrl}`
+      : window.location.origin + message.mediaUrl
     : null;
 
-  console.log('Message media info:', {
-    originalUrl: message.mediaUrl,
-    processedUrl: mediaUrl,
-    mediaType: message.mediaType,
-    imageError
-  });
+  useEffect(() => {
+    if (mediaUrl) {
+      console.log('Attempting to load image:', {
+        originalUrl: message.mediaUrl,
+        processedUrl: mediaUrl,
+        mediaType: message.mediaType,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }, [mediaUrl, message.mediaUrl, message.mediaType]);
 
   return (
     <div
@@ -56,17 +61,31 @@ export function MessageBubble({ message }: { message: MessageWithUser }) {
           </span>
         </div>
         {mediaUrl && message.mediaType === "image" && !imageError && (
-          <div className="mt-2">
+          <div className="mt-2 relative">
+            {imageLoading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-secondary/20">
+                <Loader2 className="h-6 w-6 animate-spin" />
+              </div>
+            )}
             <img
               src={mediaUrl}
               alt="Shared image"
               className="rounded-lg max-w-full max-h-64 object-contain"
               onError={(e) => {
-                console.error("Failed to load image:", mediaUrl);
+                console.error("Failed to load image:", {
+                  url: mediaUrl,
+                  error: e,
+                  timestamp: new Date().toISOString()
+                });
                 setImageError(true);
+                setImageLoading(false);
               }}
               onLoad={() => {
-                console.log("Image loaded successfully:", mediaUrl);
+                console.log("Image loaded successfully:", {
+                  url: mediaUrl,
+                  timestamp: new Date().toISOString()
+                });
+                setImageLoading(false);
               }}
             />
           </div>
