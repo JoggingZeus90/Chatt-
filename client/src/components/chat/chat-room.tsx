@@ -39,7 +39,7 @@ const ALLOWED_FILE_TYPES = {
 } as const;
 
 const WHISPER_COMMAND = "/whisper";
-const SUS_IMAGE_URL = "https://i.kym-cdn.com/entries/icons/original/000/000/228/RAISE.jpg";
+const SUS_IMAGE_URL = "https://i.ytimg.com/vi/Mw3jK9YwOxk/maxresdefault.jpg";
 const KRATOS_IMAGE_URL = "https://ew.com/thmb/4lmLC5Ark8X7GwPpaATjk738Xao=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/god-of-war-2018-2000-408387a68b78478aaa52d04b8a99c0a0.jpg";
 
 const TEXT_COMMANDS = {
