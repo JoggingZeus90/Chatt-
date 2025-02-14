@@ -82,6 +82,8 @@ export class DatabaseStorage implements IStorage {
     return messagesWithUsers.map(row => ({
       id: row.messages.id,
       content: row.messages.content,
+      mediaUrl: row.messages.mediaUrl,
+      mediaType: row.messages.mediaType,
       roomId: row.messages.roomId,
       userId: row.messages.userId,
       createdAt: row.messages.createdAt,
@@ -92,6 +94,10 @@ export class DatabaseStorage implements IStorage {
         isOnline: row.users.isOnline,
         lastSeen: row.users.lastSeen,
         avatarUrl: row.users.avatarUrl,
+        role: row.users.role,
+        suspended: row.users.suspended,
+        suspendedAt: row.users.suspendedAt,
+        suspendedReason: row.users.suspendedReason
       }
     }));
   }
@@ -188,10 +194,10 @@ export class DatabaseStorage implements IStorage {
   async suspendUser(userId: number, reason: string): Promise<User> {
     const [user] = await db
       .update(users)
-      .set({ 
-        suspended: true, 
-        suspendedAt: new Date(), 
-        suspendedReason: reason 
+      .set({
+        suspended: true,
+        suspendedAt: new Date(),
+        suspendedReason: reason
       })
       .where(eq(users.id, userId))
       .returning();
@@ -203,10 +209,10 @@ export class DatabaseStorage implements IStorage {
   async unsuspendUser(userId: number): Promise<User> {
     const [user] = await db
       .update(users)
-      .set({ 
-        suspended: false, 
-        suspendedAt: null, 
-        suspendedReason: null 
+      .set({
+        suspended: false,
+        suspendedAt: null,
+        suspendedReason: null
       })
       .where(eq(users.id, userId))
       .returning();

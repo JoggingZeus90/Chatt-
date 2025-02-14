@@ -196,6 +196,10 @@ export function registerRoutes(app: Express): Server {
           isOnline: messageWithUser.users.isOnline,
           lastSeen: messageWithUser.users.lastSeen,
           avatarUrl: messageWithUser.users.avatarUrl,
+          role: messageWithUser.users.role,
+          suspended: messageWithUser.users.suspended,
+          suspendedAt: messageWithUser.users.suspendedAt,
+          suspendedReason: messageWithUser.users.suspendedReason
         }
       };
 
