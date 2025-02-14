@@ -7,6 +7,8 @@ import { Room, MessageWithUser } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Send, Loader2 } from "lucide-react";
 
+const MAX_MESSAGE_LENGTH = 100;
+
 export default function ChatRoom({ room }: { room: Room }) {
   const [message, setMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -46,6 +48,13 @@ export default function ChatRoom({ room }: { room: Room }) {
     setMessage("");
   };
 
+  const handleMessageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    if (newValue.length <= MAX_MESSAGE_LENGTH) {
+      setMessage(newValue);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="border-b p-4">
@@ -63,23 +72,29 @@ export default function ChatRoom({ room }: { room: Room }) {
         )}
         <div ref={messagesEndRef} />
       </div>
-      <form onSubmit={handleSubmit} className="border-t p-4 flex gap-2">
-        <Input
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder="Type a message..."
-          disabled={sendMessageMutation.isPending}
-        />
-        <Button
-          type="submit"
-          disabled={sendMessageMutation.isPending || !message.trim()}
-        >
-          {sendMessageMutation.isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Send className="h-4 w-4" />
-          )}
-        </Button>
+      <form onSubmit={handleSubmit} className="border-t p-4 space-y-2">
+        <div className="flex gap-2">
+          <Input
+            value={message}
+            onChange={handleMessageChange}
+            placeholder="Type a message..."
+            disabled={sendMessageMutation.isPending}
+            maxLength={MAX_MESSAGE_LENGTH}
+          />
+          <Button
+            type="submit"
+            disabled={sendMessageMutation.isPending || !message.trim()}
+          >
+            {sendMessageMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
+        <div className="text-xs text-muted-foreground text-right">
+          {message.length}/{MAX_MESSAGE_LENGTH} characters
+        </div>
       </form>
     </div>
   );

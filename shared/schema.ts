@@ -52,10 +52,14 @@ export const insertRoomSchema = createInsertSchema(rooms).pick({
   name: true,
 });
 
-export const insertMessageSchema = createInsertSchema(messages).pick({
-  content: true,
-  roomId: true,
-});
+export const insertMessageSchema = createInsertSchema(messages)
+  .pick({
+    content: true,
+    roomId: true,
+  })
+  .extend({
+    content: z.string().min(1).max(100, "Message cannot exceed 100 characters"),
+  });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
