@@ -114,7 +114,7 @@ export default function ChatRoom({ room }: { room: Room }) {
 
     try {
       await sendMessageMutation.mutateAsync({
-        content: message.trim() || (mediaFile ? `Sent ${mediaFile.type.includes('image') ? 'an image' : 'a video'}` : ""),
+        content: message.trim() || "",
         mediaUrl,
         mediaType,
       });
