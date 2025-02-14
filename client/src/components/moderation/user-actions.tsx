@@ -37,6 +37,9 @@ export function UserActions({ userId, username, onClose }: UserActionsProps) {
         title: "User muted",
         description: `${username} has been muted for ${muteDuration} minutes.`,
       });
+      // Reset form state
+      setMuteDuration("");
+      setMuteReason("");
       onClose();
     },
     onError: (error: Error) => {
@@ -65,6 +68,8 @@ export function UserActions({ userId, username, onClose }: UserActionsProps) {
         title: "User suspended",
         description: `${username} has been suspended.`,
       });
+      // Reset form state
+      setSuspendReason("");
       onClose();
     },
     onError: (error: Error) => {
@@ -76,7 +81,7 @@ export function UserActions({ userId, username, onClose }: UserActionsProps) {
     },
   });
 
-  const handleMute = (e: React.FormEvent) => {
+  const handleMute = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!muteDuration || !muteReason) {
       toast({
@@ -86,10 +91,10 @@ export function UserActions({ userId, username, onClose }: UserActionsProps) {
       });
       return;
     }
-    muteMutation.mutate();
+    await muteMutation.mutateAsync();
   };
 
-  const handleSuspend = (e: React.FormEvent) => {
+  const handleSuspend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!suspendReason) {
       toast({
@@ -99,7 +104,7 @@ export function UserActions({ userId, username, onClose }: UserActionsProps) {
       });
       return;
     }
-    suspendMutation.mutate();
+    await suspendMutation.mutateAsync();
   };
 
   return (
@@ -113,11 +118,13 @@ export function UserActions({ userId, username, onClose }: UserActionsProps) {
             value={muteDuration}
             onChange={(e) => setMuteDuration(e.target.value)}
             min="1"
+            disabled={muteMutation.isPending}
           />
           <Textarea
             placeholder="Reason for muting"
             value={muteReason}
             onChange={(e) => setMuteReason(e.target.value)}
+            disabled={muteMutation.isPending}
           />
         </div>
         <Button
@@ -138,6 +145,7 @@ export function UserActions({ userId, username, onClose }: UserActionsProps) {
             placeholder="Reason for suspension"
             value={suspendReason}
             onChange={(e) => setSuspendReason(e.target.value)}
+            disabled={suspendMutation.isPending}
           />
         </div>
         <Button
