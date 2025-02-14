@@ -11,6 +11,7 @@ export function ProtectedRoute({
 }) {
   const { user, isLoading } = useAuth();
 
+  // Check for loading state
   if (isLoading) {
     return (
       <Route path={path}>
@@ -21,10 +22,24 @@ export function ProtectedRoute({
     );
   }
 
+  // If not logged in or suspended, redirect to auth page
   if (!user) {
     return (
       <Route path={path}>
         <Redirect to="/auth" />
+      </Route>
+    );
+  }
+
+  // Add event listener to prevent back navigation for suspended users
+  if (user.suspended) {
+    window.history.pushState(null, '', '/auth');
+    window.addEventListener('popstate', () => {
+      window.history.pushState(null, '', '/auth');
+    });
+    return (
+      <Route path={path}>
+        <Redirect to={`/auth?suspended=true&reason=${encodeURIComponent(user.suspendedReason || '')}`} />
       </Route>
     );
   }

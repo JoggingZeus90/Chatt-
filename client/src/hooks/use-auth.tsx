@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext } from "react";
+import { createContext, ReactNode, useContext, useEffect } from "react";
 import {
   useQuery,
   useMutation,
@@ -39,6 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             variant: "destructive",
           });
           queryClient.setQueryData(["/api/user"], null);
+          window.history.pushState(null, '', '/auth');
           return undefined;
         }
         if (!res.ok) {
@@ -51,7 +52,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw error;
       }
     },
+    refetchInterval: 30000, // Check suspension status every 30 seconds
   });
+
+  // Add effect to prevent suspended users from navigating back
+  useEffect(() => {
+    if (user?.suspended) {
+      window.history.pushState(null, '', '/auth');
+      const handlePopState = () => {
+        window.history.pushState(null, '', '/auth');
+      };
+      window.addEventListener('popstate', handlePopState);
+      return () => {
+        window.removeEventListener('popstate', handlePopState);
+      };
+    }
+  }, [user?.suspended]);
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
@@ -63,7 +79,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return await res.json();
     },
     onSuccess: (user: SelectUser) => {
-      queryClient.setQueryData(["/api/user"], user);
+      if (user.suspended) {
+        toast({
+          title: "Account Suspended",
+          description: `Your account has been suspended. Reason: ${user.suspendedReason}`,
+          variant: "destructive",
+        });
+        queryClient.setQueryData(["/api/user"], null);
+      } else {
+        queryClient.setQueryData(["/api/user"], user);
+      }
     },
     onError: (error: Error) => {
       toast({
