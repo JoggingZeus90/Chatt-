@@ -103,7 +103,10 @@ export function MessageBubble({ message, roomId }: { message: MessageWithUser; r
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute -right-10 top-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                className={cn(
+                  "absolute top-0 opacity-0 group-hover:opacity-100 transition-opacity",
+                  isOwn ? "-left-10" : "-right-10"
+                )}
               >
                 <Trash2 className="h-4 w-4 text-destructive" />
               </Button>
