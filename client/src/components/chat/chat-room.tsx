@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Room, MessageWithUser } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Send, Loader2, Image, X, ArrowDown } from "lucide-react";
+import { Send, Loader2, Image, X, ArrowDown, Pencil, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 
 const MAX_MESSAGE_LENGTH = 100;
 const ALLOWED_FILE_TYPES = {
@@ -18,14 +19,19 @@ const ALLOWED_FILE_TYPES = {
 } as const;
 
 export default function ChatRoom({ room }: { room: Room }) {
+  const { user } = useAuth();
   const [message, setMessage] = useState("");
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreviewUrl, setMediaPreviewUrl] = useState<string | null>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [newRoomName, setNewRoomName] = useState(room.name);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  const isOwner = user?.id === room.createdById;
 
   const { data: messages, isLoading } = useQuery<MessageWithUser[]>({
     queryKey: [`/api/rooms/${room.id}/messages`],
@@ -60,6 +66,32 @@ export default function ChatRoom({ room }: { room: Room }) {
     onError: (error: Error) => {
       toast({
         title: "Failed to send message",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateRoomNameMutation = useMutation({
+    mutationFn: async (name: string) => {
+      const res = await apiRequest("PATCH", `/api/rooms/${room.id}`, { name });
+      if (!res.ok) {
+        const error = await res.text();
+        throw new Error(error);
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
+      setIsEditingName(false);
+      toast({
+        title: "Room name updated",
+        description: "The room name has been successfully updated.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update room name",
         description: error.message,
         variant: "destructive",
       });
@@ -104,8 +136,6 @@ export default function ChatRoom({ room }: { room: Room }) {
       formData.append("file", mediaFile);
 
       try {
-        console.log('Uploading file:', mediaFile.name, 'Type:', mediaFile.type);
-
         const uploadRes = await fetch("/api/upload", {
           method: "POST",
           body: formData,
@@ -113,12 +143,10 @@ export default function ChatRoom({ room }: { room: Room }) {
 
         if (!uploadRes.ok) {
           const errorText = await uploadRes.text();
-          console.error('Upload response error:', errorText);
           throw new Error("Upload failed: " + errorText);
         }
 
         const data = await uploadRes.json();
-        console.log('Upload response:', data);
 
         if (!data.url) {
           throw new Error("No URL returned from server");
@@ -126,10 +154,7 @@ export default function ChatRoom({ room }: { room: Room }) {
 
         uploadedMediaUrl = data.url;
         uploadedMediaType = ALLOWED_FILE_TYPES[mediaFile.type as keyof typeof ALLOWED_FILE_TYPES];
-
-        console.log('Processed upload:', { uploadedMediaUrl, uploadedMediaType });
       } catch (error) {
-        console.error("Upload error:", error);
         toast({
           title: "Failed to upload file",
           description: error instanceof Error ? error.message : "Failed to upload media",
@@ -140,15 +165,12 @@ export default function ChatRoom({ room }: { room: Room }) {
     }
 
     try {
-      const sentMessage = await sendMessageMutation.mutateAsync({
+      await sendMessageMutation.mutateAsync({
         content: message.trim(),
         mediaUrl: uploadedMediaUrl,
         mediaType: uploadedMediaType,
       });
-
-      console.log('Message sent successfully:', sentMessage);
     } catch (error) {
-      console.error("Send message error:", error);
       toast({
         title: "Failed to send message",
         description: error instanceof Error ? error.message : "Failed to send message",
@@ -190,13 +212,71 @@ export default function ChatRoom({ room }: { room: Room }) {
     }
   };
 
+  const handleUpdateRoomName = () => {
+    if (newRoomName.trim() && newRoomName !== room.name) {
+      updateRoomNameMutation.mutate(newRoomName);
+    } else {
+      setIsEditingName(false);
+      setNewRoomName(room.name);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
-      <div className="border-b p-4">
-        <h2 className="font-semibold">{room.name}</h2>
+      <div className="border-b p-4 flex items-center justify-between">
+        {isEditingName ? (
+          <div className="flex items-center gap-2 flex-1">
+            <Input
+              value={newRoomName}
+              onChange={(e) => setNewRoomName(e.target.value)}
+              className="max-w-md"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleUpdateRoomName();
+                } else if (e.key === "Escape") {
+                  setIsEditingName(false);
+                  setNewRoomName(room.name);
+                }
+              }}
+            />
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={handleUpdateRoomName}
+              disabled={updateRoomNameMutation.isPending}
+            >
+              <Check className="h-4 w-4" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => {
+                setIsEditingName(false);
+                setNewRoomName(room.name);
+              }}
+              disabled={updateRoomNameMutation.isPending}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <h2 className="font-semibold">{room.name}</h2>
+            {isOwner && (
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => setIsEditingName(true)}
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        )}
       </div>
-      <div 
-        className="flex-1 overflow-auto p-4 relative" 
+      <div
+        className="flex-1 overflow-auto p-4 relative"
         ref={messagesContainerRef}
       >
         {isLoading ? (

@@ -431,6 +431,45 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Add room name update endpoint
+  app.patch("/api/rooms/:roomId", async (req, res) => {
+    console.log(`PATCH request received for ${req.url}`);
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const roomId = parseInt(req.params.roomId);
+      const { name } = req.body;
+
+      if (!name || typeof name !== "string") {
+        return res.status(400).send("Room name is required");
+      }
+
+      const [room] = await db
+        .select()
+        .from(schema.rooms)
+        .where(eq(schema.rooms.id, roomId));
+
+      if (!room) {
+        return res.status(404).send("Room not found");
+      }
+
+      if (room.createdById !== req.user.id) {
+        return res.status(403).send("Only room creator can update the room name");
+      }
+
+      const [updatedRoom] = await db
+        .update(schema.rooms)
+        .set({ name })
+        .where(eq(schema.rooms.id, roomId))
+        .returning();
+
+      res.json(updatedRoom);
+    } catch (error) {
+      console.error("Error updating room:", error);
+      res.status(500).send("Internal server error");
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
