@@ -219,6 +219,31 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Edit message (only owner can edit)
+  app.patch("/api/messages/:messageId", async (req, res) => {
+    console.log(`PATCH request received for ${req.url}`);
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const messageId = parseInt(req.params.messageId);
+      const { content } = req.body;
+
+      if (!content || typeof content !== "string") {
+        return res.status(400).send("Content is required");
+      }
+
+      const updatedMessage = await storage.updateMessage(messageId, req.user.id, content);
+      res.json(updatedMessage);
+    } catch (error) {
+      if (error instanceof Error && error.message === "Unauthorized") {
+        res.status(403).send("Not authorized to edit this message");
+      } else {
+        console.error("Error updating message:", error);
+        res.status(500).send("Internal server error");
+      }
+    }
+  });
+
   // Delete room (only by creator)
   app.delete("/api/rooms/:roomId", async (req, res) => {
     console.log(`DELETE request received for ${req.url}`); // Added request logging

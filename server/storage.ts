@@ -246,6 +246,29 @@ export class DatabaseStorage implements IStorage {
       throw new Error("Unauthorized");
     }
   }
+
+  async updateMessage(messageId: number, userId: number, content: string): Promise<Message> {
+    const [message] = await db
+      .select()
+      .from(messages)
+      .where(eq(messages.id, messageId));
+
+    if (!message) {
+      throw new Error("Message not found");
+    }
+
+    if (message.userId !== userId) {
+      throw new Error("Unauthorized");
+    }
+
+    const [updatedMessage] = await db
+      .update(messages)
+      .set({ content })
+      .where(eq(messages.id, messageId))
+      .returning();
+
+    return updatedMessage;
+  }
 }
 
 export const storage = new DatabaseStorage();
