@@ -3,10 +3,12 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { format } from "date-fns";
 import { UserStatus } from "./user-status";
+import { useState } from "react";
 
 export function MessageBubble({ message }: { message: MessageWithUser }) {
   const { user } = useAuth();
   const isOwn = message.userId === user?.id;
+  const [imageError, setImageError] = useState(false);
 
   return (
     <div
@@ -38,21 +40,18 @@ export function MessageBubble({ message }: { message: MessageWithUser }) {
             {format(new Date(message.createdAt), "HH:mm")}
           </span>
         </div>
-        {message.mediaUrl && (
+        {message.mediaUrl && message.mediaType === "image" && !imageError && (
           <div className="mt-2">
-            {message.mediaType === "image" ? (
-              <img
-                src={message.mediaUrl}
-                alt="Shared image"
-                className="rounded-lg max-w-full max-h-64 object-contain"
-              />
-            ) : message.mediaType === "video" ? (
-              <video
-                src={message.mediaUrl}
-                controls
-                className="rounded-lg max-w-full max-h-64"
-              />
-            ) : null}
+            <img
+              src={message.mediaUrl}
+              alt="Shared image"
+              className="rounded-lg max-w-full max-h-64 object-contain"
+              onError={(e) => {
+                console.error("Failed to load image:", message.mediaUrl);
+                setImageError(true);
+                e.currentTarget.style.display = 'none';
+              }}
+            />
           </div>
         )}
         {message.content && <p className="mt-1">{message.content}</p>}

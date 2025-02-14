@@ -96,7 +96,11 @@ export default function ChatRoom({ room }: { room: Room }) {
 
         mediaUrl = url;
         mediaType = ALLOWED_FILE_TYPES[mediaFile.type as keyof typeof ALLOWED_FILE_TYPES];
+
+        // Log the upload response for debugging
+        console.log("Upload successful:", { url, mediaType });
       } catch (error) {
+        console.error("Upload error:", error);
         toast({
           title: "Failed to upload file",
           description: error instanceof Error ? error.message : "Failed to upload media",
@@ -113,6 +117,7 @@ export default function ChatRoom({ room }: { room: Room }) {
         mediaType,
       });
     } catch (error) {
+      console.error("Send message error:", error);
       toast({
         title: "Failed to send message",
         description: error instanceof Error ? error.message : "Failed to send message",

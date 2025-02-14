@@ -66,8 +66,8 @@ export function registerRoutes(app: Express): Server {
       return res.status(400).json({ error: "No file uploaded" });
     }
 
-    // Return the URL for the uploaded file
-    const fileUrl = `/uploads/${req.file.filename}`;
+    // Return the absolute URL for the uploaded file
+    const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
     res.json({ url: fileUrl });
   });
 
