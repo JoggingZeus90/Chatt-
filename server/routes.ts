@@ -2,13 +2,14 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { insertRoomSchema, insertMessageSchema, updateUserSchema } from "@shared/schema";
+import { insertRoomSchema, insertMessageSchema, updateUserSchema, UserRole } from "@shared/schema";
 import { scrypt, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
 import express from 'express';
+import { requireRole } from "./auth";
 
 const scryptAsync = promisify(scrypt);
 
@@ -297,6 +298,52 @@ export function registerRoutes(app: Express): Server {
       if (err) return res.status(500).send("Error during logout");
       res.sendStatus(200);
     });
+  });
+
+  // Moderator routes
+  app.get("/api/users", requireRole(UserRole.MODERATOR), async (req, res) => {
+    const users = await storage.getUsers();
+    res.json(users);
+  });
+
+  // Moderation actions (available to moderators and admins)
+  app.post("/api/users/:userId/mute", requireRole(UserRole.MODERATOR), async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const duration = req.body.duration; // Duration in minutes
+      await storage.muteUser(userId, duration);
+      res.sendStatus(200);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to mute user" });
+    }
+  });
+
+  app.post("/api/users/:userId/unmute", requireRole(UserRole.MODERATOR), async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      await storage.unmuteUser(userId);
+      res.sendStatus(200);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to unmute user" });
+    }
+  });
+
+  // Admin-only routes
+  app.patch("/api/users/:userId/role", requireRole(UserRole.ADMIN), async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const newRole = req.body.role;
+
+      // Validate the role
+      if (!Object.values(UserRole).includes(newRole)) {
+        return res.status(400).json({ message: "Invalid role" });
+      }
+
+      await storage.updateUserRole(userId, newRole);
+      res.sendStatus(200);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update user role" });
+    }
   });
 
   const httpServer = createServer(app);

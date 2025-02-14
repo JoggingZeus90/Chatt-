@@ -2,6 +2,14 @@ import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+export const UserRole = {
+  USER: 'user',
+  MODERATOR: 'moderator',
+  ADMIN: 'admin',
+} as const;
+
+export type UserRoleType = typeof UserRole[keyof typeof UserRole];
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
@@ -9,7 +17,21 @@ export const users = pgTable("users", {
   isOnline: boolean("is_online").notNull().default(false),
   lastSeen: timestamp("last_seen").notNull().defaultNow(),
   avatarUrl: text("avatar_url"),
+  role: text("role").notNull().default(UserRole.USER),
 });
+
+export const insertUserSchema = createInsertSchema(users)
+  .pick({
+    username: true,
+    password: true,
+  })
+  .extend({
+    username: z.string().min(3, "Username must be at least 3 characters"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
+    consent: z.boolean().refine((val) => val === true, {
+      message: "You must consent to the data sharing to create an account"
+    })
+  });
 
 export const rooms = pgTable("rooms", {
   id: serial("id").primaryKey(),
@@ -44,19 +66,6 @@ export const roomMembers = pgTable("room_members", {
     .notNull(),
   joinedAt: timestamp("joined_at").notNull().defaultNow(),
 });
-
-export const insertUserSchema = createInsertSchema(users)
-  .pick({
-    username: true,
-    password: true,
-  })
-  .extend({
-    username: z.string().min(3, "Username must be at least 3 characters"),
-    password: z.string().min(6, "Password must be at least 6 characters"),
-    consent: z.boolean().refine((val) => val === true, {
-      message: "You must consent to the data sharing to create an account"
-    })
-  });
 
 export const insertRoomSchema = createInsertSchema(rooms).pick({
   name: true,

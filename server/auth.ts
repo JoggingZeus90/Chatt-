@@ -1,11 +1,11 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { Express } from "express";
+import { Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
-import { User as SelectUser } from "@shared/schema";
+import { User as SelectUser, UserRole, UserRoleType } from "@shared/schema";
 
 declare global {
   namespace Express {
@@ -26,6 +26,28 @@ async function comparePasswords(supplied: string, stored: string) {
   const hashedBuf = Buffer.from(hashed, "hex");
   const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
   return timingSafeEqual(hashedBuf, suppliedBuf);
+}
+
+// Role-based middleware
+export function requireRole(role: UserRoleType) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const userRole = req.user.role;
+
+    if (role === UserRole.ADMIN && userRole !== UserRole.ADMIN) {
+      return res.status(403).json({ message: "Admin access required" });
+    }
+
+    if (role === UserRole.MODERATOR && 
+        ![UserRole.ADMIN, UserRole.MODERATOR].includes(userRole as UserRoleType)) {
+      return res.status(403).json({ message: "Moderator access required" });
+    }
+
+    next();
+  };
 }
 
 export function setupAuth(app: Express) {
@@ -70,6 +92,7 @@ export function setupAuth(app: Express) {
     const user = await storage.createUser({
       ...req.body,
       password: await hashPassword(req.body.password),
+      role: UserRole.USER, // Default role for new users
     });
 
     req.login(user, (err) => {

@@ -4,7 +4,7 @@ import {
   useMutation,
   UseMutationResult,
 } from "@tanstack/react-query";
-import { insertUserSchema, User as SelectUser, InsertUser } from "@shared/schema";
+import { insertUserSchema, User as SelectUser, InsertUser, UserRole, UserRoleType } from "@shared/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -102,5 +102,14 @@ export function useAuth() {
   if (!context) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
-  return context;
+
+  // Add role checking helpers
+  const isAdmin = context.user?.role === UserRole.ADMIN;
+  const isModerator = context.user?.role === UserRole.MODERATOR || isAdmin;
+
+  return {
+    ...context,
+    isAdmin,
+    isModerator,
+  };
 }
