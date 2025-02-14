@@ -62,14 +62,14 @@ export const insertRoomSchema = createInsertSchema(rooms).pick({
 export const insertMessageSchema = createInsertSchema(messages)
   .pick({
     content: true,
-    roomId: true,
     mediaUrl: true,
     mediaType: true,
+    roomId: true,
   })
   .extend({
     content: z.string().min(1).max(100, "Message cannot exceed 100 characters"),
-    mediaUrl: z.string().url().optional(),
-    mediaType: z.enum(["image", "video"]).optional(),
+    mediaUrl: z.string().url().optional().nullable(),
+    mediaType: z.enum(["image", "video"]).optional().nullable(),
   });
 
 export const updateUserSchema = z.object({

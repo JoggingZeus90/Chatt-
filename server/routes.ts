@@ -49,7 +49,9 @@ export function registerRoutes(app: Express): Server {
     if (!parsed.success) return res.status(400).send(parsed.error.message);
 
     const message = await storage.createMessage({
-      ...parsed.data,
+      content: parsed.data.content,
+      mediaUrl: parsed.data.mediaUrl || null,
+      mediaType: parsed.data.mediaType || null,
       roomId: parseInt(req.params.roomId),
       userId: req.user.id,
     });
