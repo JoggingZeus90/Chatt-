@@ -57,6 +57,7 @@ export const messages = pgTable("messages", {
     .references(() => users.id)
     .notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  editedAt: timestamp("edited_at"),
 });
 
 export const roomMembers = pgTable("room_members", {

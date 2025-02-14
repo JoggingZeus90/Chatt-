@@ -263,7 +263,10 @@ export class DatabaseStorage implements IStorage {
 
     const [updatedMessage] = await db
       .update(messages)
-      .set({ content })
+      .set({ 
+        content,
+        editedAt: new Date()
+      })
       .where(eq(messages.id, messageId))
       .returning();
 

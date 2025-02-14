@@ -265,7 +265,16 @@ export function MessageBubble({ message, roomId }: { message: MessageWithUser; r
             Failed to load image
           </div>
         )}
-        {message.content && !isEditing && <p className="mt-1">{message.content}</p>}
+        {message.content && !isEditing && (
+          <div className="mt-1">
+            <p>{message.content}</p>
+            {message.editedAt && (
+              <span className="text-xs text-muted-foreground italic">
+                edited {format(new Date(message.editedAt), "HH:mm")}
+              </span>
+            )}
+          </div>
+        )}
 
         {isEditing && (
           <div className="mt-1 space-y-2">
