@@ -70,7 +70,6 @@ export default function ChatPage() {
     resolver: zodResolver(insertRoomSchema),
   });
 
-  // Update online status
   useEffect(() => {
     if (!user) return;
 
@@ -249,7 +248,6 @@ export default function ChatPage() {
           ))}
         </div>
         <div className="pt-4 border-t mt-4 space-y-4">
-          {/* User Profile Section */}
           <div className="flex items-center justify-between p-2 bg-secondary/50 rounded-lg">
             <div className="flex items-center gap-2">
               <Avatar className="h-8 w-8">
@@ -259,7 +257,6 @@ export default function ChatPage() {
               <span className="font-medium text-sm">{user?.username}</span>
             </div>
           </div>
-          {/* Action Buttons */}
           <div className="flex gap-2">
             <Button
               variant="outline"
