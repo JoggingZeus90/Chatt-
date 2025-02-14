@@ -6,7 +6,7 @@ import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
 import { MessageWithUser } from "@shared/schema";
-
+import { randomBytes, scrypt as scryptAsync } from "crypto";
 
 const PostgresSessionStore = connectPg(session);
 
@@ -130,7 +130,17 @@ export class DatabaseStorage implements IStorage {
     return !!member;
   }
 
-  async updateUserProfile(userId: number, updates: { avatarUrl?: string }): Promise<User> {
+  async updateUserProfile(userId: number, updates: {
+    username?: string;
+    password?: string;
+    avatarUrl?: string;
+  }): Promise<User> {
+    if (updates.password) {
+      const salt = randomBytes(16).toString("hex");
+      const buf = (await scryptAsync(updates.password, salt, 64)) as Buffer;
+      updates.password = `${buf.toString("hex")}.${salt}`;
+    }
+
     const [user] = await db
       .update(users)
       .set(updates)
@@ -139,6 +149,23 @@ export class DatabaseStorage implements IStorage {
 
     if (!user) throw new Error("User not found");
     return user;
+  }
+
+  async deleteUser(userId: number): Promise<void> {
+    // Delete all messages by this user
+    await db.delete(messages).where(eq(messages.userId, userId));
+
+    // Leave all rooms
+    await db.delete(roomMembers).where(eq(roomMembers.userId, userId));
+
+    // Delete rooms created by this user
+    const userRooms = await db.select().from(rooms).where(eq(rooms.createdById, userId));
+    for (const room of userRooms) {
+      await this.deleteRoom(room.id, userId);
+    }
+
+    // Finally delete the user
+    await db.delete(users).where(eq(users.id, userId));
   }
 }
 

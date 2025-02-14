@@ -2,7 +2,18 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { insertRoomSchema, insertMessageSchema } from "@shared/schema";
+import { insertRoomSchema, insertMessageSchema, updateUserSchema } from "@shared/schema";
+import { scrypt, timingSafeEqual } from "crypto";
+import { promisify } from "util";
+
+const scryptAsync = promisify(scrypt);
+
+async function comparePasswords(supplied: string, stored: string) {
+  const [hashed, salt] = stored.split(".");
+  const hashedBuf = Buffer.from(hashed, "hex");
+  const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
+  return timingSafeEqual(hashedBuf, suppliedBuf);
+}
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
@@ -93,11 +104,43 @@ export function registerRoutes(app: Express): Server {
   app.patch("/api/user/profile", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
-    const user = await storage.updateUserProfile(req.user.id, {
-      avatarUrl: req.body.avatarUrl,
+    const parsed = updateUserSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).send(parsed.error.message);
+
+    const { currentPassword, newPassword, username, avatarUrl } = parsed.data;
+
+    // Verify current password
+    const user = await storage.getUser(req.user.id);
+    if (!user || !(await comparePasswords(currentPassword, user.password))) {
+      return res.status(400).send("Current password is incorrect");
+    }
+
+    // Check username availability if changing
+    if (username && username !== user.username) {
+      const existing = await storage.getUserByUsername(username);
+      if (existing) {
+        return res.status(400).send("Username is already taken");
+      }
+    }
+
+    const updatedUser = await storage.updateUserProfile(req.user.id, {
+      username,
+      password: newPassword,
+      avatarUrl,
     });
 
-    res.json(user);
+    res.json(updatedUser);
+  });
+
+  // Delete account
+  app.delete("/api/user", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    await storage.deleteUser(req.user.id);
+    req.logout((err) => {
+      if (err) return res.status(500).send("Error during logout");
+      res.sendStatus(200);
+    });
   });
 
   const httpServer = createServer(app);

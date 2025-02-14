@@ -61,6 +61,13 @@ export const insertMessageSchema = createInsertSchema(messages)
     content: z.string().min(1).max(100, "Message cannot exceed 100 characters"),
   });
 
+export const updateUserSchema = z.object({
+  username: z.string().min(1).optional(),
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(1).optional(),
+  avatarUrl: z.string().url().optional(),
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Room = typeof rooms.$inferSelect;
