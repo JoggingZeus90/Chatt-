@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Form, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { UserManagement } from "@/components/ui/user-management";
 import {
   Avatar,
   AvatarImage,
@@ -32,10 +33,10 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useTheme } from "@/hooks/use-theme";
 
 export default function SettingsPage() {
-  const { user, logoutMutation } = useAuth();
+  const { user, logoutMutation, isAdmin } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
 
   const form = useForm({
     resolver: zodResolver(updateUserSchema),
@@ -137,6 +138,18 @@ export default function SettingsPage() {
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Chat
         </Link>
+
+        {/* User Management Section (Admin only) */}
+        {isAdmin && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>User Management</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <UserManagement />
+            </CardContent>
+          </Card>
+        )}
 
         <Card className="mb-8">
           <CardHeader>

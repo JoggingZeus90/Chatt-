@@ -1,5 +1,5 @@
 import { IStorage } from "./types";
-import { users, type User, type InsertUser, rooms, type Room, messages, type Message, roomMembers, type RoomMember } from "@shared/schema";
+import { users, type User, type InsertUser, rooms, type Room, messages, type Message, roomMembers, type RoomMember, UserRole, UserRoleType } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import session from "express-session";
@@ -18,6 +18,23 @@ export class DatabaseStorage implements IStorage {
       pool,
       createTableIfMissing: true,
     });
+  }
+
+  // Add method to get all users (for moderators and admins)
+  async getUsers(): Promise<User[]> {
+    return db.select().from(users);
+  }
+
+  // Add method to update user role (admin only)
+  async updateUserRole(userId: number, newRole: UserRoleType): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ role: newRole })
+      .where(eq(users.id, userId))
+      .returning();
+
+    if (!user) throw new Error("User not found");
+    return user;
   }
 
   async getUser(id: number): Promise<User | undefined> {
