@@ -291,7 +291,7 @@ export default function ChatRoom({ room }: { room: Room }) {
         <div ref={messagesEndRef} />
         {showScrollButton && (
           <Button
-            className="fixed bottom-24 right-8 rounded-full shadow-lg"
+            className="fixed bottom-32 right-8 rounded-full shadow-lg"
             size="icon"
             onClick={scrollToBottom}
           >
