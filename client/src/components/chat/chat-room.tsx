@@ -98,7 +98,8 @@ export default function ChatRoom({ room }: { room: Room }) {
           throw new Error("No URL returned from server");
         }
 
-        mediaUrl = url;
+        // Ensure the URL is absolute
+        mediaUrl = new URL(url, window.location.origin).href;
         mediaType = ALLOWED_FILE_TYPES[mediaFile.type as keyof typeof ALLOWED_FILE_TYPES];
       } catch (error) {
         console.error("Upload error:", error);

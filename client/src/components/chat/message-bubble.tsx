@@ -10,6 +10,10 @@ export function MessageBubble({ message }: { message: MessageWithUser }) {
   const isOwn = message.userId === user?.id;
   const [imageError, setImageError] = useState(false);
 
+  const mediaUrl = message.mediaUrl 
+    ? new URL(message.mediaUrl, window.location.origin).href 
+    : null;
+
   return (
     <div
       className={cn("flex gap-2 mb-4", {
@@ -40,16 +44,15 @@ export function MessageBubble({ message }: { message: MessageWithUser }) {
             {format(new Date(message.createdAt), "HH:mm")}
           </span>
         </div>
-        {message.mediaUrl && message.mediaType === "image" && !imageError && (
+        {mediaUrl && message.mediaType === "image" && !imageError && (
           <div className="mt-2">
             <img
-              src={message.mediaUrl}
+              src={mediaUrl}
               alt="Shared image"
               className="rounded-lg max-w-full max-h-64 object-contain"
               onError={(e) => {
-                console.error("Failed to load image:", message.mediaUrl);
+                console.error("Failed to load image:", mediaUrl);
                 setImageError(true);
-                e.currentTarget.style.display = 'none';
               }}
             />
           </div>

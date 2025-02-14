@@ -29,7 +29,7 @@ const upload = multer({
       cb(null, uploadDir);
     },
     filename: function (req, file, cb) {
-      // Generate unique filename
+      // Generate unique filename with extension
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
       cb(null, uniqueSuffix + path.extname(file.originalname));
     }
@@ -47,21 +47,17 @@ const upload = multer({
   }
 });
 
-// Ensure uploads directory exists
-const uploadDir = path.join(process.cwd(), 'uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
 
-  // Serve uploaded files with proper CORS headers
-  app.use('/uploads', (req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET');
-    next();
-  }, express.static(path.join(process.cwd(), 'uploads')));
+  // Create uploads directory if it doesn't exist
+  const uploadDir = path.join(process.cwd(), 'uploads');
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+
+  // Serve static files from uploads directory
+  app.use('/uploads', express.static(uploadDir));
 
   // File upload endpoint
   app.post("/api/upload", upload.single('file'), (req, res) => {
@@ -69,17 +65,9 @@ export function registerRoutes(app: Express): Server {
       return res.status(400).json({ error: "No file uploaded" });
     }
 
-    // Return the absolute URL for the uploaded file
-    const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+    // Return the URL for the uploaded file
+    const fileUrl = `/uploads/${req.file.filename}`;
     res.json({ url: fileUrl });
-  });
-
-  // Error handling for file uploads
-  app.use((err: any, req: any, res: any, next: any) => {
-    if (err instanceof multer.MulterError || err.message === 'Invalid file type') {
-      return res.status(400).json({ error: err.message });
-    }
-    next(err);
   });
 
   // Chat rooms
