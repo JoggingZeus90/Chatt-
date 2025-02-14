@@ -43,6 +43,44 @@ const SUS_IMAGE_URL = "https://i.ytimg.com/vi/Mw3jK9YwOxk/maxresdefault.jpg";
 const KRATOS_IMAGE_URL = "https://ew.com/thmb/4lmLC5Ark8X7GwPpaATjk738Xao=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/god-of-war-2018-2000-408387a68b78478aaa52d04b8a99c0a0.jpg";
 const VINE_BOOM_URL = "https://www.myinstants.com/media/sounds/vine-boom.mp3";
 
+// Define inappropriate words to filter
+const INAPPROPRIATE_WORDS = [
+  // Common profanity
+  'damn', 'hell', 'ass', 'fuck', 'shit', 'bastard', 'bitch',
+  // Racial slurs and offensive terms - keeping the list minimal and non-explicit
+  'slur1', 'slur2', 'slur3', 'slur4', 'slur5'
+];
+
+// Function to check if a word contains inappropriate content
+function containsInappropriateWord(text: string): boolean {
+  const words = text.toLowerCase().split(/\s+/);
+  return words.some(word =>
+    INAPPROPRIATE_WORDS.some(badWord =>
+      word.includes(badWord) ||
+      // Check for common letter substitutions
+      word.replace(/[01345$@]/g, (m) => ({
+        '0': 'o',
+        '1': 'i',
+        '3': 'e',
+        '4': 'a',
+        '5': 's',
+        '$': 's',
+        '@': 'a'
+      })[m] || m).includes(badWord)
+    )
+  );
+}
+
+// Function to replace inappropriate words with hashtags
+function filterInappropriateWords(text: string): string {
+  let filteredText = text;
+  INAPPROPRIATE_WORDS.forEach(word => {
+    const regex = new RegExp(word, 'gi');
+    filteredText = filteredText.replace(regex, match => '#'.repeat(match.length));
+  });
+  return filteredText;
+}
+
 const TEXT_COMMANDS = {
   "/tableflip": "(╯°□°)╯︵ ┻━┻",
   "/unflip": "┬─┬ ノ( ゜-゜ノ)",
@@ -279,6 +317,11 @@ export default function ChatRoom({ room }: { room: Room }) {
     let uploadedMediaType: string | undefined;
     let whisperTo: string | undefined;
     let messageContent = message.trim();
+
+    // Check for inappropriate content before processing commands
+    if (containsInappropriateWord(messageContent)) {
+      messageContent = filterInappropriateWords(messageContent);
+    }
 
     // Handle text commands first
     const textCommand = TEXT_COMMANDS[messageContent as keyof typeof TEXT_COMMANDS];
