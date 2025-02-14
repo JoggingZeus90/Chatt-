@@ -32,12 +32,13 @@ export default function ChatRoom({ room }: { room: Room }) {
 
   const sendMessageMutation = useMutation({
     mutationFn: async ({ content, mediaUrl, mediaType }: { content: string; mediaUrl?: string; mediaType?: string }) => {
-      await apiRequest("POST", `/api/rooms/${room.id}/messages`, {
+      const res = await apiRequest("POST", `/api/rooms/${room.id}/messages`, {
         content,
         roomId: room.id,
         mediaUrl,
         mediaType,
       });
+      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -53,7 +54,7 @@ export default function ChatRoom({ room }: { room: Room }) {
     onError: (error: Error) => {
       toast({
         title: "Failed to send message",
-        description: error.message,
+        description: error instanceof Error ? error.message : "Failed to send message",
         variant: "destructive",
       });
     },
