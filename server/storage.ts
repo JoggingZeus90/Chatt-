@@ -89,9 +89,9 @@ export class DatabaseStorage implements IStorage {
     if (!room || room.createdById !== userId) {
       throw new Error("Unauthorized");
     }
-    await db.delete(rooms).where(eq(rooms.id, roomId));
     await db.delete(messages).where(eq(messages.roomId, roomId));
     await db.delete(roomMembers).where(eq(roomMembers.roomId, roomId));
+    await db.delete(rooms).where(eq(rooms.id, roomId));
   }
 
   async joinRoom(roomId: number, userId: number): Promise<void> {
