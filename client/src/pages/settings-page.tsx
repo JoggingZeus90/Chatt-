@@ -12,7 +12,7 @@ import {
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ArrowLeft, AlertTriangle } from "lucide-react";
+import { Loader2, ArrowLeft, AlertTriangle, Upload } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -46,6 +46,41 @@ export default function SettingsPage() {
       newPassword: "",
     },
   });
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload an image file",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const uploadRes = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!uploadRes.ok) throw new Error("Upload failed");
+
+      const { url } = await uploadRes.json();
+      form.setValue("avatarUrl", url);
+    } catch (error) {
+      toast({
+        title: "Upload failed",
+        description: error instanceof Error ? error.message : "Failed to upload image",
+        variant: "destructive",
+      });
+    }
+  };
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -134,6 +169,23 @@ export default function SettingsPage() {
                       {form.watch("username")?.[0].toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => document.getElementById('avatar-upload')?.click()}
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload Image
+                    </Button>
+                    <input
+                      id="avatar-upload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleFileUpload}
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-4">
@@ -142,7 +194,7 @@ export default function SettingsPage() {
                     name="avatarUrl"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Avatar URL</FormLabel>
+                        <FormLabel>Avatar URL (optional)</FormLabel>
                         <Input
                           type="url"
                           placeholder="https://example.com/avatar.jpg"
