@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { format } from "date-fns";
 import { UserStatus } from "./user-status";
 import { useState } from "react";
+import { AlertCircle } from "lucide-react";
 
 export function MessageBubble({ message }: { message: MessageWithUser }) {
   const { user } = useAuth();
@@ -68,6 +69,12 @@ export function MessageBubble({ message }: { message: MessageWithUser }) {
                 console.log("Image loaded successfully:", mediaUrl);
               }}
             />
+          </div>
+        )}
+        {imageError && (
+          <div className="flex items-center gap-2 text-destructive text-sm mt-2">
+            <AlertCircle className="h-4 w-4" />
+            Failed to load image
           </div>
         )}
         {message.content && <p className="mt-1">{message.content}</p>}
