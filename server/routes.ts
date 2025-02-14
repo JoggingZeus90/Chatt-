@@ -54,6 +54,9 @@ async function comparePasswords(supplied: string, stored: string) {
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
 
+  // Serve uploaded files
+  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
   // File upload endpoint
   app.post("/api/upload", upload.single('file'), (req, res) => {
     if (!req.file) {
@@ -61,15 +64,9 @@ export function registerRoutes(app: Express): Server {
     }
 
     // Return the complete URL for the uploaded file
-    const host = req.get('host');
-    const protocol = req.protocol;
-    const fileUrl = `${protocol}://${host}/uploads/${req.file.filename}`;
-    res.setHeader('Content-Type', 'application/json');
+    const fileUrl = `/uploads/${req.file.filename}`;
     res.json({ url: fileUrl });
   });
-
-  // Serve uploaded files
-  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
   // Chat rooms
   app.get("/api/rooms", async (req, res) => {

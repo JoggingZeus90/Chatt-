@@ -38,21 +38,24 @@ export function MessageBubble({ message }: { message: MessageWithUser }) {
             {format(new Date(message.createdAt), "HH:mm")}
           </span>
         </div>
-        {message.mediaUrl && message.mediaType === "image" && (
-          <img
-            src={message.mediaUrl}
-            alt="Shared image"
-            className="mt-2 rounded-lg max-w-full max-h-64 object-contain"
-          />
+        {message.mediaUrl && (
+          <div className="mt-2">
+            {message.mediaType === "image" ? (
+              <img
+                src={message.mediaUrl}
+                alt="Shared image"
+                className="rounded-lg max-w-full max-h-64 object-contain"
+              />
+            ) : message.mediaType === "video" ? (
+              <video
+                src={message.mediaUrl}
+                controls
+                className="rounded-lg max-w-full max-h-64"
+              />
+            ) : null}
+          </div>
         )}
-        {message.mediaUrl && message.mediaType === "video" && (
-          <video
-            src={message.mediaUrl}
-            controls
-            className="mt-2 rounded-lg max-w-full max-h-64"
-          />
-        )}
-        <p className="mt-1">{message.content}</p>
+        {message.content && <p className="mt-1">{message.content}</p>}
       </div>
     </div>
   );
