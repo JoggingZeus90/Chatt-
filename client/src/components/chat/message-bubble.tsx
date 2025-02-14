@@ -89,20 +89,8 @@ export function MessageBubble({ message, roomId }: { message: MessageWithUser; r
     if (mediaUrl && imgRef.current) {
       setImageError(false);
       setImageLoading(true);
-
-      console.log('Loading image:', {
-        url: mediaUrl,
-        originalUrl: message.mediaUrl,
-        timestamp: new Date().toISOString(),
-        element: imgRef.current ? {
-          complete: imgRef.current.complete,
-          naturalWidth: imgRef.current.naturalWidth,
-          naturalHeight: imgRef.current.naturalHeight,
-          currentSrc: imgRef.current.currentSrc,
-        } : null
-      });
     }
-  }, [mediaUrl, message.mediaUrl]);
+  }, [mediaUrl]);
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -151,7 +139,7 @@ export function MessageBubble({ message, roomId }: { message: MessageWithUser; r
         {/* Message Actions */}
         <div className={cn(
           "absolute top-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2",
-          isOwn ? "-left-20" : "-right-20"
+          isOwn ? "-left-20" : "right-full pr-2"
         )}>
           {isOwn && !isEditing && (
             <Button
@@ -225,35 +213,11 @@ export function MessageBubble({ message, roomId }: { message: MessageWithUser; r
               src={mediaUrl}
               alt="Shared image"
               className="rounded-lg max-w-full max-h-64 object-contain"
-              onError={(e) => {
-                console.error("Failed to load image:", {
-                  url: mediaUrl,
-                  originalUrl: message.mediaUrl,
-                  error: e,
-                  timestamp: new Date().toISOString(),
-                  currentTarget: {
-                    src: (e.currentTarget as HTMLImageElement).src,
-                    complete: (e.currentTarget as HTMLImageElement).complete,
-                    naturalWidth: (e.currentTarget as HTMLImageElement).naturalWidth,
-                    naturalHeight: (e.currentTarget as HTMLImageElement).naturalHeight,
-                  }
-                });
+              onError={() => {
                 setImageError(true);
                 setImageLoading(false);
               }}
-              onLoad={(e) => {
-                const img = e.target as HTMLImageElement;
-                console.log("Image loaded successfully:", {
-                  url: mediaUrl,
-                  originalUrl: message.mediaUrl,
-                  timestamp: new Date().toISOString(),
-                  element: {
-                    complete: img.complete,
-                    naturalWidth: img.naturalWidth,
-                    naturalHeight: img.naturalHeight,
-                    currentSrc: img.currentSrc,
-                  }
-                });
+              onLoad={() => {
                 setImageLoading(false);
               }}
             />
