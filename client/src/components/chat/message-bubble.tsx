@@ -17,7 +17,7 @@ export function MessageBubble({ message }: { message: MessageWithUser }) {
   const mediaUrl = message.mediaUrl 
     ? message.mediaUrl.startsWith('http') 
       ? message.mediaUrl 
-      : window.location.origin + message.mediaUrl // Ensure we have an absolute URL
+      : new URL(message.mediaUrl, window.location.origin).toString()
     : null;
 
   useEffect(() => {

@@ -66,6 +66,30 @@ export function registerRoutes(app: Express): Server {
     fs.chmodSync(uploadDir, 0o755);
   }
 
+  // Serve static files from uploads directory
+  app.use('/uploads', express.static(uploadDir, {
+    setHeaders: (res, filePath) => {
+      // Set proper CORS headers
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+
+      // Set content type based on file extension
+      if (filePath.endsWith('.png')) {
+        res.setHeader('Content-Type', 'image/png');
+      } else if (filePath.endsWith('.jpg') || filePath.endsWith('.jpeg')) {
+        res.setHeader('Content-Type', 'image/jpeg');
+      } else if (filePath.endsWith('.gif')) {
+        res.setHeader('Content-Type', 'image/gif');
+      }
+
+      // Disable caching for development
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+  }));
+
   // File upload endpoint with better error handling
   app.post("/api/upload", upload.single('file'), (req, res) => {
     console.log('Upload request received');
