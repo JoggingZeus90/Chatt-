@@ -44,7 +44,7 @@ const commands = [
   {
     name: 'whisper',
     description: 'Send a private message to a user',
-    format: '/whisper <username> <message>',
+    format: '/whisper "@username" <message>',
   },
 ];
 
@@ -230,19 +230,20 @@ export default function ChatRoom({ room }: { room: Room }) {
     // Handle whisper command
     if (messageContent.startsWith(WHISPER_COMMAND)) {
       const commandText = messageContent.slice(WHISPER_COMMAND.length).trim();
-      const firstSpaceIndex = commandText.indexOf(' ');
 
-      if (firstSpaceIndex === -1) {
+      // Check for quoted username
+      const usernameMatch = commandText.match(/^"([^"]+)"\s+(.+)$/);
+      if (!usernameMatch) {
         toast({
           title: "Invalid whisper format",
-          description: "Use /whisper username message",
+          description: 'Use /whisper "@username" message',
           variant: "destructive",
         });
         return;
       }
 
-      whisperTo = commandText.slice(0, firstSpaceIndex);
-      messageContent = commandText.slice(firstSpaceIndex + 1);
+      whisperTo = usernameMatch[1];
+      messageContent = usernameMatch[2];
 
       if (!messageContent.trim()) {
         toast({
