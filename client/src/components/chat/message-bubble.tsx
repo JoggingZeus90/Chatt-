@@ -139,7 +139,7 @@ export function MessageBubble({ message, roomId }: { message: MessageWithUser; r
         {/* Message Actions */}
         <div className={cn(
           "absolute top-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2",
-          isOwn ? "-left-20" : "right-full pr-2"
+          isOwn ? "-left-20" : "-right-8"
         )}>
           {isOwn && !isEditing && (
             <Button
