@@ -9,16 +9,20 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { insertUserSchema, type InsertUser } from "@shared/schema";
 import { Loader2 } from "lucide-react";
 import { Redirect } from "wouter";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
 
   const loginForm = useForm<InsertUser>({
-    resolver: zodResolver(insertUserSchema),
+    resolver: zodResolver(insertUserSchema.omit({ consent: true })),
   });
 
   const registerForm = useForm<InsertUser>({
     resolver: zodResolver(insertUserSchema),
+    defaultValues: {
+      consent: false,
+    },
   });
 
   if (user) {
@@ -52,6 +56,11 @@ export default function AuthPage() {
                       id="login-username"
                       {...loginForm.register("username")}
                     />
+                    {loginForm.formState.errors.username && (
+                      <p className="text-sm text-destructive">
+                        {loginForm.formState.errors.username.message}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="login-password">Password</Label>
@@ -60,6 +69,11 @@ export default function AuthPage() {
                       type="password"
                       {...loginForm.register("password")}
                     />
+                    {loginForm.formState.errors.password && (
+                      <p className="text-sm text-destructive">
+                        {loginForm.formState.errors.password.message}
+                      </p>
+                    )}
                   </div>
                   <Button
                     type="submit"
@@ -87,6 +101,11 @@ export default function AuthPage() {
                       id="register-username"
                       {...registerForm.register("username")}
                     />
+                    {registerForm.formState.errors.username && (
+                      <p className="text-sm text-destructive">
+                        {registerForm.formState.errors.username.message}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="register-password">Password</Label>
@@ -95,7 +114,29 @@ export default function AuthPage() {
                       type="password"
                       {...registerForm.register("password")}
                     />
+                    {registerForm.formState.errors.password && (
+                      <p className="text-sm text-destructive">
+                        {registerForm.formState.errors.password.message}
+                      </p>
+                    )}
                   </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="consent"
+                      {...registerForm.register("consent")}
+                    />
+                    <label
+                      htmlFor="consent"
+                      className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      I consent to having this information shared with the developer of this website
+                    </label>
+                  </div>
+                  {registerForm.formState.errors.consent && (
+                    <p className="text-sm text-destructive">
+                      {registerForm.formState.errors.consent.message}
+                    </p>
+                  )}
                   <Button
                     type="submit"
                     className="w-full"

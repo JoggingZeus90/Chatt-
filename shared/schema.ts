@@ -53,6 +53,9 @@ export const insertUserSchema = createInsertSchema(users)
   .extend({
     username: z.string().min(3, "Username must be at least 3 characters"),
     password: z.string().min(6, "Password must be at least 6 characters"),
+    consent: z.boolean().refine((val) => val === true, {
+      message: "You must consent to the data sharing to create an account"
+    })
   });
 
 export const insertRoomSchema = createInsertSchema(rooms).pick({
