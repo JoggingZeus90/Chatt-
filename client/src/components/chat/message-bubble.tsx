@@ -4,11 +4,9 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { format } from "date-fns";
 import { UserStatus } from "./user-status";
-
 export function MessageBubble({ message }: { message: MessageWithUser }) {
   const { user } = useAuth();
   const isOwn = message.userId === user?.id;
-
   return (
     <div
       className={cn("flex gap-2 mb-4", {
@@ -41,7 +39,35 @@ export function MessageBubble({ message }: { message: MessageWithUser }) {
             {format(new Date(message.createdAt), "HH:mm")}
           </span>
         </div>
-        <p className="mt-1">{message.content}</p>
+        {message.content.startsWith("http") ? (
+          message.content.includes(".mp4") ? (
+            <video
+              src={message.content}
+              controls
+              className="w-full max-h-64 rounded-lg object-contain"
+            />
+          ) : message.content.includes("youtu.be") ||
+            message.content.includes("youtube.com") ? (
+            <iframe
+              width="560"
+              height="315"
+              src={message.content}
+              title="YouTube video player"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="w-full max-h-64 rounded-lg"
+            ></iframe>
+          ) : (
+            <img
+              src={message.content}
+              alt="Image"
+              className="w-full max-h-64 rounded-lg object-contain"
+            />
+          )
+        ) : (
+          <p className="mt-1">{message.content.substring(0, 75)}</p>
+        )}
       </div>
     </div>
   );

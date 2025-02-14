@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import ChatRoom from "@/components/chat/chat-room";
 import { useState, useEffect } from "react";
 import { MoreVertical, Trash2, LogOut, Plus, Loader2, Settings, PanelLeftClose } from "lucide-react";
+import { useSidebar } from "@/components/ui/sidebar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,12 +23,12 @@ import {
   AvatarImage,
   AvatarFallback,
 } from "@/components/ui/avatar";
-import { useSidebar } from "@/components/ui/sidebar";
 
 export default function ChatPage() {
   const { user, logoutMutation } = useAuth();
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const sidebar = useSidebar();
 
   const { data: rooms, isLoading } = useQuery<Room[]>({
     queryKey: ["/api/rooms"],
@@ -123,7 +124,7 @@ export default function ChatPage() {
           variant="ghost"
           size="icon"
           className="absolute top-2 left-2"
-          onClick={() => useSidebar().toggleSidebar()}
+          onClick={() => sidebar.toggleSidebar()}
         >
           <PanelLeftClose className="h-4 w-4" />
         </Button>
