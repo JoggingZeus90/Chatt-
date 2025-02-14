@@ -26,6 +26,8 @@ import {
   Sidebar,
   SidebarContent,
   SidebarTrigger,
+  SidebarProvider,
+  SidebarInset,
 } from "@/components/ui/sidebar";
 
 export default function ChatPage() {
@@ -120,8 +122,8 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex h-screen">
-      <div className="w-64 border-r bg-muted/50 p-4 pt-12 flex flex-col relative">
+    <Sidebar>
+      <SidebarContent className="w-64 bg-muted/50 p-4 pt-12 flex flex-col">
         <SidebarTrigger className="absolute top-2 left-2" />
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-semibold">Chat Rooms</h2>
@@ -233,16 +235,16 @@ export default function ChatPage() {
             </Button>
           </div>
         </div>
-      </div>
-      <div className="flex-1 flex items-center justify-center">
+      </SidebarContent>
+      <SidebarInset>
         {selectedRoom ? (
           <ChatRoom room={selectedRoom} />
         ) : (
-          <div className="text-xl text-muted-foreground text-center">
-            <p>Select a room to start chatting</p>
+          <div className="flex items-center justify-center h-full">
+            <p className="text-xl text-muted-foreground">Select a room to start chatting</p>
           </div>
         )}
-      </div>
-    </div>
+      </SidebarInset>
+    </Sidebar>
   );
 }
