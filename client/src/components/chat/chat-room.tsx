@@ -5,9 +5,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Room, MessageWithUser } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Send, Loader2, Image, X, ArrowDown, Pencil, Check } from "lucide-react";
+import { Send, Loader2, Image, X, ArrowDown, Pencil, Check, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const MAX_MESSAGE_LENGTH = 100;
 const ALLOWED_FILE_TYPES = {
@@ -92,6 +102,30 @@ export default function ChatRoom({ room }: { room: Room }) {
     onError: (error: Error) => {
       toast({
         title: "Failed to update room name",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteRoomMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("DELETE", `/api/rooms/${room.id}`);
+      if (!res.ok) {
+        const error = await res.text();
+        throw new Error(error);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
+      toast({
+        title: "Room deleted",
+        description: "The room has been successfully deleted.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to delete room",
         description: error.message,
         variant: "destructive",
       });
@@ -264,13 +298,48 @@ export default function ChatRoom({ room }: { room: Room }) {
           <div className="flex items-center gap-2">
             <h2 className="font-semibold">{room.name}</h2>
             {isOwner && (
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={() => setIsEditingName(true)}
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
+              <>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => setIsEditingName(true)}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Room</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete this room? This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <Button
+                        variant="destructive"
+                        onClick={() => deleteRoomMutation.mutate()}
+                        disabled={deleteRoomMutation.isPending}
+                      >
+                        {deleteRoomMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          "Delete"
+                        )}
+                      </Button>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </>
             )}
           </div>
         )}

@@ -174,16 +174,7 @@ export default function ChatPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
-                  {room.createdById === user?.id ? (
-                    <DropdownMenuItem
-                      className="text-destructive"
-                      onClick={() => deleteRoomMutation.mutate(room.id)}
-                      disabled={deleteRoomMutation.isPending}
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete Room
-                    </DropdownMenuItem>
-                  ) : (
+                  {room.createdById !== user?.id && (
                     <DropdownMenuItem
                       onClick={() => leaveRoomMutation.mutate(room.id)}
                       disabled={leaveRoomMutation.isPending}
