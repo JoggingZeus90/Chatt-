@@ -143,27 +143,21 @@ export function UserManagement() {
     },
   });
 
-  const unsuspendUserMutation = useMutation({
-    mutationFn: async (userId: number) => {
-      const res = await apiRequest("POST", `/api/users/${userId}/unsuspend`);
-      if (!res.ok) throw new Error("Failed to unsuspend user");
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
-      toast({
-        title: "Success",
-        description: "User unsuspended successfully",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
+  const handleMuteClick = (user: User, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setMuteReason("");
+    setMuteDuration("60");
+    setSelectedMuteUser(user);
+    setMuteDialogOpen(true);
+  };
+
+  const handleMuteDialogClose = () => {
+    setMuteDialogOpen(false);
+    setSelectedMuteUser(null);
+    setMuteReason("");
+    setMuteDuration("60");
+  };
 
   if (!isAdmin && !isModerator) {
     return null;
@@ -224,17 +218,12 @@ export function UserManagement() {
               <DialogTrigger asChild>
                 <Button
                   variant="outline"
-                  onClick={() => {
-                    setMuteReason("");
-                    setMuteDuration("60");
-                    setSelectedMuteUser(user);
-                    setMuteDialogOpen(true);
-                  }}
+                  onClick={(e) => handleMuteClick(user, e)}
                 >
                   Mute
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent onEscapeKeyDown={handleMuteDialogClose} onInteractOutside={handleMuteDialogClose}>
                 <DialogHeader>
                   <DialogTitle>Mute User</DialogTitle>
                   <DialogDescription>
@@ -264,12 +253,7 @@ export function UserManagement() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => {
-                      setMuteDialogOpen(false);
-                      setSelectedMuteUser(null);
-                      setMuteReason("");
-                      setMuteDuration("60");
-                    }}
+                    onClick={handleMuteDialogClose}
                   >
                     Cancel
                   </Button>
@@ -337,7 +321,6 @@ export function UserManagement() {
                         userId: user.id,
                         reason: suspensionReason,
                       });
-                      setSuspensionReason("");
                     }
                   }}
                   disabled={suspendUserMutation.isPending}
