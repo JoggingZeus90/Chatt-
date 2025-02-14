@@ -10,6 +10,10 @@ import path from "path";
 import fs from "fs";
 import express from 'express';
 import { requireRole } from "./auth";
+import { drizzle } from 'drizzle-orm/neon-serverless';
+import { eq } from 'drizzle-orm';
+import * as schema from "@shared/schema";
+import { pool } from './db';
 
 const scryptAsync = promisify(scrypt);
 
@@ -45,6 +49,11 @@ const upload = multer({
     fileSize: 5 * 1024 * 1024 // 5MB limit
   }
 });
+
+const db = drizzle({ client: pool, schema });
+
+type UserRoleType = UserRole;
+
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
@@ -378,6 +387,25 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Delete message (owner, admin, or moderator)
+  app.delete("/api/messages/:messageId", async (req, res) => {
+    console.log(`DELETE request received for ${req.url}`);
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const messageId = parseInt(req.params.messageId);
+      await storage.deleteMessage(messageId, req.user.id, req.user.role as UserRoleType);
+      res.sendStatus(200);
+    } catch (error) {
+      if (error instanceof Error && error.message === "Unauthorized") {
+        res.status(403).send("Not authorized to delete this message");
+      } else {
+        console.error("Error deleting message:", error);
+        res.status(500).send("Internal server error");
+      }
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
@@ -388,9 +416,3 @@ async function comparePasswords(password: string, hash: string): Promise<boolean
   const newHash = await scryptAsync(password, 'salt', 64);
   return timingSafeEqual(newHash, hashBuffer);
 }
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import { eq } from 'drizzle-orm';
-import * as schema from "@shared/schema";
-import { pool } from './db';
-
-const db = drizzle({ client: pool, schema });

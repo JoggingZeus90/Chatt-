@@ -182,7 +182,7 @@ export default function ChatRoom({ room }: { room: Room }) {
           </div>
         ) : (
           messages?.map((message) => (
-            <MessageBubble key={message.id} message={message} />
+            <MessageBubble key={message.id} message={message} roomId={room.id} />
           ))
         )}
         <div ref={messagesEndRef} />

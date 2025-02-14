@@ -4,14 +4,30 @@ import { useAuth } from "@/hooks/use-auth";
 import { format } from "date-fns";
 import { UserStatus } from "./user-status";
 import { useState, useEffect, useRef } from "react";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle, Loader2, Trash2 } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { 
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
-export function MessageBubble({ message }: { message: MessageWithUser }) {
+export function MessageBubble({ message, roomId }: { message: MessageWithUser; roomId: number }) {
   const { user } = useAuth();
   const isOwn = message.userId === user?.id;
+  const canDelete = isOwn || user?.role === 'admin' || user?.role === 'moderator';
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
   const imgRef = useRef<HTMLImageElement>(null);
+  const { toast } = useToast();
 
   // Create an absolute URL for the media
   const mediaUrl = message.mediaUrl 
@@ -20,9 +36,28 @@ export function MessageBubble({ message }: { message: MessageWithUser }) {
       : `${window.location.origin}${message.mediaUrl}`
     : null;
 
+  const deleteMessageMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("DELETE", `/api/messages/${message.id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/rooms/${roomId}/messages`] });
+      toast({
+        title: "Message deleted",
+        description: "The message has been successfully deleted.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to delete message",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   useEffect(() => {
     if (mediaUrl && imgRef.current) {
-      // Reset states when URL changes
       setImageError(false);
       setImageLoading(true);
 
@@ -56,12 +91,48 @@ export function MessageBubble({ message }: { message: MessageWithUser }) {
       )}
       <div
         className={cn(
-          "rounded-lg px-4 py-2 max-w-[70%] break-words",
+          "rounded-lg px-4 py-2 max-w-[70%] break-words relative group",
           isOwn
             ? "bg-primary text-primary-foreground"
             : "bg-secondary text-secondary-foreground",
         )}
       >
+        {canDelete && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute -right-10 top-0 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Message</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete this message? This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <Button 
+                  variant="destructive" 
+                  onClick={() => deleteMessageMutation.mutate()}
+                  disabled={deleteMessageMutation.isPending}
+                >
+                  {deleteMessageMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Delete"
+                  )}
+                </Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+
         <div className="flex items-baseline gap-2">
           {!isOwn && (
             <div className="flex items-baseline gap-2">
@@ -75,6 +146,7 @@ export function MessageBubble({ message }: { message: MessageWithUser }) {
             {format(new Date(message.createdAt), "HH:mm")}
           </span>
         </div>
+
         {mediaUrl && message.mediaType === "image" && !imageError && (
           <div className="mt-2 relative">
             {imageLoading && (

@@ -228,6 +228,24 @@ export class DatabaseStorage implements IStorage {
     if (!user) throw new Error("User not found");
     return user;
   }
+
+  async deleteMessage(messageId: number, userId: number, userRole: UserRoleType): Promise<void> {
+    const [message] = await db
+      .select()
+      .from(messages)
+      .where(eq(messages.id, messageId));
+
+    if (!message) {
+      throw new Error("Message not found");
+    }
+
+    // Allow message deletion if user is admin/moderator or if it's their own message
+    if (userRole === UserRole.ADMIN || userRole === UserRole.MODERATOR || message.userId === userId) {
+      await db.delete(messages).where(eq(messages.id, messageId));
+    } else {
+      throw new Error("Unauthorized");
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();
