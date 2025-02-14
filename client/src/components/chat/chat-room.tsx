@@ -92,7 +92,7 @@ export default function ChatRoom({ room }: { room: Room }) {
       setMessage("");
       setMediaFile(null);
       setMediaPreviewUrl(null);
-      setShowCommands(false); 
+      setShowCommands(false);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -197,7 +197,7 @@ export default function ChatRoom({ room }: { room: Room }) {
     const container = messagesContainerRef.current;
     if (container) {
       container.addEventListener('scroll', handleScroll);
-      handleScroll(); 
+      handleScroll();
     }
 
     return () => {
@@ -209,7 +209,7 @@ export default function ChatRoom({ room }: { room: Room }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setShowCommands(false); 
+    setShowCommands(false);
     if (!message.trim() && !mediaFile) return;
 
     if (user?.muted) {
@@ -243,7 +243,8 @@ export default function ChatRoom({ room }: { room: Room }) {
         return;
       }
 
-      whisperTo = usernameMatch[1];
+      // Remove the @ symbol if present
+      whisperTo = usernameMatch[1].replace(/^@/, '');
       messageContent = usernameMatch[2];
 
       console.log('Whisper parsed:', { whisperTo, messageContent });

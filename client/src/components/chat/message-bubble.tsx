@@ -24,7 +24,7 @@ import {
 const MAX_MESSAGE_LENGTH = 100;
 
 type ExtendedMessageWithUser = MessageWithUser & {
-  whisperTo?: string | null;
+  whisperTo: string | null;
 }
 
 export function MessageBubble({ message, roomId }: { message: ExtendedMessageWithUser; roomId: number }) {
