@@ -104,7 +104,6 @@ export default function ChatRoom({ room }: { room: Room }) {
           throw new Error("No URL returned from server");
         }
 
-        // Keep the relative URL as is
         mediaUrl = data.url;
         mediaType = ALLOWED_FILE_TYPES[mediaFile.type as keyof typeof ALLOWED_FILE_TYPES];
 
@@ -121,13 +120,13 @@ export default function ChatRoom({ room }: { room: Room }) {
     }
 
     try {
-      const message = await sendMessageMutation.mutateAsync({
+      const sentMessage = await sendMessageMutation.mutateAsync({
         content: message.trim(),
         mediaUrl,
         mediaType,
       });
 
-      console.log('Message sent successfully:', message);
+      console.log('Message sent successfully:', sentMessage);
     } catch (error) {
       console.error("Send message error:", error);
       toast({
