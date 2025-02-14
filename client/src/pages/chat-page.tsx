@@ -213,7 +213,7 @@ export default function ChatPage() {
             <Button
               variant="outline"
               onClick={() => window.location.href = '/settings'}
-              className="flex-1 transition-transform hover:scale-105"
+              className="flex-1 transition-transform hover:scale-105 hover:text-blue-500 hover:border-blue-500"
             >
               <Settings className="mr-2 h-4 w-4" />
               Settings
