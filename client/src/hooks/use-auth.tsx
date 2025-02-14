@@ -31,6 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/user"], null);
+      queryClient.clear(); // Clear all cached queries
     },
     onError: (error: Error) => {
       toast({
@@ -40,6 +41,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     },
   });
+
+  const handleSuspension = async (reason: string) => {
+    console.log('Handling suspension...', reason);
+    try {
+      // Clear all queries first
+      queryClient.clear();
+      // Force logout
+      await logoutMutation.mutateAsync();
+      console.log('Logout completed, reloading page...');
+      // Force reload after a small delay to ensure logout completes
+      setTimeout(() => {
+        window.location.href = `/auth?suspended=true&reason=${encodeURIComponent(reason || '')}`;
+        window.location.reload();
+      }, 100);
+    } catch (error) {
+      console.error('Error during suspension handling:', error);
+      // Force reload anyway
+      window.location.reload();
+    }
+  };
 
   const {
     data: user,
@@ -57,10 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             description: `Your account has been suspended. Reason: ${data.reason}`,
             variant: "destructive",
           });
-          queryClient.setQueryData(["/api/user"], null);
-          queryClient.clear(); // Clear all cached queries
-          await logoutMutation.mutateAsync(); // Ensure logout completes
-          window.location.href = `/auth?suspended=true&reason=${encodeURIComponent(data.reason || '')}`;
+          await handleSuspension(data.reason);
           return undefined;
         }
         if (!res.ok) {
@@ -89,14 +107,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.addEventListener('popstate', lockNavigation);
       window.addEventListener('beforeunload', lockNavigation);
 
-      // Force logout, clear cache and reload
-      const handleSuspension = async () => {
-        queryClient.clear(); // Clear all cached queries
-        await logoutMutation.mutateAsync();
-        window.location.reload(); // Force page reload
-      };
-
-      handleSuspension();
+      // Immediately handle suspension
+      handleSuspension(user.suspendedReason || 'Account suspended');
 
       return () => {
         window.removeEventListener('popstate', lockNavigation);
@@ -114,16 +126,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       return await res.json();
     },
-    onSuccess: (user: SelectUser) => {
+    onSuccess: async (user: SelectUser) => {
       if (user.suspended) {
         toast({
           title: "Account Suspended",
           description: `Your account has been suspended. Reason: ${user.suspendedReason}`,
           variant: "destructive",
         });
-        queryClient.setQueryData(["/api/user"], null);
-        queryClient.clear(); // Clear all cached queries
-        window.location.reload(); // Force page reload
+        await handleSuspension(user.suspendedReason || 'Account suspended');
       } else {
         queryClient.setQueryData(["/api/user"], user);
       }
