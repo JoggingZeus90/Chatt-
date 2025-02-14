@@ -36,6 +36,10 @@ export function UserManagement() {
     enabled: isAdmin || isModerator,
   });
 
+  // Separate active and suspended users
+  const activeUsers = users?.filter(user => !user.suspended) || [];
+  const suspendedUsers = users?.filter(user => user.suspended) || [];
+
   const updateRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: number; role: string }) => {
       const res = await apiRequest("PATCH", `/api/users/${userId}/role`, { role });
@@ -112,59 +116,53 @@ export function UserManagement() {
   }
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-lg font-semibold">User Management</h2>
+    <div className="space-y-8">
+      {/* Active Users Section */}
       <div className="space-y-4">
-        {users?.map((user) => (
-          <div
-            key={user.id}
-            className="flex items-center justify-between p-4 border rounded-lg"
-          >
-            <div>
-              <p className="font-medium">{user.username}</p>
-              <p className="text-sm text-muted-foreground">
-                Current role: {user.role}
-              </p>
-              {user.suspended && (
-                <p className="text-sm text-red-500">
-                  Suspended: {format(new Date(user.suspendedAt!), 'PPp')}
-                  <br />
-                  Reason: {user.suspendedReason}
+        <h3 className="text-lg font-semibold">Active Users</h3>
+        <div className="space-y-4">
+          {activeUsers.map((user) => (
+            <div
+              key={user.id}
+              className="flex items-center justify-between p-4 border rounded-lg"
+            >
+              <div>
+                <p className="font-medium">{user.username}</p>
+                <p className="text-sm text-muted-foreground">
+                  Current role: {user.role}
                 </p>
-              )}
-            </div>
-            {isAdmin && (
-              <div className="flex items-center gap-2">
-                <Select
-                  onValueChange={(value) => setSelectedRole(value)}
-                  defaultValue={user.role}
-                >
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Select role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.values(UserRole).map((role) => (
-                      <SelectItem key={role} value={role}>
-                        {role}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    if (selectedRole) {
-                      updateRoleMutation.mutate({
-                        userId: user.id,
-                        role: selectedRole,
-                      });
-                    }
-                  }}
-                  disabled={updateRoleMutation.isPending}
-                >
-                  Update Role
-                </Button>
-                {!user.suspended ? (
+              </div>
+              {isAdmin && (
+                <div className="flex items-center gap-2">
+                  <Select
+                    onValueChange={(value) => setSelectedRole(value)}
+                    defaultValue={user.role}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Select role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.values(UserRole).map((role) => (
+                        <SelectItem key={role} value={role}>
+                          {role}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      if (selectedRole) {
+                        updateRoleMutation.mutate({
+                          userId: user.id,
+                          role: selectedRole,
+                        });
+                      }
+                    }}
+                    disabled={updateRoleMutation.isPending}
+                  >
+                    Update Role
+                  </Button>
                   <Dialog open={selectedUser?.id === user.id} onOpenChange={(open) => !open && setSelectedUser(null)}>
                     <DialogTrigger asChild>
                       <Button 
@@ -205,19 +203,49 @@ export function UserManagement() {
                       </DialogFooter>
                     </DialogContent>
                   </Dialog>
-                ) : (
-                  <Button
-                    variant="outline"
-                    onClick={() => unsuspendUserMutation.mutate(user.id)}
-                    disabled={unsuspendUserMutation.isPending}
-                  >
-                    Unsuspend
-                  </Button>
-                )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Suspended Users Section */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-destructive">Suspended Users</h3>
+        <div className="space-y-4">
+          {suspendedUsers.map((user) => (
+            <div
+              key={user.id}
+              className="flex items-center justify-between p-4 border border-destructive/50 rounded-lg bg-destructive/5"
+            >
+              <div>
+                <p className="font-medium">{user.username}</p>
+                <p className="text-sm text-muted-foreground">
+                  Role: {user.role}
+                </p>
+                <p className="text-sm text-destructive mt-1">
+                  Suspended: {format(new Date(user.suspendedAt!), 'PPp')}
+                </p>
+                <p className="text-sm text-destructive">
+                  Reason: {user.suspendedReason}
+                </p>
               </div>
-            )}
-          </div>
-        ))}
+              {isAdmin && (
+                <Button
+                  variant="outline"
+                  onClick={() => unsuspendUserMutation.mutate(user.id)}
+                  disabled={unsuspendUserMutation.isPending}
+                >
+                  Unsuspend
+                </Button>
+              )}
+            </div>
+          ))}
+          {suspendedUsers.length === 0 && (
+            <p className="text-sm text-muted-foreground">No suspended users</p>
+          )}
+        </div>
       </div>
     </div>
   );
