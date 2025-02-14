@@ -19,6 +19,15 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { format } from 'date-fns';
+import {
+  Command,
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 
 const MAX_MESSAGE_LENGTH = 100;
 const ALLOWED_FILE_TYPES = {
@@ -31,6 +40,14 @@ const ALLOWED_FILE_TYPES = {
 
 const WHISPER_COMMAND = "/whisper";
 
+const commands = [
+  {
+    name: 'whisper',
+    description: 'Send a private message to a user',
+    format: '/whisper <username> <message>',
+  },
+];
+
 export default function ChatRoom({ room }: { room: Room }) {
   const { user } = useAuth();
   const [message, setMessage] = useState("");
@@ -42,7 +59,9 @@ export default function ChatRoom({ room }: { room: Room }) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const [showCommands, setShowCommands] = useState(false);
 
   const isOwner = user?.id === room.createdById;
 
@@ -275,7 +294,19 @@ export default function ChatRoom({ room }: { room: Room }) {
     const newValue = e.target.value;
     if (newValue.length <= MAX_MESSAGE_LENGTH) {
       setMessage(newValue);
+      // Show commands when typing '/'
+      if (newValue === '/') {
+        setShowCommands(true);
+      } else if (showCommands && !newValue.startsWith('/')) {
+        setShowCommands(false);
+      }
     }
+  };
+
+  const handleCommandSelect = (command: typeof commands[0]) => {
+    setMessage(`${command.format.split(' ')[0]} `);
+    setShowCommands(false);
+    inputRef.current?.focus();
   };
 
   const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
@@ -461,7 +492,7 @@ export default function ChatRoom({ room }: { room: Room }) {
           </Button>
         )}
       </div>
-      <form onSubmit={handleSubmit} className="border-t p-4 space-y-4">
+      <form onSubmit={handleSubmit} className="border-t p-4 space-y-4 relative">
         {mediaPreviewUrl && (
           <div className="relative inline-block">
             {ALLOWED_FILE_TYPES[mediaFile?.type as keyof typeof ALLOWED_FILE_TYPES] === "image" ? (
@@ -486,7 +517,7 @@ export default function ChatRoom({ room }: { room: Room }) {
             </button>
           </div>
         )}
-        <div className="flex gap-2">
+        <div className="flex gap-2 relative">
           <input
             type="file"
             accept="image/jpeg,image/png,image/gif,video/mp4,video/webm"
@@ -502,13 +533,40 @@ export default function ChatRoom({ room }: { room: Room }) {
           >
             <Image className="h-4 w-4" />
           </Button>
-          <Input
-            value={message}
-            onChange={handleMessageChange}
-            placeholder="Type a message..."
-            disabled={sendMessageMutation.isPending}
-            maxLength={MAX_MESSAGE_LENGTH}
-          />
+          <div className="flex-1 relative">
+            <Input
+              value={message}
+              onChange={handleMessageChange}
+              placeholder="Type a message..."
+              disabled={sendMessageMutation.isPending}
+              maxLength={MAX_MESSAGE_LENGTH}
+              ref={inputRef}
+            />
+            {showCommands && (
+              <div className="absolute bottom-full mb-1 left-0 w-full z-50">
+                <Command className="border rounded-lg shadow-lg">
+                  <CommandInput placeholder="Search commands..." />
+                  <CommandList>
+                    <CommandEmpty>No commands found.</CommandEmpty>
+                    <CommandGroup heading="Available Commands">
+                      {commands.map((command) => (
+                        <CommandItem
+                          key={command.name}
+                          onSelect={() => handleCommandSelect(command)}
+                          className="flex flex-col items-start"
+                        >
+                          <div className="font-medium">{command.format}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {command.description}
+                          </div>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </div>
+            )}
+          </div>
           <Button
             type="submit"
             disabled={sendMessageMutation.isPending || (!message.trim() && !mediaFile)}
