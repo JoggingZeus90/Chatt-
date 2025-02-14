@@ -21,8 +21,8 @@ const scryptAsync = promisify(scrypt);
 const upload = multer({
   storage: multer.diskStorage({
     destination: function (req, file, cb) {
-      // Use an absolute path for uploads
-      const uploadDir = path.resolve(process.cwd(), 'uploads');
+      // Use client/public/uploads for Vite to serve directly
+      const uploadDir = path.resolve(process.cwd(), 'client', 'public', 'uploads');
       console.log('Upload directory:', uploadDir);
 
       if (!fs.existsSync(uploadDir)) {
@@ -54,31 +54,13 @@ export function registerRoutes(app: Express): Server {
   setupAuth(app);
 
   // Create uploads directory if it doesn't exist
-  const uploadDir = path.resolve(process.cwd(), 'uploads');
+  const uploadDir = path.resolve(process.cwd(), 'client', 'public', 'uploads');
   console.log('Initializing upload directory:', uploadDir);
 
   if (!fs.existsSync(uploadDir)) {
     console.log('Creating upload directory');
     fs.mkdirSync(uploadDir, { recursive: true });
   }
-
-  // Serve static files from uploads directory
-  app.use('/uploads', express.static(uploadDir, {
-    setHeaders: (res, filePath) => {
-      // Set proper headers for images
-      if (filePath.endsWith('.png')) {
-        res.setHeader('Content-Type', 'image/png');
-      } else if (filePath.endsWith('.jpg') || filePath.endsWith('.jpeg')) {
-        res.setHeader('Content-Type', 'image/jpeg');
-      } else if (filePath.endsWith('.gif')) {
-        res.setHeader('Content-Type', 'image/gif');
-      }
-      // Disable caching
-      res.setHeader('Cache-Control', 'no-cache');
-      res.setHeader('Access-Control-Allow-Origin', '*');
-    }
-  }));
-
 
   // File upload endpoint with better error handling
   app.post("/api/upload", upload.single('file'), (req, res) => {
@@ -96,6 +78,7 @@ export function registerRoutes(app: Express): Server {
       size: req.file.size
     });
 
+    // Return a URL relative to the client public directory
     const fileUrl = `/uploads/${req.file.filename}`;
     console.log('Generated file URL:', fileUrl);
     res.json({ url: fileUrl });

@@ -15,7 +15,9 @@ export function MessageBubble({ message }: { message: MessageWithUser }) {
 
   // Ensure we have a full URL for the media
   const mediaUrl = message.mediaUrl 
-    ? new URL(message.mediaUrl, window.location.origin).toString()
+    ? message.mediaUrl.startsWith('http') 
+      ? message.mediaUrl 
+      : message.mediaUrl // Now the URL is relative to the client public directory
     : null;
 
   useEffect(() => {
@@ -27,9 +29,12 @@ export function MessageBubble({ message }: { message: MessageWithUser }) {
       console.log('Loading image:', {
         url: mediaUrl,
         timestamp: new Date().toISOString(),
-        naturalWidth: imgRef.current?.naturalWidth,
-        naturalHeight: imgRef.current?.naturalHeight,
-        complete: imgRef.current?.complete
+        element: imgRef.current ? {
+          complete: imgRef.current.complete,
+          naturalWidth: imgRef.current.naturalWidth,
+          naturalHeight: imgRef.current.naturalHeight,
+          currentSrc: imgRef.current.currentSrc,
+        } : null
       });
     }
   }, [mediaUrl]);
@@ -81,7 +86,13 @@ export function MessageBubble({ message }: { message: MessageWithUser }) {
                   url: mediaUrl,
                   error: e,
                   timestamp: new Date().toISOString(),
-                  target: e.target
+                  target: e.target,
+                  currentTarget: {
+                    src: (e.currentTarget as HTMLImageElement).src,
+                    complete: (e.currentTarget as HTMLImageElement).complete,
+                    naturalWidth: (e.currentTarget as HTMLImageElement).naturalWidth,
+                    naturalHeight: (e.currentTarget as HTMLImageElement).naturalHeight,
+                  }
                 });
                 setImageError(true);
                 setImageLoading(false);
@@ -91,9 +102,12 @@ export function MessageBubble({ message }: { message: MessageWithUser }) {
                 console.log("Image loaded successfully:", {
                   url: mediaUrl,
                   timestamp: new Date().toISOString(),
-                  naturalWidth: img.naturalWidth,
-                  naturalHeight: img.naturalHeight,
-                  complete: img.complete
+                  element: {
+                    complete: img.complete,
+                    naturalWidth: img.naturalWidth,
+                    naturalHeight: img.naturalHeight,
+                    currentSrc: img.currentSrc,
+                  }
                 });
                 setImageLoading(false);
               }}
