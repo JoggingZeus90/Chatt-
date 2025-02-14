@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Room, MessageWithUser } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Send, Loader2, Image, X, ArrowDown, Pencil, Check, Trash2 } from "lucide-react";
+import { Send, Loader2, Image, X, ArrowDown, Pencil, Check, Trash2, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -131,6 +131,31 @@ export default function ChatRoom({ room }: { room: Room }) {
       });
     },
   });
+
+  const leaveRoomMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/rooms/${room.id}/leave`);
+      if (!res.ok) {
+        const error = await res.text();
+        throw new Error(error);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
+      toast({
+        title: "Left room",
+        description: "You have successfully left the room.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to leave room",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -297,7 +322,7 @@ export default function ChatRoom({ room }: { room: Room }) {
         ) : (
           <div className="flex items-center gap-2">
             <h2 className="font-semibold">{room.name}</h2>
-            {isOwner && (
+            {isOwner ? (
               <>
                 <Button
                   size="icon"
@@ -340,6 +365,40 @@ export default function ChatRoom({ room }: { room: Room }) {
                   </AlertDialogContent>
                 </AlertDialog>
               </>
+            ) : (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="text-muted-foreground hover:text-muted-foreground/80"
+                  >
+                    <LogOut className="h-4 w-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Leave Room</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to leave this room? You can always join back later.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <Button
+                      variant="default"
+                      onClick={() => leaveRoomMutation.mutate()}
+                      disabled={leaveRoomMutation.isPending}
+                    >
+                      {leaveRoomMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        "Leave"
+                      )}
+                    </Button>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
           </div>
         )}
