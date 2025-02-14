@@ -68,8 +68,8 @@ export const insertMessageSchema = createInsertSchema(messages)
   })
   .extend({
     content: z.string().max(100, "Message cannot exceed 100 characters").optional(),
-    mediaUrl: z.string().optional().nullable(),
-    mediaType: z.enum(["image", "video"]).optional().nullable(),
+    mediaUrl: z.string().optional(),
+    mediaType: z.enum(["image", "video"]).optional(),
   });
 
 export const updateUserSchema = z.object({
