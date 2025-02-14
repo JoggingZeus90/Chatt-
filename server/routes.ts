@@ -110,13 +110,16 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/rooms/:roomId/messages", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const parsed = insertMessageSchema.safeParse(req.body);
-    if (!parsed.success) return res.status(400).send(parsed.error.message);
+    if (!parsed.success) {
+      console.error("Message validation failed:", parsed.error);
+      return res.status(400).json(parsed.error);
+    }
 
     try {
       const message = await storage.createMessage({
-        content: parsed.data.content,
-        mediaUrl: parsed.data.mediaUrl ?? null,
-        mediaType: parsed.data.mediaType ?? null,
+        content: parsed.data.content || "",
+        mediaUrl: parsed.data.mediaUrl || null,
+        mediaType: parsed.data.mediaType || null,
         roomId: parseInt(req.params.roomId),
         userId: req.user.id,
       });
@@ -153,7 +156,7 @@ export function registerRoutes(app: Express): Server {
       res.status(201).json(formattedMessage);
     } catch (error) {
       console.error('Error creating message:', error);
-      res.status(500).send('Error creating message');
+      res.status(500).json({ error: 'Error creating message' });
     }
   });
 
