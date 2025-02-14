@@ -92,6 +92,7 @@ export default function ChatRoom({ room }: { room: Room }) {
       setMessage("");
       setMediaFile(null);
       setMediaPreviewUrl(null);
+      setShowCommands(false); 
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -196,7 +197,7 @@ export default function ChatRoom({ room }: { room: Room }) {
     const container = messagesContainerRef.current;
     if (container) {
       container.addEventListener('scroll', handleScroll);
-      handleScroll(); // Initial check
+      handleScroll(); 
     }
 
     return () => {
@@ -208,6 +209,7 @@ export default function ChatRoom({ room }: { room: Room }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setShowCommands(false); 
     if (!message.trim() && !mediaFile) return;
 
     if (user?.muted) {
@@ -227,17 +229,15 @@ export default function ChatRoom({ room }: { room: Room }) {
     let whisperTo: string | undefined;
     let messageContent = message.trim();
 
-    // Handle whisper command
     if (messageContent.startsWith(WHISPER_COMMAND)) {
       const commandText = messageContent.slice(WHISPER_COMMAND.length).trim();
       console.log('Processing whisper command:', commandText);
 
-      // Match both single and double quotes, accounting for possible spaces
       const usernameMatch = commandText.match(/^["']([^"']+)["']\s+(.+)$/);
       if (!usernameMatch) {
         toast({
           title: "Invalid whisper format",
-          description: `Use the format: /whisper "@username" your message`,
+          description: `Use the format: /whisper "@username with spaces" your message`,
           variant: "destructive",
         });
         return;
@@ -310,7 +310,6 @@ export default function ChatRoom({ room }: { room: Room }) {
     const newValue = e.target.value;
     if (newValue.length <= MAX_MESSAGE_LENGTH) {
       setMessage(newValue);
-      // Show commands when typing '/' and keep showing while typing a command
       if (newValue.startsWith('/')) {
         setShowCommands(true);
       } else if (showCommands && !newValue.startsWith('/')) {
@@ -320,7 +319,7 @@ export default function ChatRoom({ room }: { room: Room }) {
   };
 
   const handleCommandSelect = (command: typeof commands[0]) => {
-    setMessage(`${command.format.split(' ')[0]} "`);
+    setMessage(`${command.format.split(' ')[0]} "@`);
     setShowCommands(false);
     inputRef.current?.focus();
   };
