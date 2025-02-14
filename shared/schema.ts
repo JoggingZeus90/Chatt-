@@ -45,10 +45,15 @@ export const roomMembers = pgTable("room_members", {
   joinedAt: timestamp("joined_at").notNull().defaultNow(),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-});
+export const insertUserSchema = createInsertSchema(users)
+  .pick({
+    username: true,
+    password: true,
+  })
+  .extend({
+    username: z.string().min(3, "Username must be at least 3 characters"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
+  });
 
 export const insertRoomSchema = createInsertSchema(rooms).pick({
   name: true,
