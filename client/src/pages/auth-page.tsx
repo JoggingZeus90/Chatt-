@@ -10,6 +10,7 @@ import { insertUserSchema, type InsertUser } from "@shared/schema";
 import { Loader2 } from "lucide-react";
 import { Redirect } from "wouter";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Form, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
@@ -44,110 +45,115 @@ export default function AuthPage() {
               </TabsList>
 
               <TabsContent value="login">
-                <form
-                  onSubmit={loginForm.handleSubmit((data) =>
-                    loginMutation.mutate(data)
-                  )}
-                  className="space-y-4"
-                >
-                  <div className="space-y-2">
-                    <Label htmlFor="login-username">Username</Label>
-                    <Input
-                      id="login-username"
-                      {...loginForm.register("username")}
-                    />
-                    {loginForm.formState.errors.username && (
-                      <p className="text-sm text-destructive">
-                        {loginForm.formState.errors.username.message}
-                      </p>
+                <Form {...loginForm}>
+                  <form
+                    onSubmit={loginForm.handleSubmit((data) =>
+                      loginMutation.mutate(data)
                     )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="login-password">Password</Label>
-                    <Input
-                      id="login-password"
-                      type="password"
-                      {...loginForm.register("password")}
-                    />
-                    {loginForm.formState.errors.password && (
-                      <p className="text-sm text-destructive">
-                        {loginForm.formState.errors.password.message}
-                      </p>
-                    )}
-                  </div>
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={loginMutation.isPending}
+                    className="space-y-4"
                   >
-                    {loginMutation.isPending && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    )}
-                    Login
-                  </Button>
-                </form>
+                    <div className="space-y-2">
+                      <Label htmlFor="login-username">Username</Label>
+                      <Input
+                        id="login-username"
+                        {...loginForm.register("username")}
+                      />
+                      {loginForm.formState.errors.username && (
+                        <p className="text-sm text-destructive">
+                          {loginForm.formState.errors.username.message}
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="login-password">Password</Label>
+                      <Input
+                        id="login-password"
+                        type="password"
+                        {...loginForm.register("password")}
+                      />
+                      {loginForm.formState.errors.password && (
+                        <p className="text-sm text-destructive">
+                          {loginForm.formState.errors.password.message}
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={loginMutation.isPending}
+                    >
+                      {loginMutation.isPending && (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      )}
+                      Login
+                    </Button>
+                  </form>
+                </Form>
               </TabsContent>
 
               <TabsContent value="register">
-                <form
-                  onSubmit={registerForm.handleSubmit((data) =>
-                    registerMutation.mutate(data)
-                  )}
-                  className="space-y-4"
-                >
-                  <div className="space-y-2">
-                    <Label htmlFor="register-username">Username</Label>
-                    <Input
-                      id="register-username"
-                      {...registerForm.register("username")}
-                    />
-                    {registerForm.formState.errors.username && (
-                      <p className="text-sm text-destructive">
-                        {registerForm.formState.errors.username.message}
-                      </p>
+                <Form {...registerForm}>
+                  <form
+                    onSubmit={registerForm.handleSubmit((data) =>
+                      registerMutation.mutate(data)
                     )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="register-password">Password</Label>
-                    <Input
-                      id="register-password"
-                      type="password"
-                      {...registerForm.register("password")}
-                    />
-                    {registerForm.formState.errors.password && (
-                      <p className="text-sm text-destructive">
-                        {registerForm.formState.errors.password.message}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="consent"
-                      {...registerForm.register("consent")}
-                    />
-                    <label
-                      htmlFor="consent"
-                      className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      I consent to having this information shared with the developer of this website
-                    </label>
-                  </div>
-                  {registerForm.formState.errors.consent && (
-                    <p className="text-sm text-destructive">
-                      {registerForm.formState.errors.consent.message}
-                    </p>
-                  )}
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={registerMutation.isPending}
+                    className="space-y-4"
                   >
-                    {registerMutation.isPending && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    )}
-                    Register
-                  </Button>
-                </form>
+                    <div className="space-y-2">
+                      <Label htmlFor="register-username">Username</Label>
+                      <Input
+                        id="register-username"
+                        {...registerForm.register("username")}
+                      />
+                      {registerForm.formState.errors.username && (
+                        <p className="text-sm text-destructive">
+                          {registerForm.formState.errors.username.message}
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="register-password">Password</Label>
+                      <Input
+                        id="register-password"
+                        type="password"
+                        {...registerForm.register("password")}
+                      />
+                      {registerForm.formState.errors.password && (
+                        <p className="text-sm text-destructive">
+                          {registerForm.formState.errors.password.message}
+                        </p>
+                      )}
+                    </div>
+                    <FormField
+                      control={registerForm.control}
+                      name="consent"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                          <div className="space-y-1 leading-none">
+                            <FormLabel>
+                              I consent to having this information shared with the developer of this website
+                            </FormLabel>
+                            <FormMessage />
+                          </div>
+                        </FormItem>
+                      )}
+                    />
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={registerMutation.isPending}
+                    >
+                      {registerMutation.isPending && (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      )}
+                      Register
+                    </Button>
+                  </form>
+                </Form>
               </TabsContent>
             </Tabs>
           </CardContent>
