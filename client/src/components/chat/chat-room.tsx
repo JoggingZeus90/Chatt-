@@ -76,8 +76,8 @@ export default function ChatRoom({ room }: { room: Room }) {
     e.preventDefault();
     if (!message.trim() && !mediaFile) return;
 
-    let mediaUrl: string | undefined;
-    let mediaType: string | undefined;
+    let uploadedMediaUrl: string | undefined;
+    let uploadedMediaType: string | undefined;
 
     if (mediaFile) {
       const formData = new FormData();
@@ -104,10 +104,10 @@ export default function ChatRoom({ room }: { room: Room }) {
           throw new Error("No URL returned from server");
         }
 
-        mediaUrl = data.url;
-        mediaType = ALLOWED_FILE_TYPES[mediaFile.type as keyof typeof ALLOWED_FILE_TYPES];
+        uploadedMediaUrl = data.url;
+        uploadedMediaType = ALLOWED_FILE_TYPES[mediaFile.type as keyof typeof ALLOWED_FILE_TYPES];
 
-        console.log('Processed upload:', { mediaUrl, mediaType });
+        console.log('Processed upload:', { uploadedMediaUrl, uploadedMediaType });
       } catch (error) {
         console.error("Upload error:", error);
         toast({
@@ -122,8 +122,8 @@ export default function ChatRoom({ room }: { room: Room }) {
     try {
       const sentMessage = await sendMessageMutation.mutateAsync({
         content: message.trim(),
-        mediaUrl,
-        mediaType,
+        mediaUrl: uploadedMediaUrl,
+        mediaType: uploadedMediaType,
       });
 
       console.log('Message sent successfully:', sentMessage);
