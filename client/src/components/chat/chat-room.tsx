@@ -89,7 +89,6 @@ export default function ChatRoom({ room }: { room: Room }) {
           throw new Error("Upload failed: " + (await uploadRes.text()));
         }
 
-        // Check content type to ensure we're getting JSON
         const contentType = uploadRes.headers.get("content-type");
         if (!contentType || !contentType.includes("application/json")) {
           throw new Error("Invalid response from server: Expected JSON but got " + contentType);
@@ -114,7 +113,7 @@ export default function ChatRoom({ room }: { room: Room }) {
 
     try {
       await sendMessageMutation.mutateAsync({
-        content: message.trim() || "",
+        content: message.trim(),
         mediaUrl,
         mediaType,
       });

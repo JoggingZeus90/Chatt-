@@ -22,7 +22,7 @@ export const rooms = pgTable("rooms", {
 
 export const messages = pgTable("messages", {
   id: serial("id").primaryKey(),
-  content: text("content").notNull(),
+  content: text("content"),
   mediaUrl: text("media_url"),
   mediaType: text("media_type"),
   roomId: integer("room_id")
@@ -67,7 +67,7 @@ export const insertMessageSchema = createInsertSchema(messages)
     roomId: true,
   })
   .extend({
-    content: z.string().min(1).max(100, "Message cannot exceed 100 characters"),
+    content: z.string().max(100, "Message cannot exceed 100 characters").optional(),
     mediaUrl: z.string().url().optional().nullable(),
     mediaType: z.enum(["image", "video"]).optional().nullable(),
   });
