@@ -66,8 +66,21 @@ export function registerRoutes(app: Express): Server {
   app.use('/uploads', (req, res, next) => {
     console.log('Static file request:', req.url);
     console.log('Full path:', path.join(uploadDir, req.url));
+    // Add CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cache-Control', 'no-cache');
     next();
-  }, express.static(uploadDir));
+  }, express.static(uploadDir, {
+    setHeaders: (res, path, stat) => {
+      console.log('Serving file:', path);
+    }
+  }));
+
+  // Error handling middleware for static files
+  app.use((err: any, req: any, res: any, next: any) => {
+    console.error('Error serving static file:', err);
+    res.status(500).send('Error serving file: ' + err.message);
+  });
 
   // File upload endpoint
   app.post("/api/upload", upload.single('file'), (req, res) => {

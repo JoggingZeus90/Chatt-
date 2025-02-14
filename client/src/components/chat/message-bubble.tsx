@@ -20,7 +20,8 @@ export function MessageBubble({ message }: { message: MessageWithUser }) {
   console.log('Message media info:', {
     originalUrl: message.mediaUrl,
     processedUrl: mediaUrl,
-    mediaType: message.mediaType
+    mediaType: message.mediaType,
+    imageError
   });
 
   return (
@@ -62,6 +63,9 @@ export function MessageBubble({ message }: { message: MessageWithUser }) {
               onError={(e) => {
                 console.error("Failed to load image:", mediaUrl);
                 setImageError(true);
+              }}
+              onLoad={() => {
+                console.log("Image loaded successfully:", mediaUrl);
               }}
             />
           </div>
