@@ -21,21 +21,24 @@ const scryptAsync = promisify(scrypt);
 const upload = multer({
   storage: multer.diskStorage({
     destination: function (req, file, cb) {
-      const uploadDir = path.join(process.cwd(), 'uploads');
-      // Create uploads directory if it doesn't exist
+      // Use an absolute path for uploads
+      const uploadDir = path.resolve(process.cwd(), 'uploads');
+      console.log('Upload directory:', uploadDir);
+
       if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });
       }
       cb(null, uploadDir);
     },
     filename: function (req, file, cb) {
-      // Generate unique filename with extension
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      cb(null, uniqueSuffix + path.extname(file.originalname));
+      const filename = uniqueSuffix + path.extname(file.originalname);
+      console.log('Generated filename:', filename);
+      cb(null, filename);
     }
   }),
   fileFilter: function (req, file, cb) {
-    // Accept images and videos only
+    console.log('Received file:', file.originalname, 'Type:', file.mimetype);
     if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
       cb(null, true);
     } else {
@@ -51,22 +54,36 @@ export function registerRoutes(app: Express): Server {
   setupAuth(app);
 
   // Create uploads directory if it doesn't exist
-  const uploadDir = path.join(process.cwd(), 'uploads');
+  const uploadDir = path.resolve(process.cwd(), 'uploads');
+  console.log('Initializing upload directory:', uploadDir);
+
   if (!fs.existsSync(uploadDir)) {
+    console.log('Creating upload directory');
     fs.mkdirSync(uploadDir, { recursive: true });
   }
 
-  // Serve static files from uploads directory
-  app.use('/uploads', express.static(uploadDir));
+  // Serve static files from uploads directory with debugging
+  app.use('/uploads', (req, res, next) => {
+    console.log('Static file request:', req.url);
+    console.log('Full path:', path.join(uploadDir, req.url));
+    next();
+  }, express.static(uploadDir));
 
   // File upload endpoint
   app.post("/api/upload", upload.single('file'), (req, res) => {
+    console.log('Upload request received');
+
     if (!req.file) {
+      console.log('No file uploaded');
       return res.status(400).json({ error: "No file uploaded" });
     }
 
+    console.log('File uploaded successfully:', req.file);
+
     // Return the URL for the uploaded file
     const fileUrl = `/uploads/${req.file.filename}`;
+    console.log('Generated file URL:', fileUrl);
+
     res.json({ url: fileUrl });
   });
 

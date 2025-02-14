@@ -10,9 +10,18 @@ export function MessageBubble({ message }: { message: MessageWithUser }) {
   const isOwn = message.userId === user?.id;
   const [imageError, setImageError] = useState(false);
 
+  // Ensure we have a full URL for the media
   const mediaUrl = message.mediaUrl 
-    ? new URL(message.mediaUrl, window.location.origin).href 
+    ? message.mediaUrl.startsWith('http') 
+      ? message.mediaUrl 
+      : `${window.location.origin}${message.mediaUrl}`
     : null;
+
+  console.log('Message media info:', {
+    originalUrl: message.mediaUrl,
+    processedUrl: mediaUrl,
+    mediaType: message.mediaType
+  });
 
   return (
     <div

@@ -84,23 +84,31 @@ export default function ChatRoom({ room }: { room: Room }) {
       formData.append("file", mediaFile);
 
       try {
+        console.log('Uploading file:', mediaFile.name, 'Type:', mediaFile.type);
+
         const uploadRes = await fetch("/api/upload", {
           method: "POST",
           body: formData,
         });
 
         if (!uploadRes.ok) {
-          throw new Error("Upload failed: " + (await uploadRes.text()));
+          const errorText = await uploadRes.text();
+          console.error('Upload response error:', errorText);
+          throw new Error("Upload failed: " + errorText);
         }
 
-        const { url } = await uploadRes.json();
-        if (!url) {
+        const data = await uploadRes.json();
+        console.log('Upload response:', data);
+
+        if (!data.url) {
           throw new Error("No URL returned from server");
         }
 
-        // Ensure the URL is absolute
-        mediaUrl = new URL(url, window.location.origin).href;
+        // Keep the relative URL as is
+        mediaUrl = data.url;
         mediaType = ALLOWED_FILE_TYPES[mediaFile.type as keyof typeof ALLOWED_FILE_TYPES];
+
+        console.log('Processed upload:', { mediaUrl, mediaType });
       } catch (error) {
         console.error("Upload error:", error);
         toast({
@@ -113,11 +121,13 @@ export default function ChatRoom({ room }: { room: Room }) {
     }
 
     try {
-      await sendMessageMutation.mutateAsync({
+      const message = await sendMessageMutation.mutateAsync({
         content: message.trim(),
         mediaUrl,
         mediaType,
       });
+
+      console.log('Message sent successfully:', message);
     } catch (error) {
       console.error("Send message error:", error);
       toast({
