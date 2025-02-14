@@ -86,6 +86,10 @@ export default function SettingsPage() {
   const updateProfileMutation = useMutation({
     mutationFn: async (data: any) => {
       const res = await apiRequest("PATCH", "/api/user/profile", data);
+      if (!res.ok) {
+        const error = await res.text();
+        throw new Error(error);
+      }
       return res.json();
     },
     onSuccess: (updatedUser) => {
@@ -292,7 +296,6 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* User Management Section (Admin only) - Moved to bottom */}
         {isAdmin && (
           <Card>
             <CardHeader>

@@ -158,11 +158,15 @@ export class DatabaseStorage implements IStorage {
     username?: string;
     password?: string;
     avatarUrl?: string;
+    updateUsernameTimestamp?: boolean;
   }): Promise<User> {
     const updateData: Record<string, any> = {};
 
     if (updates.username !== undefined) {
       updateData.username = updates.username;
+      if (updates.updateUsernameTimestamp) {
+        updateData.lastUsernameChange = new Date();
+      }
     }
     if (updates.avatarUrl !== undefined) {
       updateData.avatarUrl = updates.avatarUrl;

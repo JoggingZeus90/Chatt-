@@ -24,6 +24,7 @@ export const users = pgTable("users", {
   muted: boolean("muted").notNull().default(false),
   mutedUntil: timestamp("muted_until"),
   mutedReason: text("muted_reason"),
+  lastUsernameChange: timestamp("last_username_change"),
 });
 
 export const insertUserSchema = createInsertSchema(users)

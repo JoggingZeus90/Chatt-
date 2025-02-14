@@ -16,6 +16,13 @@ import * as schema from "@shared/schema";
 import { pool } from './db';
 import passport from 'passport'; // Import passport
 
+function canChangeUsername(lastChange: Date | null): boolean {
+  if (!lastChange) return true;
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  return lastChange < sevenDaysAgo;
+}
+
 const scryptAsync = promisify(scrypt);
 
 // Configure multer for handling file uploads
@@ -311,8 +318,15 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).send("Current password is incorrect");
       }
 
-      // Check username availability if changing
+      // Check username availability and cooldown if changing
       if (username && username !== user.username) {
+        // Check if user can change username (7-day cooldown)
+        if (!canChangeUsername(user.lastUsernameChange)) {
+          const nextChangeDate = new Date(user.lastUsernameChange!);
+          nextChangeDate.setDate(nextChangeDate.getDate() + 7);
+          return res.status(400).send(`You can change your username again on ${nextChangeDate.toLocaleDateString()}`);
+        }
+
         const existing = await storage.getUserByUsername(username);
         if (existing) {
           return res.status(400).send("Username is already taken");
@@ -327,6 +341,7 @@ export function registerRoutes(app: Express): Server {
       username,
       password: newPassword,
       avatarUrl,
+      lastUsernameChange: username !== req.user.username ? new Date() : null,
     });
 
     res.json(updatedUser);
