@@ -25,7 +25,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { format } from "date-fns";
 
 export function UserManagement() {
-  const { isAdmin, isModerator } = useAuth();
+  const { user: currentUser, isAdmin, isModerator } = useAuth();
   const { toast } = useToast();
   const [selectedRole, setSelectedRole] = useState<string>();
   const [suspensionReason, setSuspensionReason] = useState("");
@@ -127,7 +127,7 @@ export function UserManagement() {
           Role: {user.role}
         </p>
       </div>
-      {isAdmin && showRoleSelect && (
+      {isAdmin && showRoleSelect && user.id !== currentUser?.id && (
         <div className="flex items-center gap-2">
           <Select
             onValueChange={(value) => setSelectedRole(value)}
@@ -210,7 +210,7 @@ export function UserManagement() {
         <h3 className="text-lg font-semibold text-primary">Administrators</h3>
         <div className="space-y-4">
           {admins.map((user) => (
-            <UserCard key={user.id} user={user} showRoleSelect={false} />
+            <UserCard key={user.id} user={user} showRoleSelect={true} />
           ))}
           {admins.length === 0 && (
             <p className="text-sm text-muted-foreground">No administrators found</p>
@@ -231,7 +231,7 @@ export function UserManagement() {
         </div>
       </div>
 
-      {/* Active Users Section */}
+      {/* Regular Users Section */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">Regular Users</h3>
         <div className="space-y-4">
