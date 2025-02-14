@@ -229,8 +229,10 @@ export default function ChatRoom({ room }: { room: Room }) {
 
     // Handle whisper command
     if (messageContent.startsWith(WHISPER_COMMAND)) {
-      const parts = messageContent.slice(WHISPER_COMMAND.length).trim().split(' ');
-      if (parts.length < 2) {
+      const commandText = messageContent.slice(WHISPER_COMMAND.length).trim();
+      const firstSpaceIndex = commandText.indexOf(' ');
+
+      if (firstSpaceIndex === -1) {
         toast({
           title: "Invalid whisper format",
           description: "Use /whisper username message",
@@ -238,8 +240,18 @@ export default function ChatRoom({ room }: { room: Room }) {
         });
         return;
       }
-      whisperTo = parts[0];
-      messageContent = parts.slice(1).join(' ');
+
+      whisperTo = commandText.slice(0, firstSpaceIndex);
+      messageContent = commandText.slice(firstSpaceIndex + 1);
+
+      if (!messageContent.trim()) {
+        toast({
+          title: "Invalid whisper format",
+          description: "Message cannot be empty",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     if (mediaFile) {
@@ -294,8 +306,8 @@ export default function ChatRoom({ room }: { room: Room }) {
     const newValue = e.target.value;
     if (newValue.length <= MAX_MESSAGE_LENGTH) {
       setMessage(newValue);
-      // Show commands when typing '/'
-      if (newValue === '/') {
+      // Show commands when typing '/' and keep showing while typing a command
+      if (newValue.startsWith('/')) {
         setShowCommands(true);
       } else if (showCommands && !newValue.startsWith('/')) {
         setShowCommands(false);
