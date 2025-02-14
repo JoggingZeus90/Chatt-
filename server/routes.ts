@@ -337,14 +337,19 @@ export function registerRoutes(app: Express): Server {
       return res.status(400).send("Current password is required to change password");
     }
 
-    const updatedUser = await storage.updateUserProfile(req.user.id, {
-      username,
-      password: newPassword,
-      avatarUrl,
-      lastUsernameChange: username !== req.user.username ? new Date() : null,
-    });
+    try {
+      const updatedUser = await storage.updateUserProfile(req.user.id, {
+        username,
+        password: newPassword,
+        avatarUrl,
+        lastUsernameChange: username !== req.user.username ? new Date() : null,
+      });
 
-    res.json(updatedUser);
+      res.json(updatedUser);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      res.status(500).send("Failed to update profile");
+    }
   });
 
   // Delete account
