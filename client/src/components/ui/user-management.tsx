@@ -33,7 +33,8 @@ export function UserManagement() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [muteReason, setMuteReason] = useState("");
   const [muteDuration, setMuteDuration] = useState("60"); // Default 60 minutes
-  const [muteDialogUser, setMuteDialogUser] = useState<User | null>(null);
+  const [muteDialogOpen, setMuteDialogOpen] = useState(false);
+  const [selectedMuteUser, setSelectedMuteUser] = useState<User | null>(null);
 
   const { data: users, isLoading } = useQuery<User[]>({
     queryKey: ["/api/users"],
@@ -106,7 +107,8 @@ export function UserManagement() {
         title: "Success",
         description: "User muted successfully",
       });
-      setMuteDialogUser(null);
+      setMuteDialogOpen(false);
+      setSelectedMuteUser(null);
       setMuteReason("");
       setMuteDuration("60");
     },
@@ -218,14 +220,15 @@ export function UserManagement() {
             Update Role
           </Button>
           {!user.muted ? (
-            <Dialog>
+            <Dialog open={muteDialogOpen && selectedMuteUser?.id === user.id} onOpenChange={setMuteDialogOpen}>
               <DialogTrigger asChild>
                 <Button
                   variant="outline"
                   onClick={() => {
                     setMuteReason("");
                     setMuteDuration("60");
-                    setMuteDialogUser(user);
+                    setSelectedMuteUser(user);
+                    setMuteDialogOpen(true);
                   }}
                 >
                   Mute
@@ -262,7 +265,8 @@ export function UserManagement() {
                     type="button"
                     variant="outline"
                     onClick={() => {
-                      setMuteDialogUser(null);
+                      setMuteDialogOpen(false);
+                      setSelectedMuteUser(null);
                       setMuteReason("");
                       setMuteDuration("60");
                     }}
@@ -273,9 +277,9 @@ export function UserManagement() {
                     type="button"
                     variant="default"
                     onClick={() => {
-                      if (muteReason.trim() && parseInt(muteDuration) > 0) {
+                      if (muteReason.trim() && parseInt(muteDuration) > 0 && selectedMuteUser) {
                         muteUserMutation.mutate({
-                          userId: user.id,
+                          userId: selectedMuteUser.id,
                           duration: parseInt(muteDuration),
                           reason: muteReason,
                         });
