@@ -9,17 +9,22 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { insertUserSchema, type InsertUser } from "@shared/schema";
 import { Loader2 } from "lucide-react";
 import { Redirect } from "wouter";
+
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
+
   const loginForm = useForm<InsertUser>({
     resolver: zodResolver(insertUserSchema),
   });
+
   const registerForm = useForm<InsertUser>({
     resolver: zodResolver(insertUserSchema),
   });
+
   if (user) {
     return <Redirect to="/" />;
   }
+
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
       <div className="flex items-center justify-center p-8">
@@ -33,6 +38,7 @@ export default function AuthPage() {
                 <TabsTrigger value="login">Login</TabsTrigger>
                 <TabsTrigger value="register">Register</TabsTrigger>
               </TabsList>
+
               <TabsContent value="login">
                 <form
                   onSubmit={loginForm.handleSubmit((data) =>
@@ -67,6 +73,7 @@ export default function AuthPage() {
                   </Button>
                 </form>
               </TabsContent>
+
               <TabsContent value="register">
                 <form
                   onSubmit={registerForm.handleSubmit((data) =>
@@ -114,8 +121,6 @@ export default function AuthPage() {
           </p>
         </div>
       </div>
-      <div className="text-center text-sm mt-4">A Project By Jesse Ramsey</div>
     </div>
   );
 }
-

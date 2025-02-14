@@ -2,7 +2,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertRoomSchema, type Room } from "@shared/schema";
@@ -22,13 +22,6 @@ import {
   AvatarImage,
   AvatarFallback,
 } from "@/components/ui/avatar";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarTrigger,
-  SidebarProvider,
-  SidebarInset,
-} from "@/components/ui/sidebar";
 
 export default function ChatPage() {
   const { user, logoutMutation } = useAuth();
@@ -61,20 +54,11 @@ export default function ChatPage() {
     },
   });
 
-  const leaveRoomMutation = useMutation({
-    mutationFn: async (roomId: number) => {
-      await apiRequest("POST", `/api/rooms/${roomId}/leave`);
-    },
-    onSuccess: () => {
-      setSelectedRoom(null);
-      queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
-    },
-  });
-
   const form = useForm({
     resolver: zodResolver(insertRoomSchema),
   });
 
+  // Update online status
   useEffect(() => {
     if (!user) return;
 
@@ -90,7 +74,7 @@ export default function ChatPage() {
     };
 
     updateStatus();
-    const interval = setInterval(updateStatus, 3000);
+    const interval = setInterval(updateStatus, 30000);
 
     const handleBeforeUnload = async () => {
       if (user) {
@@ -122,9 +106,8 @@ export default function ChatPage() {
   }
 
   return (
-    <Sidebar>
-      <SidebarContent className="w-64 bg-muted/50 p-4 pt-12 flex flex-col">
-        <SidebarTrigger className="absolute top-2 left-2" />
+    <div className="flex h-screen">
+      <div className="w-64 border-r bg-muted/50 p-4 flex flex-col">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-semibold">Chat Rooms</h2>
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
@@ -202,6 +185,7 @@ export default function ChatPage() {
           ))}
         </div>
         <div className="pt-4 border-t mt-4 space-y-4">
+          {/* User Profile Section */}
           <div className="flex items-center justify-between p-2 bg-secondary/50 rounded-lg">
             <div className="flex items-center gap-2">
               <Avatar className="h-8 w-8">
@@ -211,6 +195,7 @@ export default function ChatPage() {
               <span className="font-medium text-sm">{user?.username}</span>
             </div>
           </div>
+          {/* Action Buttons */}
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -235,16 +220,16 @@ export default function ChatPage() {
             </Button>
           </div>
         </div>
-      </SidebarContent>
-      <SidebarInset>
+      </div>
+      <div className="flex-1">
         {selectedRoom ? (
           <ChatRoom room={selectedRoom} />
         ) : (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-xl text-muted-foreground">Select a room to start chatting</p>
+          <div className="flex items-center justify-center h-full text-muted-foreground">
+            Select a room to start chatting
           </div>
         )}
-      </SidebarInset>
-    </Sidebar>
+      </div>
+    </div>
   );
 }

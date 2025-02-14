@@ -48,10 +48,10 @@ export function registerRoutes(app: Express): Server {
   // Delete room (only by creator)
   app.delete("/api/rooms/:roomId", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
+
     try {
       await storage.deleteRoom(parseInt(req.params.roomId), req.user.id);
       res.sendStatus(200);
-      io.emit("chatroomDeleted", parseInt(req.params.roomId));
     } catch (error) {
       if (error instanceof Error && error.message === "Unauthorized") {
         res.status(403).send("Only room creator can delete the room");
@@ -60,7 +60,6 @@ export function registerRoutes(app: Express): Server {
       }
     }
   });
-
 
   // Join room
   app.post("/api/rooms/:roomId/join", async (req, res) => {

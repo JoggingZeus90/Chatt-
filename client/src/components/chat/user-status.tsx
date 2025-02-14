@@ -1,5 +1,4 @@
-
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Tooltip,
   TooltipContent,
@@ -12,25 +11,24 @@ export function UserStatus({
   username,
   isOnline,
   lastSeen,
-  avatarUrl,
 }: {
   username: string;
   isOnline: boolean;
   lastSeen: Date;
-  avatarUrl?: string;
 }) {
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger>
-          <Avatar className="h-8 w-8 relative">
-            <AvatarImage src={avatarUrl} />
-            <AvatarFallback>{username[0].toUpperCase()}</AvatarFallback>
-            <span
-              className={`absolute bottom-0 right-0 h-2 w-2 rounded-full ring-1 ring-background ${
-                isOnline ? "bg-green-500" : "bg-gray-500"
-              }`}
-            />
+          <Avatar className="h-8 w-8">
+            <AvatarFallback className="relative">
+              {username[0].toUpperCase()}
+              <span
+                className={`absolute bottom-0 right-0 h-2 w-2 rounded-full ring-1 ring-background ${
+                  isOnline ? "bg-green-500" : "bg-gray-500"
+                }`}
+              />
+            </AvatarFallback>
           </Avatar>
         </TooltipTrigger>
         <TooltipContent>
