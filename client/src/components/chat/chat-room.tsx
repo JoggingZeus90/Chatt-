@@ -29,20 +29,6 @@ import {
   CommandList,
 } from "@/components/ui/command";
 
-const MAX_MESSAGE_LENGTH = 100;
-const ALLOWED_FILE_TYPES = {
-  "image/jpeg": "image",
-  "image/png": "image",
-  "image/gif": "image",
-  "video/mp4": "video",
-  "video/webm": "video",
-} as const;
-
-const WHISPER_COMMAND = "/whisper";
-const SUS_IMAGE_URL = "https://i.ytimg.com/vi/Mw3jK9YwOxk/maxresdefault.jpg";
-const KRATOS_IMAGE_URL = "https://ew.com/thmb/4lmLC5Ark8X7GwPpaATjk738Xao=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/god-of-war-2018-2000-408387a68b78478aaa52d04b8a99c0a0.jpg";
-const VINE_BOOM_URL = "https://www.myinstants.com/media/sounds/vine-boom.mp3";
-
 // Define inappropriate words to filter
 const INAPPROPRIATE_WORDS = [
   // Common profanity
@@ -80,6 +66,20 @@ function filterInappropriateWords(text: string): string {
   });
   return filteredText;
 }
+
+const MAX_MESSAGE_LENGTH = 100;
+const ALLOWED_FILE_TYPES = {
+  "image/jpeg": "image",
+  "image/png": "image",
+  "image/gif": "image",
+  "video/mp4": "video",
+  "video/webm": "video",
+} as const;
+
+const WHISPER_COMMAND = "/whisper";
+const SUS_IMAGE_URL = "https://i.ytimg.com/vi/Mw3jK9YwOxk/maxresdefault.jpg";
+const KRATOS_IMAGE_URL = "https://ew.com/thmb/4lmLC5Ark8X7GwPpaATjk738Xao=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/god-of-war-2018-2000-408387a68b78478aaa52d04b8a99c0a0.jpg";
+const VINE_BOOM_URL = "https://www.myinstants.com/media/sounds/vine-boom.mp3";
 
 const TEXT_COMMANDS = {
   "/tableflip": "(╯°□°)╯︵ ┻━┻",
@@ -323,15 +323,13 @@ export default function ChatRoom({ room }: { room: Room }) {
       messageContent = filterInappropriateWords(messageContent);
     }
 
-    // Handle text commands first
     const textCommand = TEXT_COMMANDS[messageContent as keyof typeof TEXT_COMMANDS];
     if (messageContent === '/sus') {
       uploadedMediaUrl = SUS_IMAGE_URL;
       uploadedMediaType = 'image';
-      messageContent = ''; // Clear the message content since we're sending an image
-      // Play the vine boom sound
+      messageContent = ''; 
       if (audioRef.current) {
-        audioRef.current.volume = 0.3; // Set volume to 30%
+        audioRef.current.volume = 0.3; 
         audioRef.current.currentTime = 0;
         audioRef.current.play();
       }
@@ -354,7 +352,6 @@ export default function ChatRoom({ room }: { room: Room }) {
         return;
       }
 
-      // Remove the @ symbol if present
       whisperTo = usernameMatch[1].replace(/^@/, '');
       messageContent = usernameMatch[2];
 
@@ -429,7 +426,6 @@ export default function ChatRoom({ room }: { room: Room }) {
   };
 
   const handleCommandSelect = (command: typeof commands[0]) => {
-    // Only add quotes for whisper command
     if (command.name === 'whisper') {
       setMessage(`${command.format.split(' ')[0]} "`);
     } else {
