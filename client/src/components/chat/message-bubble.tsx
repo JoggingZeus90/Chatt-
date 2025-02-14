@@ -23,7 +23,11 @@ import {
 
 const MAX_MESSAGE_LENGTH = 100;
 
-export function MessageBubble({ message, roomId }: { message: MessageWithUser; roomId: number }) {
+type ExtendedMessageWithUser = MessageWithUser & {
+  whisperTo?: string | null;
+}
+
+export function MessageBubble({ message, roomId }: { message: ExtendedMessageWithUser; roomId: number }) {
   const { user } = useAuth();
   const isOwn = message.userId === user?.id;
   const isWhisper = message.whisperTo !== null;
