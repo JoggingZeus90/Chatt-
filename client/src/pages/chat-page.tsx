@@ -54,8 +54,21 @@ export default function ChatPage() {
     },
   });
 
+  const leaveRoomMutation = useMutation({
+    mutationFn: async (roomId: number) => {
+      await apiRequest("POST", `/api/rooms/${roomId}/leave`);
+    },
+    onSuccess: () => {
+      setSelectedRoom(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
+    },
+  });
+
   const form = useForm({
     resolver: zodResolver(insertRoomSchema),
+    defaultValues: {
+      name: "",
+    },
   });
 
   // Update online status
@@ -92,7 +105,7 @@ export default function ChatPage() {
       clearInterval(interval);
       window.removeEventListener("beforeunload", handleBeforeUnload);
       if (user && !logoutMutation.isPending) {
-        updateStatus();
+        handleBeforeUnload();
       }
     };
   }, [user, logoutMutation.isPending]);
@@ -189,7 +202,7 @@ export default function ChatPage() {
           <div className="flex items-center justify-between p-2 bg-secondary/50 rounded-lg">
             <div className="flex items-center gap-2">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={user?.avatarUrl} />
+                <AvatarImage src={user?.avatarUrl ?? undefined} />
                 <AvatarFallback>{user?.username?.[0].toUpperCase()}</AvatarFallback>
               </Avatar>
               <span className="font-medium text-sm">{user?.username}</span>
