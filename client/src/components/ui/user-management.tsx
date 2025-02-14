@@ -28,13 +28,10 @@ import { Loader2 } from "lucide-react";
 export function UserManagement() {
   const { user: currentUser, isAdmin, isModerator } = useAuth();
   const { toast } = useToast();
-  const [suspensionReason, setSuspensionReason] = useState("");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [muteReason, setMuteReason] = useState("");
   const [muteDuration, setMuteDuration] = useState("60"); // Default 60 minutes
-  const [muteDialogOpen, setMuteDialogOpen] = useState(false);
-  const [selectedMuteUser, setSelectedMuteUser] = useState<User | null>(null);
-  const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
+  const [suspensionReason, setSuspensionReason] = useState("");
 
   const { data: users, isLoading } = useQuery<User[]>({
     queryKey: ["/api/users"],
@@ -44,7 +41,7 @@ export function UserManagement() {
   // Separate users by role and status
   const admins = users?.filter(user => user.role === UserRole.ADMIN && !user.suspended) || [];
   const moderators = users?.filter(user => user.role === UserRole.MODERATOR && !user.suspended) || [];
-  const activeUsers = users?.filter(user => 
+  const activeUsers = users?.filter(user =>
     user.role === UserRole.USER && !user.suspended
   ) || [];
   const suspendedUsers = users?.filter(user => user.suspended) || [];
@@ -107,8 +104,6 @@ export function UserManagement() {
         title: "Success",
         description: "User muted successfully",
       });
-      setMuteDialogOpen(false);
-      setSelectedMuteUser(null);
       setMuteReason("");
       setMuteDuration("60");
     },
@@ -165,48 +160,44 @@ export function UserManagement() {
     },
   });
 
-  const handleMuteClick = (user: User, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setMuteReason("");
-    setMuteDuration("60");
-    setSelectedMuteUser(user);
-    setMuteDialogOpen(true);
+  const handleMuteSubmit = (userId: number) => {
+    if (!muteReason.trim() || parseInt(muteDuration) <= 0) {
+      toast({
+        title: "Missing information",
+        description: "Please provide both duration and reason for muting.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    muteUserMutation.mutate({
+      userId,
+      duration: parseInt(muteDuration),
+      reason: muteReason,
+    });
   };
 
-  const handleMuteDialogClose = () => {
-    setMuteDialogOpen(false);
-    setTimeout(() => {
-      setSelectedMuteUser(null);
-      setMuteReason("");
-      setMuteDuration("60");
-    }, 100); // Small delay to ensure smooth transition
+  const handleSuspendSubmit = (userId: number) => {
+    if (!suspensionReason.trim()) {
+      toast({
+        title: "Missing information",
+        description: "Please provide a reason for suspension.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    suspendUserMutation.mutate({
+      userId,
+      reason: suspensionReason,
+    });
   };
-
-  const handleSuspendClick = (user: User) => {
-    setSelectedUser(user);
-    setSuspendDialogOpen(true);
-  };
-
-  const handleSuspendDialogClose = () => {
-    setSuspendDialogOpen(false);
-    setTimeout(() => {
-      setSelectedUser(null);
-      setSuspensionReason("");
-    }, 100); // Small delay to ensure smooth transition
-  };
-
-  if (!isAdmin && !isModerator) {
-    return null;
-  }
-
-  if (isLoading) {
-    return <div>Loading users...</div>;
-  }
 
   const UserCard = ({ user, showRoleSelect = true }: { user: User; showRoleSelect?: boolean }) => {
     const [selectedRole, setSelectedRole] = useState(user.role);
     const [isChangingRole, setIsChangingRole] = useState(false);
+    const [isMuteDialogOpen, setIsMuteDialogOpen] = useState(false);
+    const [isSuspendDialogOpen, setIsSuspendDialogOpen] = useState(false);
 
     const handleRoleChange = (newRole: string) => {
       setSelectedRole(newRole);
@@ -265,13 +256,13 @@ export function UserManagement() {
               </Button>
             )}
             {!user.muted ? (
-              <Dialog open={muteDialogOpen && selectedMuteUser?.id === user.id} onOpenChange={setMuteDialogOpen}>
+              <Dialog open={isMuteDialogOpen} onOpenChange={setIsMuteDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" onClick={(e) => handleMuteClick(user, e)}>
+                  <Button variant="outline">
                     Mute
                   </Button>
                 </DialogTrigger>
-                <DialogContent onEscapeKeyDown={handleMuteDialogClose} onInteractOutside={handleMuteDialogClose}>
+                <DialogContent>
                   <DialogHeader>
                     <DialogTitle>Mute User</DialogTitle>
                     <DialogDescription>
@@ -286,6 +277,7 @@ export function UserManagement() {
                         value={muteDuration}
                         onChange={(e) => setMuteDuration(e.target.value)}
                         min="1"
+                        disabled={muteUserMutation.isPending}
                       />
                     </div>
                     <div>
@@ -294,24 +286,18 @@ export function UserManagement() {
                         value={muteReason}
                         onChange={(e) => setMuteReason(e.target.value)}
                         placeholder="Reason for muting"
+                        disabled={muteUserMutation.isPending}
                       />
                     </div>
                   </div>
                   <DialogFooter>
-                    <Button type="button" variant="outline" onClick={handleMuteDialogClose}>
-                      Cancel
-                    </Button>
                     <Button
                       type="button"
                       variant="default"
                       onClick={() => {
-                        if (muteReason.trim() && parseInt(muteDuration) > 0 && selectedMuteUser) {
-                          muteUserMutation.mutate({
-                            userId: selectedMuteUser.id,
-                            duration: parseInt(muteDuration),
-                            reason: muteReason,
-                          });
-                          handleMuteDialogClose();
+                        handleMuteSubmit(user.id);
+                        if (muteUserMutation.isSuccess) {
+                          setIsMuteDialogOpen(false);
                         }
                       }}
                       disabled={muteUserMutation.isPending || !muteReason.trim() || parseInt(muteDuration) <= 0}
@@ -336,9 +322,9 @@ export function UserManagement() {
                 Unmute
               </Button>
             )}
-            <Dialog open={suspendDialogOpen && selectedUser?.id === user.id} onOpenChange={setSuspendDialogOpen}>
+            <Dialog open={isSuspendDialogOpen} onOpenChange={setIsSuspendDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="destructive" onClick={() => handleSuspendClick(user)}>
+                <Button variant="destructive">
                   Suspend
                 </Button>
               </DialogTrigger>
@@ -353,20 +339,18 @@ export function UserManagement() {
                   placeholder="Suspension reason"
                   value={suspensionReason}
                   onChange={(e) => setSuspensionReason(e.target.value)}
+                  disabled={suspendUserMutation.isPending}
                 />
                 <DialogFooter>
                   <Button
                     variant="destructive"
                     onClick={() => {
-                      if (suspensionReason.trim()) {
-                        suspendUserMutation.mutate({
-                          userId: user.id,
-                          reason: suspensionReason,
-                        });
-                        handleSuspendDialogClose();
+                      handleSuspendSubmit(user.id);
+                      if (suspendUserMutation.isSuccess) {
+                        setIsSuspendDialogOpen(false);
                       }
                     }}
-                    disabled={suspendUserMutation.isPending}
+                    disabled={suspendUserMutation.isPending || !suspensionReason.trim()}
                   >
                     {suspendUserMutation.isPending ? (
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -381,6 +365,14 @@ export function UserManagement() {
       </div>
     );
   };
+
+  if (!isAdmin && !isModerator) {
+    return null;
+  }
+
+  if (isLoading) {
+    return <div>Loading users...</div>;
+  }
 
   return (
     <div className="space-y-8">
