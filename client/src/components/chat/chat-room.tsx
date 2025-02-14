@@ -39,12 +39,32 @@ const ALLOWED_FILE_TYPES = {
 } as const;
 
 const WHISPER_COMMAND = "/whisper";
+const TEXT_COMMANDS = {
+  "/tableflip": "(╯°□°)╯︵ ┻━┻",
+  "/unflip": "┬─┬ ノ( ゜-゜ノ)",
+  "/shrug": "¯\\_(ツ)_/¯",
+} as const;
 
 const commands = [
   {
     name: 'whisper',
     description: 'Send a private message to a user',
     format: '/whisper "@username" your message',
+  },
+  {
+    name: 'tableflip',
+    description: 'Flip a table in anger',
+    format: '/tableflip',
+  },
+  {
+    name: 'unflip',
+    description: 'Restore the flipped table',
+    format: '/unflip',
+  },
+  {
+    name: 'shrug',
+    description: 'Shrug your shoulders',
+    format: '/shrug',
   },
 ];
 
@@ -229,9 +249,12 @@ export default function ChatRoom({ room }: { room: Room }) {
     let whisperTo: string | undefined;
     let messageContent = message.trim();
 
-    if (messageContent.startsWith(WHISPER_COMMAND)) {
+    // Handle text commands first
+    const textCommand = TEXT_COMMANDS[messageContent as keyof typeof TEXT_COMMANDS];
+    if (textCommand) {
+      messageContent = textCommand;
+    } else if (messageContent.startsWith(WHISPER_COMMAND)) {
       const commandText = messageContent.slice(WHISPER_COMMAND.length).trim();
-      console.log('Processing whisper command:', commandText);
 
       const usernameMatch = commandText.match(/^["']([^"']+)["']\s+(.+)$/);
       if (!usernameMatch) {
@@ -255,8 +278,6 @@ export default function ChatRoom({ room }: { room: Room }) {
         });
         return;
       }
-
-      console.log('Whisper parsed:', { whisperTo, messageContent });
     }
 
     if (mediaFile) {
