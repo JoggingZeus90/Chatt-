@@ -288,6 +288,7 @@ export default function ChatRoom({ room }: { room: Room }) {
       messageContent = ''; // Clear the message content since we're sending an image
       // Play the vine boom sound
       if (audioRef.current) {
+        audioRef.current.volume = 0.3; // Set volume to 30%
         audioRef.current.currentTime = 0;
         audioRef.current.play();
       }
