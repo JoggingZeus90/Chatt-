@@ -31,7 +31,7 @@ export function MessageBubble({ message, roomId }: { message: ExtendedMessageWit
   const { user } = useAuth();
   const isOwn = message.userId === user?.id;
   const isWhisper = message.whisperTo !== null;
-  const canSeeWhisper = isOwn || message.whisperTo === user?.username;
+  const canSeeWhisper = isWhisper && (isOwn || message.whisperTo === user?.username);
   const canDelete = isOwn || user?.role === 'admin' || user?.role === 'moderator';
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
@@ -40,6 +40,11 @@ export function MessageBubble({ message, roomId }: { message: ExtendedMessageWit
   const imgRef = useRef<HTMLImageElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  // If this is a whisper and the current user can't see it, don't render anything
+  if (isWhisper && !canSeeWhisper) {
+    return null;
+  }
 
   // Create an absolute URL for the media
   const mediaUrl = message.mediaUrl
@@ -124,7 +129,6 @@ export function MessageBubble({ message, roomId }: { message: ExtendedMessageWit
     <div
       className={cn("flex gap-2 mb-4", {
         "justify-end": isOwn,
-        "opacity-50": isWhisper && !canSeeWhisper,
       })}
     >
       {!isOwn && (
@@ -165,7 +169,7 @@ export function MessageBubble({ message, roomId }: { message: ExtendedMessageWit
         </div>
 
         {/* Whisper indicator */}
-        {isWhisper && canSeeWhisper && (
+        {isWhisper && (
           <div className="text-xs italic mb-1">
             {isOwn
               ? `Whispered to ${message.whisperTo}`
@@ -174,7 +178,50 @@ export function MessageBubble({ message, roomId }: { message: ExtendedMessageWit
           </div>
         )}
 
-        {/* Message Actions */}
+        {/* Message content */}
+        {message.content && !isEditing && (
+          <div className="mt-1">
+            <p>{message.content}</p>
+            {message.editedAt && (
+              <span className="text-xs text-muted-foreground italic">
+                edited {format(new Date(message.editedAt), "HH:mm")}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Media content */}
+        {mediaUrl && message.mediaType === "image" && !imageError && (
+          <div className="mt-2 relative">
+            {imageLoading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-secondary/20">
+                <Loader2 className="h-6 w-6 animate-spin" />
+              </div>
+            )}
+            <img
+              ref={imgRef}
+              src={mediaUrl}
+              alt="Shared image"
+              className="rounded-lg max-w-full max-h-64 object-contain"
+              onError={() => {
+                setImageError(true);
+                setImageLoading(false);
+              }}
+              onLoad={() => {
+                setImageLoading(false);
+              }}
+            />
+          </div>
+        )}
+
+        {imageError && (
+          <div className="flex items-center gap-2 text-destructive text-sm mt-2">
+            <AlertCircle className="h-4 w-4" />
+            Failed to load image
+          </div>
+        )}
+
+        {/* Message actions */}
         <div className={cn(
           "absolute top-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2",
           isOwn ? "-left-20" : "-right-8"
@@ -192,10 +239,7 @@ export function MessageBubble({ message, roomId }: { message: ExtendedMessageWit
           {canDelete && !isEditing && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                >
+                <Button variant="ghost" size="icon">
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
               </AlertDialogTrigger>
@@ -225,45 +269,7 @@ export function MessageBubble({ message, roomId }: { message: ExtendedMessageWit
           )}
         </div>
 
-        {mediaUrl && message.mediaType === "image" && !imageError && (
-          <div className="mt-2 relative">
-            {imageLoading && (
-              <div className="absolute inset-0 flex items-center justify-center bg-secondary/20">
-                <Loader2 className="h-6 w-6 animate-spin" />
-              </div>
-            )}
-            <img
-              ref={imgRef}
-              src={mediaUrl}
-              alt="Shared image"
-              className="rounded-lg max-w-full max-h-64 object-contain"
-              onError={() => {
-                setImageError(true);
-                setImageLoading(false);
-              }}
-              onLoad={() => {
-                setImageLoading(false);
-              }}
-            />
-          </div>
-        )}
-        {imageError && (
-          <div className="flex items-center gap-2 text-destructive text-sm mt-2">
-            <AlertCircle className="h-4 w-4" />
-            Failed to load image
-          </div>
-        )}
-        {message.content && !isEditing && (
-          <div className="mt-1">
-            <p>{message.content}</p>
-            {message.editedAt && (
-              <span className="text-xs text-muted-foreground italic">
-                edited {format(new Date(message.editedAt), "HH:mm")}
-              </span>
-            )}
-          </div>
-        )}
-
+        {/* Edit form */}
         {isEditing && (
           <div className="mt-1 space-y-2">
             <Input
