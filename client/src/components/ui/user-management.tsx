@@ -198,6 +198,9 @@ export function UserManagement() {
     const [isChangingRole, setIsChangingRole] = useState(false);
     const [isMuteDialogOpen, setIsMuteDialogOpen] = useState(false);
     const [isSuspendDialogOpen, setIsSuspendDialogOpen] = useState(false);
+    const [localMuteReason, setLocalMuteReason] = useState("");
+    const [localMuteDuration, setLocalMuteDuration] = useState("60");
+    const [localSuspendReason, setLocalSuspendReason] = useState("");
 
     const handleRoleChange = (newRole: string) => {
       setSelectedRole(newRole);
@@ -212,6 +215,53 @@ export function UserManagement() {
         });
       }
       setIsChangingRole(false);
+    };
+
+    const handleMuteClick = (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsMuteDialogOpen(true);
+    };
+
+    const handleSuspendClick = (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsSuspendDialogOpen(true);
+    };
+
+    const handleMuteSubmit = () => {
+      if (!localMuteReason.trim() || parseInt(localMuteDuration) <= 0) {
+        toast({
+          title: "Missing information",
+          description: "Please provide both duration and reason for muting.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      muteUserMutation.mutate({
+        userId: user.id,
+        duration: parseInt(localMuteDuration),
+        reason: localMuteReason,
+      });
+      setIsMuteDialogOpen(false);
+    };
+
+    const handleSuspendSubmit = () => {
+      if (!localSuspendReason.trim()) {
+        toast({
+          title: "Missing information",
+          description: "Please provide a reason for suspension.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      suspendUserMutation.mutate({
+        userId: user.id,
+        reason: localSuspendReason,
+      });
+      setIsSuspendDialogOpen(false);
     };
 
     return (
@@ -258,7 +308,7 @@ export function UserManagement() {
             {!user.muted ? (
               <Dialog open={isMuteDialogOpen} onOpenChange={setIsMuteDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="outline">
+                  <Button variant="outline" onClick={handleMuteClick}>
                     Mute
                   </Button>
                 </DialogTrigger>
@@ -274,8 +324,8 @@ export function UserManagement() {
                       <label className="text-sm font-medium">Duration (minutes)</label>
                       <Input
                         type="number"
-                        value={muteDuration}
-                        onChange={(e) => setMuteDuration(e.target.value)}
+                        value={localMuteDuration}
+                        onChange={(e) => setLocalMuteDuration(e.target.value)}
                         min="1"
                         disabled={muteUserMutation.isPending}
                       />
@@ -283,8 +333,8 @@ export function UserManagement() {
                     <div>
                       <label className="text-sm font-medium">Reason</label>
                       <Input
-                        value={muteReason}
-                        onChange={(e) => setMuteReason(e.target.value)}
+                        value={localMuteReason}
+                        onChange={(e) => setLocalMuteReason(e.target.value)}
                         placeholder="Reason for muting"
                         disabled={muteUserMutation.isPending}
                       />
@@ -294,13 +344,8 @@ export function UserManagement() {
                     <Button
                       type="button"
                       variant="default"
-                      onClick={() => {
-                        handleMuteSubmit(user.id);
-                        if (muteUserMutation.isSuccess) {
-                          setIsMuteDialogOpen(false);
-                        }
-                      }}
-                      disabled={muteUserMutation.isPending || !muteReason.trim() || parseInt(muteDuration) <= 0}
+                      onClick={handleMuteSubmit}
+                      disabled={muteUserMutation.isPending || !localMuteReason.trim() || parseInt(localMuteDuration) <= 0}
                     >
                       {muteUserMutation.isPending ? (
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -324,7 +369,7 @@ export function UserManagement() {
             )}
             <Dialog open={isSuspendDialogOpen} onOpenChange={setIsSuspendDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="destructive">
+                <Button variant="destructive" onClick={handleSuspendClick}>
                   Suspend
                 </Button>
               </DialogTrigger>
@@ -337,20 +382,15 @@ export function UserManagement() {
                 </DialogHeader>
                 <Input
                   placeholder="Suspension reason"
-                  value={suspensionReason}
-                  onChange={(e) => setSuspensionReason(e.target.value)}
+                  value={localSuspendReason}
+                  onChange={(e) => setLocalSuspendReason(e.target.value)}
                   disabled={suspendUserMutation.isPending}
                 />
                 <DialogFooter>
                   <Button
                     variant="destructive"
-                    onClick={() => {
-                      handleSuspendSubmit(user.id);
-                      if (suspendUserMutation.isSuccess) {
-                        setIsSuspendDialogOpen(false);
-                      }
-                    }}
-                    disabled={suspendUserMutation.isPending || !suspensionReason.trim()}
+                    onClick={handleSuspendSubmit}
+                    disabled={suspendUserMutation.isPending || !localSuspendReason.trim()}
                   >
                     {suspendUserMutation.isPending ? (
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
