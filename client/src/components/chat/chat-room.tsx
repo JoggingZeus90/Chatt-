@@ -14,7 +14,7 @@ const ALLOWED_FILE_TYPES = {
   "image/gif": "image",
   "video/mp4": "video",
   "video/webm": "video",
-};
+} as const;
 
 export default function ChatRoom({ room }: { room: Room }) {
   const [message, setMessage] = useState("");
@@ -80,15 +80,19 @@ export default function ChatRoom({ room }: { room: Room }) {
       }
     }
 
-    sendMessageMutation.mutate({ 
-      content: message.trim() || "Shared a file",
-      mediaUrl,
-      mediaType,
-    });
+    try {
+      await sendMessageMutation.mutateAsync({ 
+        content: message.trim() || "Shared a file",
+        mediaUrl,
+        mediaType,
+      });
 
-    setMessage("");
-    setMediaFile(null);
-    setMediaPreviewUrl(null);
+      setMessage("");
+      setMediaFile(null);
+      setMediaPreviewUrl(null);
+    } catch (error) {
+      console.error("Failed to send message:", error);
+    }
   };
 
   const handleMessageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
