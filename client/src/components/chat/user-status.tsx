@@ -1,4 +1,4 @@
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Tooltip,
   TooltipContent,
@@ -11,16 +11,19 @@ export function UserStatus({
   username,
   isOnline,
   lastSeen,
+  avatarUrl,
 }: {
   username: string;
   isOnline: boolean;
   lastSeen: Date;
+  avatarUrl?: string | null;
 }) {
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger>
           <Avatar className="h-8 w-8">
+            <AvatarImage src={avatarUrl ?? undefined} />
             <AvatarFallback className="relative">
               {username[0].toUpperCase()}
               <span
