@@ -87,6 +87,7 @@ export class DatabaseStorage implements IStorage {
       roomId: row.messages.roomId,
       userId: row.messages.userId,
       createdAt: row.messages.createdAt,
+      editedAt: row.messages.editedAt,
       user: {
         id: row.users.id,
         username: row.users.username,
@@ -263,7 +264,7 @@ export class DatabaseStorage implements IStorage {
 
     const [updatedMessage] = await db
       .update(messages)
-      .set({ 
+      .set({
         content,
         editedAt: new Date()
       })
