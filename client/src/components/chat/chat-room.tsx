@@ -89,11 +89,6 @@ export default function ChatRoom({ room }: { room: Room }) {
           throw new Error("Upload failed: " + (await uploadRes.text()));
         }
 
-        const contentType = uploadRes.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-          throw new Error("Invalid response from server: Expected JSON but got " + contentType);
-        }
-
         const { url } = await uploadRes.json();
         if (!url) {
           throw new Error("No URL returned from server");

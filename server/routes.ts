@@ -39,8 +39,11 @@ const upload = multer({
     if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
       cb(null, true);
     } else {
-      cb(null, false);
+      cb(new Error('Invalid file type'), false);
     }
+  },
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
   }
 });
 
@@ -63,9 +66,17 @@ export function registerRoutes(app: Express): Server {
       return res.status(400).json({ error: "No file uploaded" });
     }
 
-    // Return the complete URL for the uploaded file
+    // Return the URL for the uploaded file
     const fileUrl = `/uploads/${req.file.filename}`;
     res.json({ url: fileUrl });
+  });
+
+  // Error handling for file uploads
+  app.use((err: any, req: any, res: any, next: any) => {
+    if (err instanceof multer.MulterError || err.message === 'Invalid file type') {
+      return res.status(400).json({ error: err.message });
+    }
+    next(err);
   });
 
   // Chat rooms
