@@ -44,7 +44,7 @@ const commands = [
   {
     name: 'whisper',
     description: 'Send a private message to a user',
-    format: '/whisper "@username" <message>',
+    format: '/whisper "@username" your message',
   },
 ];
 
@@ -230,13 +230,14 @@ export default function ChatRoom({ room }: { room: Room }) {
     // Handle whisper command
     if (messageContent.startsWith(WHISPER_COMMAND)) {
       const commandText = messageContent.slice(WHISPER_COMMAND.length).trim();
+      console.log('Processing whisper command:', commandText);
 
-      // Check for quoted username
-      const usernameMatch = commandText.match(/^"([^"]+)"\s+(.+)$/);
+      // Match both single and double quotes, accounting for possible spaces
+      const usernameMatch = commandText.match(/^["']([^"']+)["']\s+(.+)$/);
       if (!usernameMatch) {
         toast({
           title: "Invalid whisper format",
-          description: 'Use /whisper "@username" message',
+          description: `Use the format: /whisper "@username" your message`,
           variant: "destructive",
         });
         return;
@@ -244,6 +245,8 @@ export default function ChatRoom({ room }: { room: Room }) {
 
       whisperTo = usernameMatch[1];
       messageContent = usernameMatch[2];
+
+      console.log('Whisper parsed:', { whisperTo, messageContent });
 
       if (!messageContent.trim()) {
         toast({
@@ -317,7 +320,7 @@ export default function ChatRoom({ room }: { room: Room }) {
   };
 
   const handleCommandSelect = (command: typeof commands[0]) => {
-    setMessage(`${command.format.split(' ')[0]} `);
+    setMessage(`${command.format.split(' ')[0]} "`);
     setShowCommands(false);
     inputRef.current?.focus();
   };
