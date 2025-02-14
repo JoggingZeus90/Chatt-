@@ -22,7 +22,7 @@ export function ProtectedRoute({
     );
   }
 
-  // If not logged in or suspended, redirect to auth page
+  // If not logged in, redirect to auth page
   if (!user) {
     return (
       <Route path={path}>
@@ -31,12 +31,13 @@ export function ProtectedRoute({
     );
   }
 
-  // Add event listener to prevent back navigation for suspended users
+  // Block suspended users and force them to the auth page
   if (user.suspended) {
-    window.history.pushState(null, '', '/auth');
-    window.addEventListener('popstate', () => {
-      window.history.pushState(null, '', '/auth');
-    });
+    // Force the URL to be /auth and prevent navigation
+    if (window.location.pathname !== '/auth') {
+      window.location.href = `/auth?suspended=true&reason=${encodeURIComponent(user.suspendedReason || '')}`;
+      return null;
+    }
     return (
       <Route path={path}>
         <Redirect to={`/auth?suspended=true&reason=${encodeURIComponent(user.suspendedReason || '')}`} />
@@ -44,5 +45,5 @@ export function ProtectedRoute({
     );
   }
 
-  return <Component />
+  return <Route path={path} component={Component} />;
 }

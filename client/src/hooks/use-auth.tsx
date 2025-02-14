@@ -20,8 +20,27 @@ type AuthContextType = {
 type LoginData = Pick<InsertUser, "username" | "password">;
 
 export const AuthContext = createContext<AuthContextType | null>(null);
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
+
+  // Initialize logoutMutation first
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("POST", "/api/logout");
+    },
+    onSuccess: () => {
+      queryClient.setQueryData(["/api/user"], null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Logout failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const {
     data: user,
     error,
@@ -39,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             variant: "destructive",
           });
           queryClient.setQueryData(["/api/user"], null);
-          window.history.pushState(null, '', '/auth');
+          window.location.href = `/auth?suspended=true&reason=${encodeURIComponent(data.reason || '')}`;
           return undefined;
         }
         if (!res.ok) {
@@ -52,22 +71,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw error;
       }
     },
-    refetchInterval: 30000, // Check suspension status every 30 seconds
+    refetchInterval: 5000, // Check suspension status more frequently
   });
 
-  // Add effect to prevent suspended users from navigating back
   useEffect(() => {
+    // Handle suspension status changes
     if (user?.suspended) {
-      window.history.pushState(null, '', '/auth');
-      const handlePopState = () => {
-        window.history.pushState(null, '', '/auth');
+      // Prevent navigation
+      const lockNavigation = () => {
+        window.location.href = `/auth?suspended=true&reason=${encodeURIComponent(user.suspendedReason || '')}`;
+        return false;
       };
-      window.addEventListener('popstate', handlePopState);
+
+      window.history.pushState(null, '', '/auth');
+      window.addEventListener('popstate', lockNavigation);
+      window.addEventListener('beforeunload', lockNavigation);
+
+      // Force logout and redirect
+      logoutMutation.mutate();
+      window.location.href = `/auth?suspended=true&reason=${encodeURIComponent(user.suspendedReason || '')}`;
+
       return () => {
-        window.removeEventListener('popstate', handlePopState);
+        window.removeEventListener('popstate', lockNavigation);
+        window.removeEventListener('beforeunload', lockNavigation);
       };
     }
-  }, [user?.suspended]);
+  }, [user?.suspended, user?.suspendedReason]);
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
@@ -86,6 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           variant: "destructive",
         });
         queryClient.setQueryData(["/api/user"], null);
+        window.location.href = `/auth?suspended=true&reason=${encodeURIComponent(user.suspendedReason || '')}`;
       } else {
         queryClient.setQueryData(["/api/user"], user);
       }
@@ -110,22 +140,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onError: (error: Error) => {
       toast({
         title: "Registration failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const logoutMutation = useMutation({
-    mutationFn: async () => {
-      await apiRequest("POST", "/api/logout");
-    },
-    onSuccess: () => {
-      queryClient.setQueryData(["/api/user"], null);
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Logout failed",
         description: error.message,
         variant: "destructive",
       });
