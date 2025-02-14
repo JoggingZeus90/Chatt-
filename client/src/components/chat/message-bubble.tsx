@@ -30,7 +30,7 @@ type ExtendedMessageWithUser = MessageWithUser & {
 export function MessageBubble({ message, roomId }: { message: ExtendedMessageWithUser; roomId: number }) {
   const { user } = useAuth();
   const isOwn = message.userId === user?.id;
-  const isWhisper = 'whisperTo' in message && message.whisperTo !== null;
+  const isWhisper = Boolean(message.whisperTo);
   const canSeeWhisper = isWhisper && (isOwn || message.whisperTo === user?.username);
   const canDelete = isOwn || user?.role === 'admin' || user?.role === 'moderator';
   const [imageError, setImageError] = useState(false);
