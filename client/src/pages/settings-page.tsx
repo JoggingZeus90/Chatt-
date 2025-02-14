@@ -28,11 +28,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { useTheme } from "@/hooks/use-theme";
 
 export default function SettingsPage() {
   const { user, logoutMutation } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const { theme, toggleTheme } = useTheme();
 
   const form = useForm({
     resolver: zodResolver(updateUserSchema),
@@ -99,6 +102,23 @@ export default function SettingsPage() {
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Chat
         </Link>
+
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Appearance</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-medium">Theme</h3>
+                <p className="text-sm text-muted-foreground">
+                  Switch between light and dark mode
+                </p>
+              </div>
+              <ThemeToggle />
+            </div>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>

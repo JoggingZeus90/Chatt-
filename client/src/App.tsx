@@ -7,6 +7,7 @@ import AuthPage from "@/pages/auth-page";
 import ChatPage from "@/pages/chat-page";
 import SettingsPage from "@/pages/settings-page";
 import { AuthProvider } from "@/hooks/use-auth";
+import { ThemeProvider } from "@/hooks/use-theme";
 import { ProtectedRoute } from "./lib/protected-route";
 
 function Router() {
@@ -22,12 +23,14 @@ function Router() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <Router />
-        <Toaster />
-      </AuthProvider>
-    </QueryClientProvider>
+    <ThemeProvider defaultTheme="light" storageKey="chat-theme">
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <Router />
+          <Toaster />
+        </AuthProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 }
 
