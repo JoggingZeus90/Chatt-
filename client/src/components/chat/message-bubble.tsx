@@ -64,7 +64,12 @@ export function MessageBubble({ message }: { message: MessageWithUser }) {
       >
         <div className="flex items-baseline gap-2">
           {!isOwn && (
-            <span className="font-semibold text-sm">{message.user.username}</span>
+            <div className="flex items-baseline gap-2">
+              <span className="font-semibold text-sm">{message.user.username}</span>
+              <span className="text-xs px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+                {message.user.role}
+              </span>
+            </div>
           )}
           <span className="text-xs opacity-70">
             {format(new Date(message.createdAt), "HH:mm")}
