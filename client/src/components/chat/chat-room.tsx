@@ -237,7 +237,7 @@ export default function ChatRoom({ room }: { room: Room }) {
       if (!usernameMatch) {
         toast({
           title: "Invalid whisper format",
-          description: `Use the format: /whisper "@username with spaces" your message`,
+          description: `Use the format: /whisper "@username" your message`,
           variant: "destructive",
         });
         return;
@@ -247,8 +247,6 @@ export default function ChatRoom({ room }: { room: Room }) {
       whisperTo = usernameMatch[1].replace(/^@/, '');
       messageContent = usernameMatch[2];
 
-      console.log('Whisper parsed:', { whisperTo, messageContent });
-
       if (!messageContent.trim()) {
         toast({
           title: "Invalid whisper format",
@@ -257,6 +255,8 @@ export default function ChatRoom({ room }: { room: Room }) {
         });
         return;
       }
+
+      console.log('Whisper parsed:', { whisperTo, messageContent });
     }
 
     if (mediaFile) {

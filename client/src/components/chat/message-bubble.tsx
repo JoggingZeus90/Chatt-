@@ -23,15 +23,15 @@ import {
 
 const MAX_MESSAGE_LENGTH = 100;
 
-type ExtendedMessageWithUser = MessageWithUser & {
-  whisperTo?: string | null;
+interface ExtendedMessageWithUser extends MessageWithUser {
+  whisperTo?: string;
 }
 
 export function MessageBubble({ message, roomId }: { message: ExtendedMessageWithUser; roomId: number }) {
   const { user } = useAuth();
   const isOwn = message.userId === user?.id;
-  const isWhisper = Boolean(message.whisperTo);
-  const canSeeWhisper = isWhisper && (isOwn || message.whisperTo === user?.username);
+  const isWhisper = message.whisperTo !== undefined;
+  const canSeeWhisper = !isWhisper || isOwn || message.whisperTo === user?.username;
   const canDelete = isOwn || user?.role === 'admin' || user?.role === 'moderator';
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
@@ -42,7 +42,7 @@ export function MessageBubble({ message, roomId }: { message: ExtendedMessageWit
   const { toast } = useToast();
 
   // If this is a whisper and the current user can't see it, don't render anything
-  if (isWhisper && !canSeeWhisper) {
+  if (!canSeeWhisper) {
     return null;
   }
 
@@ -142,15 +142,12 @@ export function MessageBubble({ message, roomId }: { message: ExtendedMessageWit
       <div
         className={cn(
           "rounded-lg px-4 py-2 max-w-[70%] break-words relative group",
-          isWhisper ? (
-            isOwn
-              ? "bg-violet-500 text-white"
-              : "bg-violet-100 text-violet-900"
-          ) : (
-            isOwn
-              ? "bg-primary text-primary-foreground"
-              : "bg-secondary text-secondary-foreground"
-          )
+          {
+            "bg-violet-500 text-violet-50": isWhisper && isOwn,
+            "bg-violet-100 text-violet-900": isWhisper && !isOwn,
+            "bg-primary text-primary-foreground": !isWhisper && isOwn,
+            "bg-secondary text-secondary-foreground": !isWhisper && !isOwn,
+          }
         )}
       >
         {/* Message header with username and timestamp */}
