@@ -158,15 +158,23 @@ export class DatabaseStorage implements IStorage {
     password?: string;
     avatarUrl?: string;
   }): Promise<User> {
+    const updateData: Record<string, any> = {};
+
+    if (updates.username !== undefined) {
+      updateData.username = updates.username;
+    }
+    if (updates.avatarUrl !== undefined) {
+      updateData.avatarUrl = updates.avatarUrl;
+    }
     if (updates.password) {
       const salt = randomBytes(16).toString("hex");
       const buf = (await scryptAsync(updates.password, salt, 64)) as Buffer;
-      updates.password = `${buf.toString("hex")}.${salt}`;
+      updateData.password = `${buf.toString("hex")}.${salt}`;
     }
 
     const [user] = await db
       .update(users)
-      .set(updates)
+      .set(updateData)
       .where(eq(users.id, userId))
       .returning();
 
