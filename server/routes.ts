@@ -9,25 +9,18 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import express from 'express';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import { eq } from 'drizzle-orm';
-import * as schema from "@shared/schema";
-import { pool } from './db';
 
-const db = drizzle({ client: pool, schema });
 const scryptAsync = promisify(scrypt);
 
 // Configure multer for handling file uploads
 const upload = multer({
   storage: multer.diskStorage({
     destination: function (req, file, cb) {
-      // Store uploads in the public directory
-      const uploadDir = path.join(process.cwd(), 'client', 'public', 'uploads');
+      const uploadDir = path.join(process.cwd(), 'uploads');
       console.log('Upload directory:', uploadDir);
 
       if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });
-        // Ensure directory has proper permissions
         fs.chmodSync(uploadDir, 0o755);
       }
       cb(null, uploadDir);
@@ -55,44 +48,55 @@ const upload = multer({
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
 
-  // Create uploads directory if it doesn't exist
-  const uploadDir = path.join(process.cwd(), 'client', 'public', 'uploads');
+  // Create uploads directory
+  const uploadDir = path.join(process.cwd(), 'uploads');
   console.log('Initializing upload directory:', uploadDir);
 
   if (!fs.existsSync(uploadDir)) {
     console.log('Creating upload directory');
     fs.mkdirSync(uploadDir, { recursive: true });
-    // Ensure directory has proper permissions
     fs.chmodSync(uploadDir, 0o755);
   }
 
-  // Serve static files from uploads directory
-  app.use('/uploads', express.static(uploadDir, {
-    setHeaders: (res, filePath) => {
-      // Set proper CORS headers
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  // Set CORS headers for all routes
+  app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS, POST, PUT, DELETE, PATCH'); // Added more methods for completeness
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    console.log(`CORS preflight request handled for ${req.method} ${req.url}`); // Added logging for CORS requests
+    next();
+  });
 
-      // Set content type based on file extension
+  // Serve uploads directory with proper headers
+  app.use('/uploads', (req, res, next) => {
+    console.log('Serving file:', req.url, 'from uploads directory');
+    next();
+  }, express.static(uploadDir, {
+    setHeaders: (res, filePath) => {
       if (filePath.endsWith('.png')) {
         res.setHeader('Content-Type', 'image/png');
       } else if (filePath.endsWith('.jpg') || filePath.endsWith('.jpeg')) {
         res.setHeader('Content-Type', 'image/jpeg');
       } else if (filePath.endsWith('.gif')) {
         res.setHeader('Content-Type', 'image/gif');
-      }
+      } else if (filePath.endsWith('.mp4')) {
+        res.setHeader('Content-Type', 'video/mp4');
+      } else if (filePath.endsWith('.mov')) {
+        res.setHeader('Content-Type', 'video/quicktime');
+      } // Added support for common video types
 
-      // Disable caching for development
+
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
     }
   }));
 
-  // File upload endpoint with better error handling
+  // File upload endpoint
   app.post("/api/upload", upload.single('file'), (req, res) => {
     console.log('Upload request received');
+    console.log("Request body:", req.body); // Added logging for request body
+    console.log("Request file:", req.file); // Added logging for request file
 
     if (!req.file) {
       console.log('No file uploaded');
@@ -100,7 +104,6 @@ export function registerRoutes(app: Express): Server {
     }
 
     try {
-      // Ensure the uploaded file has proper permissions
       fs.chmodSync(req.file.path, 0o644);
 
       console.log('File uploaded successfully:', {
@@ -111,7 +114,6 @@ export function registerRoutes(app: Express): Server {
         permissions: fs.statSync(req.file.path).mode
       });
 
-      // Return a URL relative to the public directory
       const fileUrl = `/uploads/${req.file.filename}`;
       console.log('Generated file URL:', fileUrl);
       res.json({ url: fileUrl });
@@ -123,12 +125,14 @@ export function registerRoutes(app: Express): Server {
 
   // Chat rooms
   app.get("/api/rooms", async (req, res) => {
+    console.log(`GET request received for ${req.url}`); // Added request logging
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const rooms = await storage.getRooms();
     res.json(rooms);
   });
 
   app.post("/api/rooms", async (req, res) => {
+    console.log(`POST request received for ${req.url}`); // Added request logging
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const parsed = insertRoomSchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).send(parsed.error.message);
@@ -141,12 +145,14 @@ export function registerRoutes(app: Express): Server {
   });
 
   app.get("/api/rooms/:roomId/messages", async (req, res) => {
+    console.log(`GET request received for ${req.url}`); // Added request logging
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const messages = await storage.getMessages(parseInt(req.params.roomId));
     res.json(messages);
   });
 
   app.post("/api/rooms/:roomId/messages", async (req, res) => {
+    console.log(`POST request received for ${req.url}`); // Added request logging
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const parsed = insertMessageSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -201,6 +207,7 @@ export function registerRoutes(app: Express): Server {
 
   // Delete room (only by creator)
   app.delete("/api/rooms/:roomId", async (req, res) => {
+    console.log(`DELETE request received for ${req.url}`); // Added request logging
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
@@ -217,6 +224,7 @@ export function registerRoutes(app: Express): Server {
 
   // Join room
   app.post("/api/rooms/:roomId/join", async (req, res) => {
+    console.log(`POST request received for ${req.url}`); // Added request logging
     if (!req.isAuthenticated()) return res.sendStatus(401);
     await storage.joinRoom(parseInt(req.params.roomId), req.user.id);
     res.sendStatus(200);
@@ -224,6 +232,7 @@ export function registerRoutes(app: Express): Server {
 
   // Leave room
   app.post("/api/rooms/:roomId/leave", async (req, res) => {
+    console.log(`POST request received for ${req.url}`); // Added request logging
     if (!req.isAuthenticated()) return res.sendStatus(401);
     await storage.leaveRoom(parseInt(req.params.roomId), req.user.id);
     res.sendStatus(200);
@@ -231,6 +240,7 @@ export function registerRoutes(app: Express): Server {
 
   // Get room members
   app.get("/api/rooms/:roomId/members", async (req, res) => {
+    console.log(`GET request received for ${req.url}`); // Added request logging
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const members = await storage.getRoomMembers(parseInt(req.params.roomId));
     res.json(members);
@@ -238,6 +248,7 @@ export function registerRoutes(app: Express): Server {
 
   // Online status
   app.post("/api/users/:userId/status", async (req, res) => {
+    console.log(`POST request received for ${req.url}`); // Added request logging
     if (!req.isAuthenticated()) return res.sendStatus(401);
     await storage.updateUserStatus(parseInt(req.params.userId), req.body.isOnline);
     res.sendStatus(200);
@@ -245,6 +256,7 @@ export function registerRoutes(app: Express): Server {
 
   // Update user profile
   app.patch("/api/user/profile", async (req, res) => {
+    console.log(`PATCH request received for ${req.url}`); // Added request logging
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     const parsed = updateUserSchema.safeParse(req.body);
@@ -277,6 +289,7 @@ export function registerRoutes(app: Express): Server {
 
   // Delete account
   app.delete("/api/user", async (req, res) => {
+    console.log(`DELETE request received for ${req.url}`); // Added request logging
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     await storage.deleteUser(req.user.id);
@@ -296,3 +309,9 @@ async function comparePasswords(password: string, hash: string): Promise<boolean
   const newHash = await scryptAsync(password, 'salt', 64);
   return timingSafeEqual(newHash, hashBuffer);
 }
+import { drizzle } from 'drizzle-orm/neon-serverless';
+import { eq } from 'drizzle-orm';
+import * as schema from "@shared/schema";
+import { pool } from './db';
+
+const db = drizzle({ client: pool, schema });
