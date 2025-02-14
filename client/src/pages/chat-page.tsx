@@ -2,7 +2,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertRoomSchema, type Room } from "@shared/schema";
@@ -26,6 +26,7 @@ import {
   Sidebar,
   SidebarContent,
   SidebarTrigger,
+  SidebarProvider,
 } from "@/components/ui/sidebar";
 
 export default function ChatPage() {
@@ -119,130 +120,138 @@ export default function ChatPage() {
     );
   }
 
+  const chatContent = selectedRoom ? (
+    <ChatRoom room={selectedRoom} />
+  ) : (
+    <div className="flex items-center justify-center h-full">
+      <div className="text-xl text-muted-foreground">
+        Select a room to start chatting
+      </div>
+    </div>
+  );
+
   return (
-    <div className="flex h-screen">
-      <div className="w-64 border-r bg-muted/50 p-4 pt-12 flex flex-col relative">
-        <SidebarTrigger className="absolute top-2 left-2" />
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold">Chat Rooms</h2>
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="icon" variant="ghost">
-                <Plus className="h-4 w-4" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create Room</DialogTitle>
-              </DialogHeader>
-              <form
-                onSubmit={form.handleSubmit((data) =>
-                  createRoomMutation.mutate(data)
-                )}
-                className="space-y-4"
-              >
-                <div className="space-y-2">
-                  <Label htmlFor="name">Room Name</Label>
-                  <Input id="name" {...form.register("name")} />
-                </div>
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={createRoomMutation.isPending}
-                >
-                  {createRoomMutation.isPending && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  Create Room
+    <div className="flex h-screen overflow-hidden">
+      <Sidebar>
+        <SidebarContent className="w-64 p-4 flex flex-col h-full">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold">Chat Rooms</h2>
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="icon" variant="ghost">
+                  <Plus className="h-4 w-4" />
                 </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
-        <div className="space-y-2 flex-1 overflow-auto">
-          {rooms?.map((room) => (
-            <div key={room.id} className="flex items-center gap-2">
-              <Button
-                variant={selectedRoom?.id === room.id ? "secondary" : "ghost"}
-                className="w-full justify-start"
-                onClick={() => setSelectedRoom(room)}
-              >
-                {room.name}
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  {room.createdById === user?.id ? (
-                    <DropdownMenuItem
-                      className="text-destructive"
-                      onClick={() => deleteRoomMutation.mutate(room.id)}
-                      disabled={deleteRoomMutation.isPending}
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete Room
-                    </DropdownMenuItem>
-                  ) : (
-                    <DropdownMenuItem
-                      onClick={() => leaveRoomMutation.mutate(room.id)}
-                      disabled={leaveRoomMutation.isPending}
-                    >
-                      <LogOut className="h-4 w-4 mr-2" />
-                      Leave Room
-                    </DropdownMenuItem>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create Room</DialogTitle>
+                </DialogHeader>
+                <form
+                  onSubmit={form.handleSubmit((data) =>
+                    createRoomMutation.mutate(data)
                   )}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                  className="space-y-4"
+                >
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Room Name</Label>
+                    <Input id="name" {...form.register("name")} />
+                  </div>
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={createRoomMutation.isPending}
+                  >
+                    {createRoomMutation.isPending && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    Create Room
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          <div className="space-y-2 flex-1 overflow-auto">
+            {rooms?.map((room) => (
+              <div key={room.id} className="flex items-center gap-2">
+                <Button
+                  variant={selectedRoom?.id === room.id ? "secondary" : "ghost"}
+                  className="w-full justify-start"
+                  onClick={() => setSelectedRoom(room)}
+                >
+                  {room.name}
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    {room.createdById === user?.id ? (
+                      <DropdownMenuItem
+                        className="text-destructive"
+                        onClick={() => deleteRoomMutation.mutate(room.id)}
+                        disabled={deleteRoomMutation.isPending}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete Room
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem
+                        onClick={() => leaveRoomMutation.mutate(room.id)}
+                        disabled={leaveRoomMutation.isPending}
+                      >
+                        <LogOut className="h-4 w-4 mr-2" />
+                        Leave Room
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            ))}
+          </div>
+
+          <div className="pt-4 border-t mt-4 space-y-4">
+            <div className="flex items-center justify-between p-2 bg-secondary/50 rounded-lg">
+              <div className="flex items-center gap-2">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={user?.avatarUrl} />
+                  <AvatarFallback>{user?.username?.[0].toUpperCase()}</AvatarFallback>
+                </Avatar>
+                <span className="font-medium text-sm">{user?.username}</span>
+              </div>
             </div>
-          ))}
-        </div>
-        <div className="pt-4 border-t mt-4 space-y-4">
-          <div className="flex items-center justify-between p-2 bg-secondary/50 rounded-lg">
-            <div className="flex items-center gap-2">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={user?.avatarUrl} />
-                <AvatarFallback>{user?.username?.[0].toUpperCase()}</AvatarFallback>
-              </Avatar>
-              <span className="font-medium text-sm">{user?.username}</span>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1 transition-transform hover:scale-105 hover:text-red-500 hover:border-red-500"
+                onClick={() => logoutMutation.mutate()}
+                disabled={logoutMutation.isPending}
+              >
+                {logoutMutation.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <LogOut className="mr-2 h-4 w-4" />
+                )}
+                Logout
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => window.location.href = '/settings'}
+                className="flex-1 transition-transform hover:scale-105"
+              >
+                <Settings className="mr-2 h-4 w-4" />
+                Settings
+              </Button>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              className="flex-1 transition-transform hover:scale-105 hover:text-red-500 hover:border-red-500"
-              onClick={() => logoutMutation.mutate()}
-              disabled={logoutMutation.isPending}
-            >
-              {logoutMutation.isPending ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <LogOut className="mr-2 h-4 w-4" />
-              )}
-              Logout
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => window.location.href = '/settings'}
-              className="flex-1 transition-transform hover:scale-105"
-            >
-              <Settings className="mr-2 h-4 w-4" />
-              Settings
-            </Button>
-          </div>
-        </div>
-      </div>
-      <div className="flex-1 flex items-center justify-center">
-        {selectedRoom ? (
-          <ChatRoom room={selectedRoom} />
-        ) : (
-          <div className="text-xl text-muted-foreground text-center">
-            <p>Select a room to start chatting</p>
-          </div>
-        )}
-      </div>
+        </SidebarContent>
+      </Sidebar>
+
+      <main className="flex-1 relative overflow-hidden">
+        {chatContent}
+      </main>
     </div>
   );
 }
