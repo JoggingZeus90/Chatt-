@@ -90,7 +90,8 @@ export const insertMessageSchema = createInsertSchema(messages)
 export const updateUserSchema = z.object({
   username: z.string().min(1).optional(),
   currentPassword: z.string().optional(),
-  newPassword: z.string().min(6, "Password must be at least 6 characters").optional(),
+  newPassword: z.string().optional().transform(val => val === "" ? undefined : val)
+    .pipe(z.string().min(6, "Password must be at least 6 characters").optional()),
   avatarUrl: z.string().url().optional(),
 }).refine((data) => {
   // Only require current password if new password is being set
