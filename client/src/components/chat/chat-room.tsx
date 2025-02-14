@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Room, MessageWithUser } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Send, Loader2, Image, X } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const MAX_MESSAGE_LENGTH = 100;
 const ALLOWED_FILE_TYPES = {
@@ -22,6 +23,7 @@ export default function ChatRoom({ room }: { room: Room }) {
   const [mediaPreviewUrl, setMediaPreviewUrl] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   const { data: messages, isLoading } = useQuery<MessageWithUser[]>({
     queryKey: [`/api/rooms/${room.id}/messages`],
@@ -40,6 +42,19 @@ export default function ChatRoom({ room }: { room: Room }) {
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: [`/api/rooms/${room.id}/messages`],
+      });
+      setMessage("");
+      setMediaFile(null);
+      setMediaPreviewUrl(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to send message",
+        description: error.message,
+        variant: "destructive",
       });
     },
   });
@@ -75,21 +90,21 @@ export default function ChatRoom({ room }: { room: Room }) {
         mediaUrl = url;
         mediaType = ALLOWED_FILE_TYPES[mediaFile.type as keyof typeof ALLOWED_FILE_TYPES];
       } catch (error) {
-        console.error("Failed to upload file:", error);
+        toast({
+          title: "Failed to upload file",
+          description: error instanceof Error ? error.message : "Failed to upload media",
+          variant: "destructive",
+        });
         return;
       }
     }
 
     try {
-      await sendMessageMutation.mutateAsync({ 
+      await sendMessageMutation.mutateAsync({
         content: message.trim() || "Shared a file",
         mediaUrl,
         mediaType,
       });
-
-      setMessage("");
-      setMediaFile(null);
-      setMediaPreviewUrl(null);
     } catch (error) {
       console.error("Failed to send message:", error);
     }
@@ -107,7 +122,11 @@ export default function ChatRoom({ room }: { room: Room }) {
     if (!file) return;
 
     if (!ALLOWED_FILE_TYPES[file.type as keyof typeof ALLOWED_FILE_TYPES]) {
-      alert("Invalid file type. Please upload an image or video file.");
+      toast({
+        title: "Invalid file type",
+        description: "Please upload an image or video file",
+        variant: "destructive",
+      });
       return;
     }
 
