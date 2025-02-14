@@ -341,7 +341,12 @@ export default function ChatRoom({ room }: { room: Room }) {
   };
 
   const handleCommandSelect = (command: typeof commands[0]) => {
-    setMessage(`${command.format.split(' ')[0]} "`);
+    // Only add quotes for whisper command
+    if (command.name === 'whisper') {
+      setMessage(`${command.format.split(' ')[0]} "`);
+    } else {
+      setMessage(command.format);
+    }
     setShowCommands(false);
     inputRef.current?.focus();
   };
