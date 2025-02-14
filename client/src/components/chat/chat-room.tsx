@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Room, MessageWithUser } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Send, Loader2, Image, X, ArrowDown, Pencil, Check, Trash2, LogOut } from "lucide-react";
+import { Send, Loader2, Image, X, ArrowDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -29,6 +29,8 @@ const ALLOWED_FILE_TYPES = {
   "video/webm": "video",
 } as const;
 
+const WHISPER_COMMAND = "/whisper";
+
 export default function ChatRoom({ room }: { room: Room }) {
   const { user } = useAuth();
   const [message, setMessage] = useState("");
@@ -50,12 +52,13 @@ export default function ChatRoom({ room }: { room: Room }) {
   });
 
   const sendMessageMutation = useMutation({
-    mutationFn: async ({ content, mediaUrl, mediaType }: { content: string; mediaUrl?: string; mediaType?: string }) => {
+    mutationFn: async ({ content, mediaUrl, mediaType, whisperTo }: { content: string; mediaUrl?: string; mediaType?: string; whisperTo?: string }) => {
       const res = await apiRequest("POST", `/api/rooms/${room.id}/messages`, {
         content,
         roomId: room.id,
         mediaUrl,
         mediaType,
+        whisperTo,
       });
       if (!res.ok) {
         const error = await res.text();
@@ -202,6 +205,23 @@ export default function ChatRoom({ room }: { room: Room }) {
 
     let uploadedMediaUrl: string | undefined;
     let uploadedMediaType: string | undefined;
+    let whisperTo: string | undefined;
+    let messageContent = message.trim();
+
+    // Handle whisper command
+    if (messageContent.startsWith(WHISPER_COMMAND)) {
+      const parts = messageContent.slice(WHISPER_COMMAND.length).trim().split(' ');
+      if (parts.length < 2) {
+        toast({
+          title: "Invalid whisper format",
+          description: "Use /whisper username message",
+          variant: "destructive",
+        });
+        return;
+      }
+      whisperTo = parts[0];
+      messageContent = parts.slice(1).join(' ');
+    }
 
     if (mediaFile) {
       const formData = new FormData();
@@ -219,7 +239,6 @@ export default function ChatRoom({ room }: { room: Room }) {
         }
 
         const data = await uploadRes.json();
-
         if (!data.url) {
           throw new Error("No URL returned from server");
         }
@@ -238,9 +257,10 @@ export default function ChatRoom({ room }: { room: Room }) {
 
     try {
       await sendMessageMutation.mutateAsync({
-        content: message.trim(),
+        content: messageContent,
         mediaUrl: uploadedMediaUrl,
         mediaType: uploadedMediaType,
+        whisperTo,
       });
     } catch (error) {
       toast({

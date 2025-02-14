@@ -10,7 +10,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
+import {
   AlertDialog,
   AlertDialogCancel,
   AlertDialogContent,
@@ -26,6 +26,8 @@ const MAX_MESSAGE_LENGTH = 100;
 export function MessageBubble({ message, roomId }: { message: MessageWithUser; roomId: number }) {
   const { user } = useAuth();
   const isOwn = message.userId === user?.id;
+  const isWhisper = message.whisperTo !== null;
+  const canSeeWhisper = isOwn || message.whisperTo === user?.username;
   const canDelete = isOwn || user?.role === 'admin' || user?.role === 'moderator';
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
@@ -36,9 +38,9 @@ export function MessageBubble({ message, roomId }: { message: MessageWithUser; r
   const { toast } = useToast();
 
   // Create an absolute URL for the media
-  const mediaUrl = message.mediaUrl 
-    ? message.mediaUrl.startsWith('http') 
-      ? message.mediaUrl 
+  const mediaUrl = message.mediaUrl
+    ? message.mediaUrl.startsWith('http')
+      ? message.mediaUrl
       : `${window.location.origin}${message.mediaUrl}`
     : null;
 
@@ -118,6 +120,7 @@ export function MessageBubble({ message, roomId }: { message: MessageWithUser; r
     <div
       className={cn("flex gap-2 mb-4", {
         "justify-end": isOwn,
+        "opacity-50": isWhisper && !canSeeWhisper,
       })}
     >
       {!isOwn && (
@@ -131,11 +134,42 @@ export function MessageBubble({ message, roomId }: { message: MessageWithUser; r
       <div
         className={cn(
           "rounded-lg px-4 py-2 max-w-[70%] break-words relative group",
-          isOwn
-            ? "bg-primary text-primary-foreground"
-            : "bg-secondary text-secondary-foreground",
+          isWhisper ? (
+            isOwn
+              ? "bg-violet-500 text-white"
+              : "bg-violet-100 text-violet-900"
+          ) : (
+            isOwn
+              ? "bg-primary text-primary-foreground"
+              : "bg-secondary text-secondary-foreground"
+          )
         )}
       >
+        {/* Message header with username and timestamp */}
+        <div className="flex items-baseline gap-2">
+          {!isOwn && (
+            <div className="flex items-baseline gap-2">
+              <span className="font-semibold text-sm">{message.user.username}</span>
+              <span className="text-xs px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+                {message.user.role}
+              </span>
+            </div>
+          )}
+          <span className="text-xs opacity-70">
+            {format(new Date(message.createdAt), "HH:mm")}
+          </span>
+        </div>
+
+        {/* Whisper indicator */}
+        {isWhisper && canSeeWhisper && (
+          <div className="text-xs italic mb-1">
+            {isOwn
+              ? `Whispered to ${message.whisperTo}`
+              : "Whispered to you"
+            }
+          </div>
+        )}
+
         {/* Message Actions */}
         <div className={cn(
           "absolute top-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2",
@@ -170,8 +204,8 @@ export function MessageBubble({ message, roomId }: { message: MessageWithUser; r
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <Button 
-                    variant="destructive" 
+                  <Button
+                    variant="destructive"
                     onClick={() => deleteMessageMutation.mutate()}
                     disabled={deleteMessageMutation.isPending}
                   >
@@ -185,20 +219,6 @@ export function MessageBubble({ message, roomId }: { message: MessageWithUser; r
               </AlertDialogContent>
             </AlertDialog>
           )}
-        </div>
-
-        <div className="flex items-baseline gap-2">
-          {!isOwn && (
-            <div className="flex items-baseline gap-2">
-              <span className="font-semibold text-sm">{message.user.username}</span>
-              <span className="text-xs px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
-                {message.user.role}
-              </span>
-            </div>
-          )}
-          <span className="text-xs opacity-70">
-            {format(new Date(message.createdAt), "HH:mm")}
-          </span>
         </div>
 
         {mediaUrl && message.mediaType === "image" && !imageError && (
