@@ -18,6 +18,9 @@ export const users = pgTable("users", {
   lastSeen: timestamp("last_seen").notNull().defaultNow(),
   avatarUrl: text("avatar_url"),
   role: text("role").notNull().default(UserRole.USER),
+  suspended: boolean("suspended").notNull().default(false),
+  suspendedAt: timestamp("suspended_at"),
+  suspendedReason: text("suspended_reason"),
 });
 
 export const insertUserSchema = createInsertSchema(users)

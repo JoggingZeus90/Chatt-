@@ -184,6 +184,36 @@ export class DatabaseStorage implements IStorage {
     // Finally delete the user
     await db.delete(users).where(eq(users.id, userId));
   }
+
+  async suspendUser(userId: number, reason: string): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ 
+        suspended: true, 
+        suspendedAt: new Date(), 
+        suspendedReason: reason 
+      })
+      .where(eq(users.id, userId))
+      .returning();
+
+    if (!user) throw new Error("User not found");
+    return user;
+  }
+
+  async unsuspendUser(userId: number): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({ 
+        suspended: false, 
+        suspendedAt: null, 
+        suspendedReason: null 
+      })
+      .where(eq(users.id, userId))
+      .returning();
+
+    if (!user) throw new Error("User not found");
+    return user;
+  }
 }
 
 export const storage = new DatabaseStorage();

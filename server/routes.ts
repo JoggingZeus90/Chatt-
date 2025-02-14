@@ -346,6 +346,31 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Add these routes in the registerRoutes function after the existing admin routes
+
+  // Admin-only routes for user suspension
+  app.post("/api/users/:userId/suspend", requireRole(UserRole.ADMIN), async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const reason = req.body.reason || "No reason provided";
+
+      const user = await storage.suspendUser(userId, reason);
+      res.json(user);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to suspend user" });
+    }
+  });
+
+  app.post("/api/users/:userId/unsuspend", requireRole(UserRole.ADMIN), async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const user = await storage.unsuspendUser(userId);
+      res.json(user);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to unsuspend user" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
