@@ -10,13 +10,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Label } from "@/components/ui/label";
 import ChatRoom from "@/components/chat/chat-room";
 import { useState, useEffect } from "react";
-import { MoreVertical, Trash2, LogOut, Plus, Loader2, Settings } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Plus, Loader2, Settings, LogOut } from "lucide-react";
 import {
   Avatar,
   AvatarImage,
@@ -41,16 +35,6 @@ export default function ChatPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
       setIsCreateDialogOpen(false);
       form.reset();
-    },
-  });
-
-  const deleteRoomMutation = useMutation({
-    mutationFn: async (roomId: number) => {
-      await apiRequest("DELETE", `/api/rooms/${roomId}`);
-    },
-    onSuccess: () => {
-      setSelectedRoom(null);
-      queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
     },
   });
 
@@ -159,33 +143,14 @@ export default function ChatPage() {
         </div>
         <div className="space-y-2 flex-1 overflow-auto">
           {rooms?.map((room) => (
-            <div key={room.id} className="flex items-center gap-2">
-              <Button
-                variant={selectedRoom?.id === room.id ? "secondary" : "ghost"}
-                className="w-full justify-start"
-                onClick={() => setSelectedRoom(room)}
-              >
-                {room.name}
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  {room.createdById !== user?.id && (
-                    <DropdownMenuItem
-                      onClick={() => leaveRoomMutation.mutate(room.id)}
-                      disabled={leaveRoomMutation.isPending}
-                    >
-                      <LogOut className="h-4 w-4 mr-2" />
-                      Leave Room
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+            <Button
+              key={room.id}
+              variant={selectedRoom?.id === room.id ? "secondary" : "ghost"}
+              className="w-full justify-start"
+              onClick={() => setSelectedRoom(room)}
+            >
+              {room.name}
+            </Button>
           ))}
         </div>
         <div className="pt-4 border-t mt-4 space-y-4">
