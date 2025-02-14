@@ -30,6 +30,9 @@ export function UserManagement() {
   const [selectedRole, setSelectedRole] = useState<string>();
   const [suspensionReason, setSuspensionReason] = useState("");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [muteReason, setMuteReason] = useState("");
+  const [muteDuration, setMuteDuration] = useState("60"); // Default 60 minutes
+  const [muteDialogUser, setMuteDialogUser] = useState<User | null>(null);
 
   const { data: users, isLoading } = useQuery<User[]>({
     queryKey: ["/api/users"],
@@ -89,6 +92,53 @@ export function UserManagement() {
     },
   });
 
+  const muteUserMutation = useMutation({
+    mutationFn: async ({ userId, duration, reason }: { userId: number; duration: number; reason: string }) => {
+      const res = await apiRequest("POST", `/api/users/${userId}/mute`, { duration, reason });
+      if (!res.ok) throw new Error("Failed to mute user");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({
+        title: "Success",
+        description: "User muted successfully",
+      });
+      setMuteDialogUser(null);
+      setMuteReason("");
+      setMuteDuration("60");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const unmuteUserMutation = useMutation({
+    mutationFn: async (userId: number) => {
+      const res = await apiRequest("POST", `/api/users/${userId}/unmute`);
+      if (!res.ok) throw new Error("Failed to unmute user");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({
+        title: "Success",
+        description: "User unmuted successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const unsuspendUserMutation = useMutation({
     mutationFn: async (userId: number) => {
       const res = await apiRequest("POST", `/api/users/${userId}/unsuspend`);
@@ -126,6 +176,13 @@ export function UserManagement() {
         <p className="text-sm text-muted-foreground">
           Role: {user.role}
         </p>
+        {user.muted && (
+          <p className="text-sm text-orange-500">
+            Muted until: {format(new Date(user.mutedUntil!), 'PPp')}
+            <br />
+            Reason: {user.mutedReason}
+          </p>
+        )}
       </div>
       {isAdmin && showRoleSelect && user.id !== currentUser?.id && (
         <div className="flex items-center gap-2">
@@ -158,6 +215,72 @@ export function UserManagement() {
           >
             Update Role
           </Button>
+          {!user.muted ? (
+            <>
+              <Dialog open={muteDialogUser?.id === user.id} onOpenChange={(open) => !open && setMuteDialogUser(null)}>
+                <DialogTrigger asChild>
+                  <Button 
+                    variant="outline"
+                    onClick={() => setMuteDialogUser(user)}
+                  >
+                    Mute
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Mute User</DialogTitle>
+                    <DialogDescription>
+                      Set the duration and reason for muting {user.username}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium">Duration (minutes)</label>
+                      <Input
+                        type="number"
+                        value={muteDuration}
+                        onChange={(e) => setMuteDuration(e.target.value)}
+                        min="1"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Reason</label>
+                      <Input
+                        value={muteReason}
+                        onChange={(e) => setMuteReason(e.target.value)}
+                        placeholder="Reason for muting"
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        if (muteReason.trim() && parseInt(muteDuration) > 0) {
+                          muteUserMutation.mutate({
+                            userId: user.id,
+                            duration: parseInt(muteDuration),
+                            reason: muteReason,
+                          });
+                        }
+                      }}
+                      disabled={muteUserMutation.isPending}
+                    >
+                      Mute User
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </>
+          ) : (
+            <Button
+              variant="outline"
+              onClick={() => unmuteUserMutation.mutate(user.id)}
+              disabled={unmuteUserMutation.isPending}
+            >
+              Unmute
+            </Button>
+          )}
           <Dialog open={selectedUser?.id === user.id} onOpenChange={(open) => !open && setSelectedUser(null)}>
             <DialogTrigger asChild>
               <Button 

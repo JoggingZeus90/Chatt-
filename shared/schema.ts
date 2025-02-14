@@ -21,6 +21,9 @@ export const users = pgTable("users", {
   suspended: boolean("suspended").notNull().default(false),
   suspendedAt: timestamp("suspended_at"),
   suspendedReason: text("suspended_reason"),
+  muted: boolean("muted").notNull().default(false),
+  mutedUntil: timestamp("muted_until"),
+  mutedReason: text("muted_reason"),
 });
 
 export const insertUserSchema = createInsertSchema(users)

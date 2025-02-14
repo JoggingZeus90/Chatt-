@@ -353,9 +353,14 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/users/:userId/mute", requireRole(UserRole.MODERATOR), async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
-      const duration = req.body.duration; // Duration in minutes
-      await storage.muteUser(userId, duration);
-      res.sendStatus(200);
+      const { duration, reason } = req.body;
+
+      if (!duration || !reason) {
+        return res.status(400).json({ message: "Duration and reason are required" });
+      }
+
+      const user = await storage.muteUser(userId, duration, reason);
+      res.json(user);
     } catch (error) {
       res.status(500).json({ message: "Failed to mute user" });
     }
@@ -364,8 +369,8 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/users/:userId/unmute", requireRole(UserRole.MODERATOR), async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
-      await storage.unmuteUser(userId);
-      res.sendStatus(200);
+      const user = await storage.unmuteUser(userId);
+      res.json(user);
     } catch (error) {
       res.status(500).json({ message: "Failed to unmute user" });
     }

@@ -273,6 +273,39 @@ export class DatabaseStorage implements IStorage {
 
     return updatedMessage;
   }
+
+  async muteUser(userId: number, duration: number, reason: string): Promise<User> {
+    const mutedUntil = new Date();
+    mutedUntil.setMinutes(mutedUntil.getMinutes() + duration);
+
+    const [user] = await db
+      .update(users)
+      .set({
+        muted: true,
+        mutedUntil,
+        mutedReason: reason
+      })
+      .where(eq(users.id, userId))
+      .returning();
+
+    if (!user) throw new Error("User not found");
+    return user;
+  }
+
+  async unmuteUser(userId: number): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        muted: false,
+        mutedUntil: null,
+        mutedReason: null
+      })
+      .where(eq(users.id, userId))
+      .returning();
+
+    if (!user) throw new Error("User not found");
+    return user;
+  }
 }
 
 export const storage = new DatabaseStorage();
