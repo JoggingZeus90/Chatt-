@@ -171,7 +171,7 @@ export default function SettingsPage() {
                   <Avatar className="h-24 w-24">
                     <AvatarImage src={form.watch("avatarUrl")} />
                     <AvatarFallback>
-                      {form.watch("username")?.[0].toUpperCase()}
+                      {form.watch("username")?.[0]?.toUpperCase() || '?'}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex gap-2">
