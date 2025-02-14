@@ -34,6 +34,7 @@ export function UserManagement() {
   const [muteDuration, setMuteDuration] = useState("60"); // Default 60 minutes
   const [muteDialogOpen, setMuteDialogOpen] = useState(false);
   const [selectedMuteUser, setSelectedMuteUser] = useState<User | null>(null);
+  const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
 
   const { data: users, isLoading } = useQuery<User[]>({
     queryKey: ["/api/users"],
@@ -175,9 +176,24 @@ export function UserManagement() {
 
   const handleMuteDialogClose = () => {
     setMuteDialogOpen(false);
-    setSelectedMuteUser(null);
-    setMuteReason("");
-    setMuteDuration("60");
+    setTimeout(() => {
+      setSelectedMuteUser(null);
+      setMuteReason("");
+      setMuteDuration("60");
+    }, 100); // Small delay to ensure smooth transition
+  };
+
+  const handleSuspendClick = (user: User) => {
+    setSelectedUser(user);
+    setSuspendDialogOpen(true);
+  };
+
+  const handleSuspendDialogClose = () => {
+    setSuspendDialogOpen(false);
+    setTimeout(() => {
+      setSelectedUser(null);
+      setSuspensionReason("");
+    }, 100); // Small delay to ensure smooth transition
   };
 
   if (!isAdmin && !isModerator) {
@@ -295,6 +311,7 @@ export function UserManagement() {
                             duration: parseInt(muteDuration),
                             reason: muteReason,
                           });
+                          handleMuteDialogClose();
                         }
                       }}
                       disabled={muteUserMutation.isPending || !muteReason.trim() || parseInt(muteDuration) <= 0}
@@ -319,9 +336,9 @@ export function UserManagement() {
                 Unmute
               </Button>
             )}
-            <Dialog open={selectedUser?.id === user.id} onOpenChange={(open) => !open && setSelectedUser(null)}>
+            <Dialog open={suspendDialogOpen && selectedUser?.id === user.id} onOpenChange={setSuspendDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="destructive" onClick={() => setSelectedUser(user)}>
+                <Button variant="destructive" onClick={() => handleSuspendClick(user)}>
                   Suspend
                 </Button>
               </DialogTrigger>
@@ -346,6 +363,7 @@ export function UserManagement() {
                           userId: user.id,
                           reason: suspensionReason,
                         });
+                        handleSuspendDialogClose();
                       }
                     }}
                     disabled={suspendUserMutation.isPending}
