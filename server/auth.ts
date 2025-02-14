@@ -50,6 +50,24 @@ export function requireRole(role: UserRoleType) {
   };
 }
 
+// Check suspension middleware
+function checkSuspension(req: Request, res: Response, next: NextFunction) {
+  if (req.isAuthenticated() && req.user.suspended) {
+    req.logout((err) => {
+      if (err) {
+        console.error('Error logging out suspended user:', err);
+      }
+      res.status(403).json({
+        message: "Your account has been suspended",
+        reason: req.user.suspendedReason,
+        suspendedAt: req.user.suspendedAt
+      });
+    });
+    return;
+  }
+  next();
+}
+
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET!,
@@ -66,21 +84,50 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
+  // Add suspension check middleware after authentication is set up
+  app.use(checkSuspension);
+
   passport.use(
     new LocalStrategy(async (username, password, done) => {
-      const user = await storage.getUserByUsername(username);
-      if (!user || !(await comparePasswords(password, user.password))) {
-        return done(null, false);
-      } else {
+      try {
+        const user = await storage.getUserByUsername(username);
+        if (!user || !(await comparePasswords(password, user.password))) {
+          return done(null, false);
+        }
+
+        // Check if user is suspended during login
+        if (user.suspended) {
+          return done(null, false, { 
+            message: "Your account has been suspended",
+            reason: user.suspendedReason,
+            suspendedAt: user.suspendedAt
+          });
+        }
+
         return done(null, user);
+      } catch (error) {
+        return done(error);
       }
     }),
   );
 
   passport.serializeUser((user, done) => done(null, user.id));
   passport.deserializeUser(async (id: number, done) => {
-    const user = await storage.getUser(id);
-    done(null, user);
+    try {
+      const user = await storage.getUser(id);
+      if (!user) {
+        return done(null, false);
+      }
+
+      // Check if user is suspended during session verification
+      if (user.suspended) {
+        return done(null, false);
+      }
+
+      done(null, user);
+    } catch (error) {
+      done(error);
+    }
   });
 
   app.post("/api/register", async (req, res, next) => {
@@ -102,6 +149,17 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", passport.authenticate("local"), (req, res) => {
+    if (req.user.suspended) {
+      req.logout((err) => {
+        if (err) console.error('Error logging out suspended user:', err);
+        res.status(403).json({
+          message: "Your account has been suspended",
+          reason: req.user.suspendedReason,
+          suspendedAt: req.user.suspendedAt
+        });
+      });
+      return;
+    }
     res.status(200).json(req.user);
   });
 
@@ -114,6 +172,17 @@ export function setupAuth(app: Express) {
 
   app.get("/api/user", (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (req.user.suspended) {
+      req.logout((err) => {
+        if (err) console.error('Error logging out suspended user:', err);
+        res.status(403).json({
+          message: "Your account has been suspended",
+          reason: req.user.suspendedReason,
+          suspendedAt: req.user.suspendedAt
+        });
+      });
+      return;
+    }
     res.json(req.user);
   });
 }

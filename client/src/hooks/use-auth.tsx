@@ -28,12 +28,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isLoading,
   } = useQuery<SelectUser | undefined, Error>({
     queryKey: ["/api/user"],
-    queryFn: getQueryFn({ on401: "returnNull" }),
+    queryFn: async () => {
+      try {
+        const res = await apiRequest("GET", "/api/user");
+        if (res.status === 403) {
+          const data = await res.json();
+          toast({
+            title: "Account Suspended",
+            description: `Your account has been suspended. Reason: ${data.reason}`,
+            variant: "destructive",
+          });
+          queryClient.setQueryData(["/api/user"], null);
+          return undefined;
+        }
+        if (!res.ok) {
+          if (res.status === 401) return undefined;
+          throw new Error("Failed to fetch user data");
+        }
+        return res.json();
+      } catch (error) {
+        console.error("Error fetching user:", error);
+        throw error;
+      }
+    },
   });
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
       const res = await apiRequest("POST", "/api/login", credentials);
+      if (res.status === 403) {
+        const data = await res.json();
+        throw new Error(`Account suspended: ${data.reason}`);
+      }
       return await res.json();
     },
     onSuccess: (user: SelectUser) => {
