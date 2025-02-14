@@ -10,8 +10,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Label } from "@/components/ui/label";
 import ChatRoom from "@/components/chat/chat-room";
 import { useState, useEffect } from "react";
-import { MoreVertical, Trash2, LogOut, Plus, Loader2, Settings, PanelLeftClose } from "lucide-react";
-import { useSidebar } from "@/components/ui/sidebar";
+import { MoreVertical, Trash2, LogOut, Plus, Loader2, Settings } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,12 +22,16 @@ import {
   AvatarImage,
   AvatarFallback,
 } from "@/components/ui/avatar";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 
 export default function ChatPage() {
   const { user, logoutMutation } = useAuth();
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const sidebar = useSidebar();
 
   const { data: rooms, isLoading } = useQuery<Room[]>({
     queryKey: ["/api/rooms"],
@@ -119,14 +122,7 @@ export default function ChatPage() {
   return (
     <div className="flex h-screen">
       <div className="w-64 border-r bg-muted/50 p-4 pt-12 flex flex-col relative">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute top-2 left-2"
-          onClick={() => sidebar.toggleSidebar()}
-        >
-          <PanelLeftClose className="h-4 w-4" />
-        </Button>
+        <SidebarTrigger className="absolute top-2 left-2" />
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-semibold">Chat Rooms</h2>
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
@@ -198,50 +194,6 @@ export default function ChatPage() {
                       Leave Room
                     </DropdownMenuItem>
                   )}
-                  {room.createdById === user?.id && (
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                          <Settings className="h-4 w-4 mr-2" />
-                          Edit Name
-                        </DropdownMenuItem>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Edit Room Name</DialogTitle>
-                        </DialogHeader>
-                        <form
-                          onSubmit={(e) => {
-                            e.preventDefault();
-                            const formData = new FormData(e.currentTarget);
-                            const newName = formData.get("name") as string;
-                            if (newName && newName !== room.name) {
-                              apiRequest("PATCH", `/api/rooms/${room.id}`, { name: newName })
-                                .then(() => queryClient.invalidateQueries({ queryKey: ["/api/rooms"] }));
-                            }
-                            (e.target as HTMLFormElement).reset();
-                            (e.target as HTMLFormElement).closest("dialog")?.close();
-                          }}
-                          className="space-y-4"
-                        >
-                          <div className="space-y-2">
-                            <Label htmlFor="name">Room Name</Label>
-                            <Input
-                              id="name"
-                              name="name"
-                              defaultValue={room.name}
-                              required
-                            />
-                          </div>
-                          <DialogClose asChild>
-                            <Button type="submit" className="w-full">
-                              Save Changes
-                            </Button>
-                          </DialogClose>
-                        </form>
-                      </DialogContent>
-                    </Dialog>
-                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -282,12 +234,12 @@ export default function ChatPage() {
           </div>
         </div>
       </div>
-      <div className="flex-1">
+      <div className="flex-1 flex items-center justify-center">
         {selectedRoom ? (
           <ChatRoom room={selectedRoom} />
         ) : (
-          <div className="flex items-center justify-center h-full text-muted-foreground">
-            Select a room to start chatting
+          <div className="text-xl text-muted-foreground text-center">
+            <p>Select a room to start chatting</p>
           </div>
         )}
       </div>
