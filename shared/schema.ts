@@ -89,9 +89,18 @@ export const insertMessageSchema = createInsertSchema(messages)
 
 export const updateUserSchema = z.object({
   username: z.string().min(1).optional(),
-  currentPassword: z.string().min(1),
-  newPassword: z.string().min(1).optional(),
+  currentPassword: z.string().optional(),
+  newPassword: z.string().min(6, "Password must be at least 6 characters").optional(),
   avatarUrl: z.string().url().optional(),
+}).refine((data) => {
+  // If newPassword is provided, currentPassword must also be provided
+  if (data.newPassword && !data.currentPassword) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Current password is required when setting a new password",
+  path: ["currentPassword"],
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;

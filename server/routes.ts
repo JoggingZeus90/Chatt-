@@ -261,7 +261,7 @@ export function registerRoutes(app: Express): Server {
 
   // Update user profile
   app.patch("/api/user/profile", async (req, res) => {
-    console.log(`PATCH request received for ${req.url}`); // Added request logging
+    console.log(`PATCH request received for ${req.url}`);
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     const parsed = updateUserSchema.safeParse(req.body);
@@ -269,18 +269,23 @@ export function registerRoutes(app: Express): Server {
 
     const { currentPassword, newPassword, username, avatarUrl } = parsed.data;
 
-    // Verify current password
-    const user = await storage.getUser(req.user.id);
-    if (!user || !(await comparePasswords(currentPassword, user.password))) {
-      return res.status(400).send("Current password is incorrect");
-    }
-
-    // Check username availability if changing
-    if (username && username !== user.username) {
-      const existing = await storage.getUserByUsername(username);
-      if (existing) {
-        return res.status(400).send("Username is already taken");
+    // Only verify current password if either password is being changed or username is being changed
+    if (currentPassword) {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !(await comparePasswords(currentPassword, user.password))) {
+        return res.status(400).send("Current password is incorrect");
       }
+
+      // Check username availability if changing
+      if (username && username !== user.username) {
+        const existing = await storage.getUserByUsername(username);
+        if (existing) {
+          return res.status(400).send("Username is already taken");
+        }
+      }
+    } else if (newPassword) {
+      // If trying to set new password without providing current password
+      return res.status(400).send("Current password is required to change password");
     }
 
     const updatedUser = await storage.updateUserProfile(req.user.id, {
