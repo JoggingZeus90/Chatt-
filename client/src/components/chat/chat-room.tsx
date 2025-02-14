@@ -40,6 +40,7 @@ const ALLOWED_FILE_TYPES = {
 
 const WHISPER_COMMAND = "/whisper";
 const SUS_IMAGE_URL = "https://i.kym-cdn.com/entries/icons/original/000/000/228/RAISE.jpg";
+const KRATOS_IMAGE_URL = "https://i.kym-cdn.com/entries/icons/original/000/034/213/cover2.jpg";
 
 const TEXT_COMMANDS = {
   "/tableflip": "(╯°□°)╯︵ ┻━┻",
@@ -72,6 +73,11 @@ const commands = [
     name: 'sus',
     description: 'Send the Rock eyebrow raise meme',
     format: '/sus',
+  },
+  {
+    name: 'kratos',
+    description: 'Send an angry Kratos image',
+    format: '/kratos',
   },
 ];
 
@@ -278,6 +284,10 @@ export default function ChatRoom({ room }: { room: Room }) {
       uploadedMediaUrl = SUS_IMAGE_URL;
       uploadedMediaType = 'image';
       messageContent = ''; // Clear the message content since we're sending an image
+    } else if (messageContent === '/kratos') {
+      uploadedMediaUrl = KRATOS_IMAGE_URL;
+      uploadedMediaType = 'image';
+      messageContent = '';
     } else if (textCommand) {
       messageContent = textCommand;
     } else if (messageContent.startsWith(WHISPER_COMMAND)) {
