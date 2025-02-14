@@ -39,7 +39,7 @@ const ALLOWED_FILE_TYPES = {
 } as const;
 
 const WHISPER_COMMAND = "/whisper";
-const SUS_IMAGE_URL = "https://i.kym-cdn.com/entries/icons/facebook/000/000/228/RAISE.jpg";
+const SUS_IMAGE_URL = "https://i.kym-cdn.com/entries/icons/original/000/000/228/RAISE.jpg";
 
 const TEXT_COMMANDS = {
   "/tableflip": "(╯°□°)╯︵ ┻━┻",
