@@ -904,7 +904,7 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
                 key={u.id}
                 className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/20 transition-colors"
               >
-                <Avatar className="h-8 w8">
+                <Avatar className="h8 w-8">
                   <AvatarImage src={u.avatarUrl ?? undefined} />
                   <AvatarFallback>{u.username[0].toUpperCase()}</AvatarFallback>
                 </Avatar>
@@ -913,16 +913,11 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
                     <span className="font-medium truncate">{u.username}</span>
                     <div
                       className={`h-2 w-2 rounded-full ${
-                        u.isOnline ? 'bg-green-500' : 'bg-gray-300'
+                        u.isOnline ? "bg-green-500" : "bg-muted"
                       }`}
-                      title={u.isOnline ? 'Online' : 'Offline'}
+                      title={u.isOnline ? "Online" : "Offline"}
                     />
                   </div>
-                  {!u.isOnline && u.lastSeen && (
-                    <p className="text-xs text-muted-foreground truncate">
-                      Last seen: {format(new Date(u.lastSeen), 'PP')}
-                    </p>
-                  )}
                 </div>
               </div>
             ))}
