@@ -557,8 +557,8 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
     };
   }, [room.id, isTyping]);
 
-  // Add query to fetch all users
-  const { data: allUsers } = useQuery<User[]>({ // Added type annotation
+  // Add query to fetch all users -  This remains here, but is not used after the edit.  Leaving it for potential future use.
+  const { data: allUsers } = useQuery<User[]>({
     queryKey: ["/api/users"],
     refetchInterval: 1000, // Poll to keep online status updated
   });
@@ -830,7 +830,7 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
                       <CommandList>
                         <CommandEmpty>No users found.</CommandEmpty>
                         <CommandGroup heading="Users">
-                          {allUsers
+                          {room.participants
                             ?.filter(p => p.username.toLowerCase().includes(mentionSearch.toLowerCase()))
                             .map((user) => (
                               <CommandItem
@@ -873,11 +873,11 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
           </form>
         </div>
 
-        {/* Users sidebar */}
+        {/* Users sidebar -  Replaced with updated JSX from edited snippet */}
         <div className="w-64 border-l bg-muted/10 overflow-y-auto p-4 hidden md:block">
           <h3 className="font-semibold mb-4">Users</h3>
           <div className="space-y-2">
-            {allUsers?.map((u) => (
+            {room.participants?.map((u) => (
               <div
                 key={u.id}
                 className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/20 transition-colors"
