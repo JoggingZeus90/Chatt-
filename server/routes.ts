@@ -161,17 +161,26 @@ export function registerRoutes(app: Express): Server {
     res.json(roomsWithParticipants);
   });
 
+  // Create room and automatically add creator as member
   app.post("/api/rooms", async (req, res) => {
-    console.log(`POST request received for ${req.url}`); // Added request logging
+    console.log(`POST request received for ${req.url}`);
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const parsed = insertRoomSchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).send(parsed.error.message);
 
-    const room = await storage.createRoom({
-      ...parsed.data,
-      createdById: req.user.id,
-    });
-    res.status(201).json(room);
+    try {
+      const room = await storage.createRoom({
+        ...parsed.data,
+        createdById: req.user.id,
+      });
+
+      // Add creator as first member
+      await storage.joinRoom(room.id, req.user.id);
+      res.status(201).json(room);
+    } catch (error) {
+      console.error('Error creating room:', error);
+      res.status(500).send('Failed to create room');
+    }
   });
 
   // Add automatic room joining when getting messages
@@ -327,7 +336,7 @@ export function registerRoutes(app: Express): Server {
     res.sendStatus(200);
   });
 
-  // Get room members (only members who can access the room)
+  // Get room members (only members who have access to the room)
   app.get("/api/rooms/:roomId/members", async (req, res) => {
     console.log(`GET request received for ${req.url}`);
     if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -335,6 +344,8 @@ export function registerRoutes(app: Express): Server {
     try {
       const roomId = parseInt(req.params.roomId);
       const users = await storage.getRoomMembers(roomId);
+
+      // Filter out sensitive information
       const safeUsers = users.map(user => ({
         id: user.id,
         username: user.username,
@@ -344,6 +355,8 @@ export function registerRoutes(app: Express): Server {
         role: user.role,
         suspended: user.suspended
       }));
+
+      console.log(`Found ${safeUsers.length} members for room ${roomId}`);
       res.json(safeUsers);
     } catch (error) {
       console.error('Error fetching room members:', error);
