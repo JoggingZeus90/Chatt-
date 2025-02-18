@@ -44,15 +44,15 @@ const ColorPicker = React.forwardRef<HTMLDivElement, ColorPickerProps>(
       if (!wheel) return;
 
       const rect = wheel.getBoundingClientRect();
-      const x = e.clientX - rect.left - rect.width / 2;  // Centered x coordinate
-      const y = e.clientY - rect.top - rect.height / 2;  // Centered y coordinate
+      const center = { x: rect.width / 2, y: rect.height / 2 };
+      const x = e.clientX - rect.left - center.x;
+      const y = e.clientY - rect.top - center.y;
       const radius = rect.width / 2;
 
       // Calculate angle and distance from center
-      // atan2 returns angle in radians, convert to degrees and adjust to start from right (0°)
       let angle = Math.atan2(y, x) * (180 / Math.PI);
-      // Normalize angle to [0, 360) range, starting from right and going counterclockwise
-      angle = (angle + 360) % 360;
+      // Rotate 90 degrees counterclockwise to align with standard HSL color wheel
+      angle = (angle + 450) % 360;
 
       const distance = Math.min(Math.sqrt(x * x + y * y), radius);
       const saturation = (distance / radius) * 100;
@@ -110,7 +110,6 @@ const ColorPicker = React.forwardRef<HTMLDivElement, ColorPickerProps>(
                 className="relative w-[240px] h-[240px] rounded-full cursor-crosshair"
                 style={{
                   background: `conic-gradient(
-                    from 90deg,
                     hsl(0, 100%, 50%),
                     hsl(60, 100%, 50%),
                     hsl(120, 100%, 50%),
@@ -136,8 +135,8 @@ const ColorPicker = React.forwardRef<HTMLDivElement, ColorPickerProps>(
                 <div
                   className="absolute w-4 h-4 transform -translate-x-1/2 -translate-y-1/2 border-2 border-white rounded-full shadow-md pointer-events-none"
                   style={{
-                    left: `${(hsva.s / 100) * 120 * Math.cos((hsva.h - 90) * Math.PI / 180) + 120}px`,
-                    top: `${(hsva.s / 100) * 120 * Math.sin((hsva.h - 90) * Math.PI / 180) + 120}px`,
+                    left: `${(hsva.s / 100) * 120 * Math.cos((hsva.h + 90) * Math.PI / 180) + 120}px`,
+                    top: `${(hsva.s / 100) * 120 * Math.sin((hsva.h + 90) * Math.PI / 180) + 120}px`,
                     backgroundColor: hsvaToHex(hsva),
                   }}
                 />
