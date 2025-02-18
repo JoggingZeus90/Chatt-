@@ -167,8 +167,7 @@ export default function SettingsPage() {
               <ColorPicker
                 label="Primary Color"
                 value={theme.primary}
-                onChange={(e) => {
-                  const newColor = e.target.value;
+                onChange={(newColor) => {
                   setTheme({
                     ...theme,
                     primary: newColor,

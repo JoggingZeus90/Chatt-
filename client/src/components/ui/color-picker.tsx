@@ -1,38 +1,43 @@
 import * as React from "react"
 import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
+import Wheel from '@uiw/react-color-wheel';
+import { hexToHsva, hsvaToHex } from '@uiw/color-convert';
 
-interface ColorPickerProps extends React.InputHTMLAttributes<HTMLInputElement> {
+interface ColorPickerProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange'> {
   label?: string
   className?: string
+  value?: string
+  onChange?: (value: string) => void
 }
 
-const ColorPicker = React.forwardRef<HTMLInputElement, ColorPickerProps>(
-  ({ label, className, value, ...props }, ref) => {
+const ColorPicker = React.forwardRef<HTMLDivElement, ColorPickerProps>(
+  ({ label, className, value = '#000000', onChange, ...props }, ref) => {
+    const hsva = React.useMemo(() => hexToHsva(value), [value]);
+
     return (
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-4" ref={ref}>
         {label && <Label>{label}</Label>}
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-4 items-center">
           <div
             className="w-10 h-10 rounded-md border"
-            style={{ backgroundColor: value as string }}
+            style={{ backgroundColor: value }}
           />
-          <Input
-            ref={ref}
-            type="color"
-            className={cn(
-              "h-10 p-1 cursor-pointer [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:border-none [&::-webkit-color-swatch]:!transition-[width,height] [&::-webkit-color-swatch]:!duration-75 [&::-webkit-color-swatch]:!ease-in-out [&::-moz-color-swatch]:!transition-[width,height] [&::-moz-color-swatch]:!duration-75 [&::-moz-color-swatch]:!ease-in-out",
-              className
-            )}
-            value={value}
-            {...props}
-          />
+          <div className="relative w-[200px] h-[200px]">
+            <Wheel 
+              color={hsva}
+              onChange={(color) => {
+                const hex = hsvaToHex(color);
+                onChange?.(hex);
+              }}
+            />
+          </div>
         </div>
       </div>
     )
   }
 )
+
 ColorPicker.displayName = "ColorPicker"
 
 export { ColorPicker }
