@@ -727,16 +727,16 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
               ))
             )}
             <div ref={messagesEndRef} />
-            {showScrollButton && (
-              <Button
-                className="fixed bottom-32 right-4 sm:right-8 rounded-full shadow-lg"
-                size="icon"
-                onClick={scrollToBottom}
-              >
-                <ArrowDown className="h-4 w-4" />
-              </Button>
-            )}
           </div>
+          {showScrollButton && (
+            <Button
+              className="fixed bottom-32 right-4 sm:right-8 rounded-full shadow-lg z-50"
+              size="icon"
+              onClick={scrollToBottom}
+            >
+              <ArrowDown className="h-4 w-4" />
+            </Button>
+          )}
           <form onSubmit={handleSubmit} className="border-t p-2 sm:p-4 space-y-4 relative">
             {Object.entries(typingUsers)
               .filter(([userId, isTyping]) => isTyping && userId !== user?.id.toString())
