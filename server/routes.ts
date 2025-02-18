@@ -306,7 +306,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Join room
+  // Join room (check visibility and handle accordingly)
   app.post("/api/rooms/:roomId/join", async (req, res) => {
     console.log(`POST request received for ${req.url}`);
     if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -314,6 +314,17 @@ export function registerRoutes(app: Express): Server {
     try {
       const roomId = parseInt(req.params.roomId);
       const userId = req.user.id;
+
+      // Get room details to check visibility
+      const room = await storage.getRoom(roomId);
+      if (!room) {
+        return res.status(404).send("Room not found");
+      }
+
+      // For private rooms, only allow joining with invite code
+      if (!room.isPublic) {
+        return res.status(403).send("This is a private room. You need an invite code to join.");
+      }
 
       // Check if user is already a member
       const isMember = await storage.isRoomMember(roomId, userId);

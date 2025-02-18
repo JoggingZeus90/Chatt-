@@ -10,22 +10,31 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Label } from "@/components/ui/label";
 import ChatRoom from "@/components/chat/chat-room";
 import { useState, useEffect } from "react";
-import { Plus, Loader2, Settings, LogOut, PanelLeftClose, PanelLeft } from "lucide-react";
+import { Plus, Loader2, Settings, LogOut, PanelLeftClose, PanelLeft, Users, Lock, Unlock } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Avatar,
   AvatarImage,
   AvatarFallback,
 } from "@/components/ui/avatar";
+import { Switch } from "@/components/ui/switch";
 
 export default function ChatPage() {
   const { user, logoutMutation } = useAuth();
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [roomCode, setRoomCode] = useState("");
 
   const { data: rooms, isLoading } = useQuery<Room[]>({
     queryKey: ["/api/rooms"],
-    refetchInterval: 1000, // Add polling to keep room data fresh
+    refetchInterval: 1000,
     select: (rooms) => {
       console.log("Raw rooms data:", rooms);
       return rooms.map(room => ({
@@ -41,7 +50,7 @@ export default function ChatPage() {
   });
 
   const createRoomMutation = useMutation({
-    mutationFn: async (data: { name: string }) => {
+    mutationFn: async (data: { name: string; isPublic: boolean }) => {
       const res = await apiRequest("POST", "/api/rooms", data);
       return res.json();
     },
@@ -52,22 +61,33 @@ export default function ChatPage() {
     },
   });
 
+  const joinRoomMutation = useMutation({
+    mutationFn: async (code: string) => {
+      const res = await apiRequest("POST", `/api/rooms/join/${code}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
+      setIsJoinDialogOpen(false);
+      setRoomCode("");
+    },
+  });
+
   const form = useForm({
     resolver: zodResolver(insertRoomSchema),
     defaultValues: {
       name: "",
+      isPublic: true,
     },
   });
 
   const handleRoomSelect = async (room: Room) => {
     setSelectedRoom(room);
-    // Clear unread mentions when entering room
     if (unreadMentions?.some(m => m.roomId === room.id)) {
       await apiRequest("POST", `/api/rooms/${room.id}/mentions/clear`);
       queryClient.invalidateQueries({ queryKey: ["/api/mentions/unread"] });
     }
   };
-
 
   useEffect(() => {
     if (!user) return;
@@ -107,14 +127,6 @@ export default function ChatPage() {
     };
   }, [user, logoutMutation.isPending]);
 
-  useEffect(() => {
-    console.log("Room data in ChatPage:", rooms);
-    if (selectedRoom) {
-      console.log("Selected room:", selectedRoom);
-      console.log("Participants:", selectedRoom.participants);
-    }
-  }, [rooms, selectedRoom]);
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -136,39 +148,23 @@ export default function ChatPage() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold">Chat Rooms</h2>
             <div className="flex gap-2">
-              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                <DialogTrigger asChild>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
                   <Button size="icon" variant="ghost">
                     <Plus className="h-4 w-4" />
                   </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Create Room</DialogTitle>
-                  </DialogHeader>
-                  <form
-                    onSubmit={form.handleSubmit((data) =>
-                      createRoomMutation.mutate(data)
-                    )}
-                    className="space-y-4"
-                  >
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Room Name</Label>
-                      <Input id="name" {...form.register("name")} />
-                    </div>
-                    <Button
-                      type="submit"
-                      className="w-full"
-                      disabled={createRoomMutation.isPending}
-                    >
-                      {createRoomMutation.isPending && (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      )}
-                      Create Room
-                    </Button>
-                  </form>
-                </DialogContent>
-              </Dialog>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={() => setIsCreateDialogOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create Room
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => setIsJoinDialogOpen(true)}>
+                    <Users className="mr-2 h-4 w-4" />
+                    Join Room
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
           <div className="space-y-2 flex-1 overflow-auto">
@@ -176,10 +172,11 @@ export default function ChatPage() {
               <Button
                 key={room.id}
                 variant={selectedRoom?.id === room.id ? "secondary" : "ghost"}
-                className="w-full justify-start relative"
+                className="w-full justify-start relative gap-2"
                 onClick={() => handleRoomSelect(room)}
               >
-                {room.name}
+                {!room.isPublic && <Lock className="h-4 w-4 flex-shrink-0" />}
+                <span className="truncate">{room.name}</span>
                 {unreadMentions?.some(m => m.roomId === room.id) && (
                   <div className="absolute right-2 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-blue-500" />
                 )}
@@ -235,6 +232,87 @@ export default function ChatPage() {
           </div>
         )}
       </div>
+
+      {/* Create Room Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Room</DialogTitle>
+          </DialogHeader>
+          <form
+            onSubmit={form.handleSubmit((data) =>
+              createRoomMutation.mutate(data)
+            )}
+            className="space-y-4"
+          >
+            <div className="space-y-2">
+              <Label htmlFor="name">Room Name</Label>
+              <Input id="name" {...form.register("name")} />
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="isPublic">Room Visibility</Label>
+                <div className="text-sm text-muted-foreground">
+                  Make this room {form.watch("isPublic") ? "public" : "private"}
+                </div>
+              </div>
+              <Switch
+                id="isPublic"
+                checked={form.watch("isPublic")}
+                onCheckedChange={(checked) => form.setValue("isPublic", checked)}
+              />
+            </div>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={createRoomMutation.isPending}
+            >
+              {createRoomMutation.isPending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Create Room
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Join Room Dialog */}
+      <Dialog open={isJoinDialogOpen} onOpenChange={setIsJoinDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Join Room</DialogTitle>
+          </DialogHeader>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (roomCode) {
+                joinRoomMutation.mutate(roomCode);
+              }
+            }}
+            className="space-y-4"
+          >
+            <div className="space-y-2">
+              <Label htmlFor="roomCode">Room Code</Label>
+              <Input
+                id="roomCode"
+                value={roomCode}
+                onChange={(e) => setRoomCode(e.target.value)}
+                placeholder="Enter room code"
+              />
+            </div>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={joinRoomMutation.isPending || !roomCode}
+            >
+              {joinRoomMutation.isPending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Join Room
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

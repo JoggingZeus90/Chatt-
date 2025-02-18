@@ -47,6 +47,7 @@ export const rooms = pgTable("rooms", {
     .references(() => users.id)
     .notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  isPublic: boolean("is_public").notNull().default(true),
 });
 
 export const messages = pgTable("messages", {
@@ -91,6 +92,8 @@ export const unreadMentions = pgTable("unread_mentions", {
 
 export const insertRoomSchema = createInsertSchema(rooms).pick({
   name: true,
+}).extend({
+  isPublic: z.boolean().default(true)
 });
 
 export const insertMessageSchema = createInsertSchema(messages)
