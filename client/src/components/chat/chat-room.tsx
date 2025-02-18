@@ -420,13 +420,13 @@ export default function ChatRoom({ room }: { room: Room }) {
     const newValue = e.target.value;
     if (newValue.length <= MAX_MESSAGE_LENGTH) {
       setMessage(newValue);
+      console.log('Message changed, setting typing status to true');
 
       // Always update typing status when input changes
-      if (!isTyping) {
-        setIsTyping(true);
-        apiRequest("POST", `/api/rooms/${room.id}/typing`, { isTyping: true })
-          .catch(error => console.error('Failed to update typing status:', error));
-      }
+      setIsTyping(true);
+      apiRequest("POST", `/api/rooms/${room.id}/typing`, { isTyping: true })
+        .then(() => console.log('Successfully updated typing status to true'))
+        .catch(error => console.error('Failed to update typing status:', error));
 
       // Reset the debounced timer
       setTypingDebounced();
@@ -485,17 +485,22 @@ export default function ChatRoom({ room }: { room: Room }) {
   };
 
   const setTypingDebounced = useDebouncedCallback(() => {
+    console.log('Debounced callback triggered, setting typing status to false');
     setIsTyping(false);
     apiRequest("POST", `/api/rooms/${room.id}/typing`, { isTyping: false })
+      .then(() => console.log('Successfully updated typing status to false'))
       .catch(error => console.error('Failed to update typing status:', error));
   }, 2000);
 
   useEffect(() => {
+    console.log('Setting up typing status interval');
     const typingInterval = setInterval(async () => {
       try {
+        console.log('Fetching typing status for room:', room.id);
         const res = await apiRequest("GET", `/api/rooms/${room.id}/typing`);
         if (!res.ok) throw new Error('Failed to fetch typing status');
         const data = await res.json();
+        console.log('Received typing status:', data);
         setTypingUsers(data);
       } catch (error) {
         console.error('Failed to fetch typing status:', error);
@@ -503,10 +508,12 @@ export default function ChatRoom({ room }: { room: Room }) {
     }, 1000);
 
     return () => {
+      console.log('Cleaning up typing status interval');
       clearInterval(typingInterval);
       // Clear typing status when component unmounts
       if (isTyping) {
         apiRequest("POST", `/api/rooms/${room.id}/typing`, { isTyping: false })
+          .then(() => console.log('Successfully cleared typing status on unmount'))
           .catch(error => console.error('Failed to clear typing status:', error));
       }
     };

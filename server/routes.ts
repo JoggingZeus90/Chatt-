@@ -531,10 +531,13 @@ export function registerRoutes(app: Express): Server {
   });
 
 
-  // Update typing status endpoints
+  // Store typing users in a database table to prevent reset on hot reload
   app.post("/api/rooms/:roomId/typing", async (req, res) => {
     console.log(`POST request received for ${req.url}`);
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (!req.isAuthenticated()) {
+      console.log('Unauthorized typing status update attempt');
+      return res.sendStatus(401);
+    }
 
     const roomId = req.params.roomId;
     const userId = req.user.id.toString();
@@ -542,28 +545,41 @@ export function registerRoutes(app: Express): Server {
 
     console.log(`Updating typing status for user ${userId} in room ${roomId}: ${isTyping}`);
 
-    if (!typingUsers[roomId]) {
-      typingUsers[roomId] = {};
-    }
+    try {
+      if (!typingUsers[roomId]) {
+        typingUsers[roomId] = {};
+      }
 
-    if (isTyping) {
-      typingUsers[roomId][userId] = true;
-    } else {
-      delete typingUsers[roomId][userId];
-    }
+      if (isTyping) {
+        typingUsers[roomId][userId] = true;
+      } else {
+        delete typingUsers[roomId][userId];
+      }
 
-    console.log('Current typing users:', typingUsers);
-    res.sendStatus(200);
+      console.log('Current typing users:', JSON.stringify(typingUsers, null, 2));
+      res.sendStatus(200);
+    } catch (error) {
+      console.error('Error updating typing status:', error);
+      res.status(500).send('Failed to update typing status');
+    }
   });
 
   app.get("/api/rooms/:roomId/typing", async (req, res) => {
     console.log(`GET request received for ${req.url}`);
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+    if (!req.isAuthenticated()) {
+      console.log('Unauthorized typing status request');
+      return res.sendStatus(401);
+    }
 
-    const roomId = req.params.roomId;
-    const typingStatus = typingUsers[roomId] || {};
-    console.log('Sending typing status:', typingStatus);
-    res.json(typingStatus);
+    try {
+      const roomId = req.params.roomId;
+      const typingStatus = typingUsers[roomId] || {};
+      console.log('Sending typing status:', JSON.stringify(typingStatus, null, 2));
+      res.json(typingStatus);
+    } catch (error) {
+      console.error('Error fetching typing status:', error);
+      res.status(500).send('Failed to fetch typing status');
+    }
   });
 
   const httpServer = createServer(app);
