@@ -335,7 +335,7 @@ export function registerRoutes(app: Express): Server {
     res.json(members);
   });
 
-  // Add room members endpoint (accessible to all authenticated users)
+  // Get all users in a room (accessible to authenticated users)
   app.get("/api/rooms/:roomId/users", async (req, res) => {
     console.log(`GET request received for ${req.url}`);
     if (!req.isAuthenticated()) return res.sendStatus(401);

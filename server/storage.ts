@@ -144,7 +144,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async joinRoom(roomId: number, userId: number): Promise<void> {
-    await db.insert(roomMembers).values({ roomId, userId, joinedAt: new Date() });
+    // Check if user is already a member to avoid duplicate entries
+    const [existingMember] = await db
+      .select()
+      .from(roomMembers)
+      .where(eq(roomMembers.roomId, roomId))
+      .where(eq(roomMembers.userId, userId));
+
+    if (!existingMember) {
+      await db.insert(roomMembers).values({
+        roomId,
+        userId,
+        joinedAt: new Date()
+      });
+    }
   }
 
   async leaveRoom(roomId: number, userId: number): Promise<void> {
@@ -184,6 +197,7 @@ export class DatabaseStorage implements IStorage {
       .from(roomMembers)
       .where(eq(roomMembers.roomId, roomId))
       .where(eq(roomMembers.userId, userId));
+
     return !!member;
   }
 
