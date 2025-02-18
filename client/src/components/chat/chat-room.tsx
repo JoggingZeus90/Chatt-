@@ -5,10 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Room, MessageWithUser } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Send, Loader2, Image, X, ArrowDown, Pencil, Check, Trash2, LogOut, Users, Menu } from "lucide-react";
+import { Send, Loader2, Image, X, ArrowDown, Pencil, Check, Trash2, LogOut, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { useIsMobile } from "@/hooks/use-mobile";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -125,7 +124,6 @@ const commands = [
 
 export default function ChatRoom({ room }: { room: Room }) {
   const { user } = useAuth();
-  const isMobile = useIsMobile();
   const [message, setMessage] = useState("");
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreviewUrl, setMediaPreviewUrl] = useState<string | null>(null);
