@@ -141,7 +141,7 @@ const commands = [
   },
 ];
 
-export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onToggleSidebar: () => void }) {
+export default function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onToggleSidebar: () => void; onLeave: (roomId: number) => void }) {
   const { user } = useAuth();
   const [message, setMessage] = useState("");
   const [mediaFile, setMediaFile] = useState<File | null>(null);
@@ -281,6 +281,7 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
         title: "Left room",
         description: "You have successfully left the room.",
       });
+      onLeave(room.id); // Call the onLeave prop
     },
     onError: (error: Error) => {
       toast({
@@ -690,10 +691,12 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
               <div className="flex flex-col min-w-0">
                 <h2 className="font-semibold truncate">{room.name}</h2>
                 <div className="flex items-center text-sm text-muted-foreground gap-1">
-                  {!room.isPublic && room.inviteCode && (
+                  {!room.isPublic && (
                     <div className="flex items-center gap-1 mr-2">
                       <Lock className="h-3 w-3 flex-shrink-0" />
-                      <span className="truncate">Code: {room.inviteCode}</span>
+                      <span className="truncate">
+                        Code: {room.inviteCode || 'No code available'}
+                      </span>
                     </div>
                   )}
                   <Users className="h-3 w-3 flex-shrink-0" />
