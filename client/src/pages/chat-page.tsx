@@ -34,7 +34,7 @@ export default function ChatPage() {
 
   const { data: rooms, isLoading } = useQuery<Room[]>({
     queryKey: ["/api/rooms"],
-    refetchInterval: 1000,
+    refetchInterval: 5000, // Reduced from 1000ms to 5000ms to prevent excessive reloading
     select: (rooms) => {
       console.log("Raw rooms data:", rooms);
       return rooms.map(room => ({

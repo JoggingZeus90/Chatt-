@@ -154,20 +154,20 @@ export function registerRoutes(app: Express): Server {
       // Get all rooms first
       const allRooms = await storage.getRooms();
 
-      // Filter rooms to only show public ones and private ones where user is a member
-      const accessibleRooms = allRooms.filter(room =>
-        room.isPublic || room.participants?.some(p => p.id === req.user.id)
-      );
-
-      // Get participants for each accessible room
-      const roomsWithParticipants = await Promise.all(
-        accessibleRooms.map(async (room) => {
-          const participants = await storage.getRoomMembers(room.id);
-          return { ...room, participants };
+      // Get room members for each room
+      const roomsWithMembers = await Promise.all(
+        allRooms.map(async (room) => {
+          const members = await storage.getRoomMembers(room.id);
+          return { ...room, participants: members };
         })
       );
 
-      res.json(roomsWithParticipants);
+      // Filter rooms to only show public ones and private ones where user is a member
+      const accessibleRooms = roomsWithMembers.filter(room =>
+        room.isPublic || room.participants.some(p => p.id === req.user.id)
+      );
+
+      res.json(accessibleRooms);
     } catch (error) {
       console.error('Error fetching rooms:', error);
       res.status(500).send('Failed to fetch rooms');
