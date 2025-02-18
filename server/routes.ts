@@ -188,24 +188,19 @@ export function registerRoutes(app: Express): Server {
     try {
       console.log('Creating room with data:', parsed.data);
 
-      // Create room first without invite code
+      // Generate invite code for private rooms
+      const inviteCode = !parsed.data.isPublic ?
+        `${Date.now()}-${Math.random().toString(36).substring(2, 15)}` :
+        null;
+
+      // Create room with invite code
       const room = await storage.createRoom({
         ...parsed.data,
         createdById: req.user.id,
-        inviteCode: null // Initially set to null
+        inviteCode
       });
 
       console.log('Room created:', room);
-
-      // For private rooms, update the invite code to be the room ID
-      if (!parsed.data.isPublic) {
-        console.log('Setting invite code for private room:', room.id.toString());
-        await db
-          .update(schema.rooms)
-          .set({ inviteCode: room.id.toString() })
-          .where(eq(schema.rooms.id, room.id));
-        room.inviteCode = room.id.toString();
-      }
 
       // Add creator as first member
       await storage.joinRoom(room.id, req.user.id);
@@ -366,14 +361,24 @@ export function registerRoutes(app: Express): Server {
       // For private rooms, verify the invite code
       if (!room.isPublic) {
         const providedCode = req.body.inviteCode;
-        console.log('Joining private room. Room ID:', roomId, 'Invite code:', room.inviteCode, 'Provided code:', providedCode);
+        console.log('Joining private room:', {
+          roomId,
+          roomInviteCode: room.inviteCode,
+          providedCode
+        });
 
         if (!providedCode || providedCode !== room.inviteCode) {
-          return res.status(403).send("Invalid invite code");
+          return res.status(403).json({
+            error: "Invalid invite code",
+            provided: providedCode,
+            expected: room.inviteCode
+          });
         }
       }
 
+      // Join room
       await storage.joinRoom(roomId, userId);
+      console.log(`User ${userId} joined room ${roomId}`);
 
       // Return updated room members
       const members = await storage.getRoomMembers(roomId);

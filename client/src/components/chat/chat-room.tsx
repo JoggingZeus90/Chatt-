@@ -297,6 +297,34 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
   });
 
 
+  const joinRoomMutation = useMutation({
+    mutationFn: async (inviteCode?: string) => {
+      const res = await apiRequest("POST", `/api/rooms/${room.id}/join`, {
+        inviteCode
+      });
+      if (!res.ok) {
+        const error = await res.text();
+        throw new Error(error);
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/rooms/${room.id}/messages`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
+      toast({
+        title: "Joined room",
+        description: "You have successfully joined the room.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to join room",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -637,6 +665,17 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
         return <span key={index}>{part}</span>;
       });
   }
+
+  useEffect(() => {
+    if (!room.isPublic && !room.participants?.some(p => p.id === user?.id)) {
+      const inviteCode = prompt("Please enter the invite code to join this private room:");
+      if (inviteCode) {
+        joinRoomMutation.mutate(inviteCode);
+      }
+    } else if (!room.participants?.some(p => p.id === user?.id)) {
+      joinRoomMutation.mutate();
+    }
+  }, [room.id, room.isPublic, user?.id, joinRoomMutation]);
 
   return (
     <div className="flex flex-col h-full">
