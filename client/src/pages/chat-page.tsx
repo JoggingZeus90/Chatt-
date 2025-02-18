@@ -107,6 +107,14 @@ export default function ChatPage() {
     };
   }, [user, logoutMutation.isPending]);
 
+  useEffect(() => {
+    console.log("Room data in ChatPage:", rooms);
+    if (selectedRoom) {
+      console.log("Selected room:", selectedRoom);
+      console.log("Participants:", selectedRoom.participants);
+    }
+  }, [rooms, selectedRoom]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
