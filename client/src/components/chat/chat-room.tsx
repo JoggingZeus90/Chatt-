@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, ChangeEvent } from "react";
+import { useState, useEffect, useRef, ChangeEvent, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { MessageBubble } from "./message-bubble";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { useDebouncedCallback } from "use-debounce";
 
 // Define inappropriate words to filter
 const INAPPROPRIATE_WORDS = [
@@ -136,6 +137,8 @@ export default function ChatRoom({ room }: { room: Room }) {
   const [showCommands, setShowCommands] = useState(false);
   const commandsRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const [typingUsers, setTypingUsers] = useState<{ [key: string]: boolean }>({});
+  const [isTyping, setIsTyping] = useState(false);
 
   const isOwner = user?.id === room.createdById;
 
@@ -417,6 +420,14 @@ export default function ChatRoom({ room }: { room: Room }) {
     const newValue = e.target.value;
     if (newValue.length <= MAX_MESSAGE_LENGTH) {
       setMessage(newValue);
+
+      if (!isTyping) {
+        setIsTyping(true);
+        apiRequest("POST", `/api/rooms/${room.id}/typing`, { isTyping: true });
+      }
+
+      setTypingDebounced();
+
       if (newValue.startsWith('/')) {
         setShowCommands(true);
       } else if (showCommands && !newValue.startsWith('/')) {
@@ -469,6 +480,25 @@ export default function ChatRoom({ room }: { room: Room }) {
       setNewRoomName(room.name);
     }
   };
+
+  const setTypingDebounced = useDebouncedCallback(() => {
+    setIsTyping(false);
+    apiRequest("POST", `/api/rooms/${room.id}/typing`, { isTyping: false });
+  }, 2000);
+
+  useEffect(() => {
+    const typingInterval = setInterval(async () => {
+      try {
+        const res = await apiRequest("GET", `/api/rooms/${room.id}/typing`);
+        const data = await res.json();
+        setTypingUsers(data);
+      } catch (error) {
+        console.error('Failed to fetch typing status:', error);
+      }
+    }, 1000);
+
+    return () => clearInterval(typingInterval);
+  }, [room.id]);
 
   return (
     <div className="flex flex-col h-full">
@@ -627,6 +657,16 @@ export default function ChatRoom({ room }: { room: Room }) {
         )}
       </div>
       <form onSubmit={handleSubmit} className="border-t p-4 space-y-4 relative">
+        {Object.entries(typingUsers)
+          .filter(([userId, isTyping]) => isTyping && userId !== user?.id.toString())
+          .map(([userId]) => {
+            const typingUser = room.participants?.find(p => p.id.toString() === userId);
+            return typingUser && (
+              <div key={userId} className="absolute -top-6 left-4 text-sm text-muted-foreground">
+                {typingUser.username} is typing...
+              </div>
+            );
+          })}
         {mediaPreviewUrl && (
           <div className="relative inline-block">
             {ALLOWED_FILE_TYPES[mediaFile?.type as keyof typeof ALLOWED_FILE_TYPES] === "image" ? (

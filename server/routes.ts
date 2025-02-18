@@ -16,6 +16,8 @@ import * as schema from "@shared/schema";
 import { pool } from './db';
 import passport from 'passport'; // Import passport
 
+const typingUsers: { [roomId: string]: { [userId: string]: boolean } } = {};
+
 function canChangeUsername(lastChange: Date | null): boolean {
   if (!lastChange) return true;
   const sevenDaysAgo = new Date();
@@ -527,6 +529,36 @@ export function registerRoutes(app: Express): Server {
     })(req, res, next);
   });
 
+
+  // Add typing status endpoints
+  app.post("/api/rooms/:roomId/typing", async (req, res) => {
+    console.log(`POST request received for ${req.url}`);
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    const roomId = req.params.roomId;
+    const userId = req.user.id.toString();
+    const { isTyping } = req.body;
+
+    if (!typingUsers[roomId]) {
+      typingUsers[roomId] = {};
+    }
+
+    if (isTyping) {
+      typingUsers[roomId][userId] = true;
+    } else {
+      delete typingUsers[roomId][userId];
+    }
+
+    res.sendStatus(200);
+  });
+
+  app.get("/api/rooms/:roomId/typing", async (req, res) => {
+    console.log(`GET request received for ${req.url}`);
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    const roomId = req.params.roomId;
+    res.json(typingUsers[roomId] || {});
+  });
 
   const httpServer = createServer(app);
   return httpServer;
