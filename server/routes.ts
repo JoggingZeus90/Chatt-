@@ -356,9 +356,15 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).send("Room not found");
       }
 
-      // For private rooms, only allow joining with invite code
+      // For private rooms, verify the invite code
       if (!room.isPublic) {
-        return res.status(403).send("This is a private room. You need an invite code to join.");
+        const providedCode = req.body.inviteCode;
+        console.log('Joining private room. Room ID:', roomId, 'Provided code:', providedCode);
+
+        // The invite code should match the room ID for private rooms
+        if (!providedCode || providedCode !== roomId.toString()) {
+          return res.status(403).send("Invalid invite code");
+        }
       }
 
       // Check if user is already a member

@@ -150,6 +150,8 @@ export default function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Roo
   const [isEditingName, setIsEditingName] = useState(false);
   const [newRoomName, setNewRoomName] = useState(room.name);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isLeaveDialogOpen, setIsLeaveDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -252,6 +254,7 @@ export default function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Roo
       }
     },
     onSuccess: () => {
+      setIsDeleteDialogOpen(false); // Close the dialog first
       queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
       toast({
         title: "Room deleted",
@@ -276,12 +279,13 @@ export default function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Roo
       }
     },
     onSuccess: () => {
+      setIsLeaveDialogOpen(false); // Close the dialog first
       queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
       toast({
         title: "Left room",
         description: "You have successfully left the room.",
       });
-      onLeave(room.id); // Call the onLeave prop
+      onLeave(room.id); // Call the onLeave prop after closing dialog
     },
     onError: (error: Error) => {
       toast({
@@ -715,7 +719,7 @@ export default function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Roo
                   >
                     <Pencil className="h-4 w-4" />
                   </Button>
-                  <AlertDialog>
+                  <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                     <AlertDialogTrigger asChild>
                       <Button
                         size="icon"
@@ -751,7 +755,7 @@ export default function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Roo
                 </>
               )}
               {!isOwner && (
-                <AlertDialog>
+                <AlertDialog open={isLeaveDialogOpen} onOpenChange={setIsLeaveDialogOpen}>
                   <AlertDialogTrigger asChild>
                     <Button
                       size="icon"
@@ -790,7 +794,6 @@ export default function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Roo
         </div>
       </div>
       <div className="flex flex-1 overflow-hidden">
-        {/* Messages section */}
         <div className="flex-1 flex flex-col overflow-hidden">
           <div
             className="flex-1 overflow-auto p-2 sm:p-4 relative"
@@ -816,7 +819,7 @@ export default function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Roo
               <ArrowDown className="h-5 w-5" />
             </Button>
           )}
-          <form onSubmit={handleSubmit} className="border-t p-2 sm:p-4 space-y-4 relative">
+          <form onSubmit={handleSubmit} className="border-t p-2 sm:p-4 space-y-4">
             {Object.entries(typingUsers)
               .filter(([userId, isTyping]) => isTyping && userId !== user?.id.toString())
               .map(([userId]) => {
@@ -902,7 +905,6 @@ export default function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Roo
                     </Command>
                   </div>
                 )}
-                {/* Update the mentions popup section */}
                 {showMentions && (
                   <div className="absolute bottom-full mb-1 left-0 w-full z-50 max-h-[50vh] overflow-auto">
                     <Command className="border rounded-lg shadow-lg">
@@ -921,7 +923,7 @@ export default function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Roo
                                 <Avatar className="h-6 w-6">
                                   <AvatarImage src={user.avatarUrl ?? undefined} />
                                   <AvatarFallback>
-                                    {user.username.slice(0, 2).toUpperCase()}
+                                    {user.username[0]?.toUpperCase()}
                                   </AvatarFallback>
                                 </Avatar>
                                 <span>{user.username}</span>
@@ -932,9 +934,6 @@ export default function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Roo
                     </Command>
                   </div>
                 )}
-                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                  {message.length}/{MAX_MESSAGE_LENGTH}
-                </span>
               </div>
               <Button
                 type="submit"
@@ -952,8 +951,8 @@ export default function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Roo
           </form>
         </div>
       </div>
-      <audio ref={audioRef} src={VINE_BOOM_URL} preload="auto" />
-      <audio ref={messageSoundRef} src={GOOGLE_MESSAGE_SOUND_URL} preload="auto" />
+      <audio ref={audioRef} src={VINE_BOOM_URL} />
+      <audio ref={messageSoundRef} src={GOOGLE_MESSAGE_SOUND_URL} />
     </div>
   );
 }
