@@ -81,6 +81,7 @@ const WHISPER_COMMAND = "/whisper";
 const SUS_IMAGE_URL = "https://i.ytimg.com/vi/Mw3jK9YwOxk/maxresdefault.jpg";
 const KRATOS_IMAGE_URL = "https://ew.com/thmb/4lmLC5Ark8X7GwPpaATjk738Xao=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/god-of-war-2018-2000-408387a68b78478aaa52d04b8a99c0a0.jpg";
 const VINE_BOOM_URL = "https://www.myinstants.com/media/sounds/vine-boom.mp3";
+const GOOGLE_MESSAGE_SOUND_URL = "https://www.myinstants.com/media/sounds/google-message-sound.mp3";
 
 const TEXT_COMMANDS = {
   "/tableflip": "(╯°□°)╯︵ ┻━┻",
@@ -137,6 +138,7 @@ export default function ChatRoom({ room }: { room: Room }) {
   const [showCommands, setShowCommands] = useState(false);
   const commandsRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const messageSoundRef = useRef<HTMLAudioElement>(null);
   const [typingUsers, setTypingUsers] = useState<{ [key: string]: boolean }>({});
   const [isTyping, setIsTyping] = useState(false);
 
@@ -172,6 +174,14 @@ export default function ChatRoom({ room }: { room: Room }) {
       setShowCommands(false);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
+      }
+      // Play the message sent sound
+      if (messageSoundRef.current) {
+        messageSoundRef.current.volume = 0.5;
+        messageSoundRef.current.currentTime = 0;
+        messageSoundRef.current.play().catch(error => {
+          console.error('Failed to play message sound:', error);
+        });
       }
     },
     onError: (error: Error) => {
@@ -775,6 +785,7 @@ export default function ChatRoom({ room }: { room: Room }) {
           {message.length}/{MAX_MESSAGE_LENGTH} characters
         </div>
       </form>
+      <audio ref={messageSoundRef} src={GOOGLE_MESSAGE_SOUND_URL} preload="auto" />
       <audio ref={audioRef} src={VINE_BOOM_URL} preload="auto" />
     </div>
   );
