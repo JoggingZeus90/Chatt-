@@ -730,7 +730,7 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
           </div>
           {showScrollButton && (
             <Button
-              className="fixed bottom-32 right-4 sm:right-8 rounded-full shadow-lg z-50"
+              className="fixed bottom-24 right-72 rounded-full shadow-lg z-50 md:block hidden"
               size="icon"
               onClick={scrollToBottom}
             >
@@ -844,7 +844,7 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
                                 </Avatar>
                                 <span>{user.username}</span>
                                 {user.isOnline && (
-                                  <div className="h-2 w-2 rounded-full bg-green-500 ml-auto" 
+                                  <div className="h-2 w-2 rounded-full bg-green-500 ml-auto"
                                        title="Online" />
                                 )}
                               </CommandItem>
@@ -887,7 +887,7 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
                   <AvatarFallback>{u.username[0].toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-baseline gap-2">
                     <span className="font-medium truncate">{u.username}</span>
                     <div
                       className={`h-2 w-2 rounded-full ${
@@ -904,7 +904,7 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
                 </div>
               </div>
             ))}
-                    </div>
+          </div>
         </div>
       </div>
       <audio ref={messageSoundRef} src={GOOGLE_MESSAGE_SOUND_URL} preload="auto" />
