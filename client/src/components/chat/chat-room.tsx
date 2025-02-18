@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Room, MessageWithUser, User } from "@shared/schema"; // Added User import
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Send, Loader2, Image, X, ArrowDown, Pencil, Check, Trash2, LogOut, Users, PanelLeftClose, PanelLeft } from "lucide-react";
+import { Send, Loader2, Image, X, ArrowDown, Pencil, Check, Trash2, LogOut, Users, PanelLeftClose, PanelLeft, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useDebouncedCallback } from "use-debounce";
@@ -690,6 +690,12 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
               <div className="flex flex-col min-w-0">
                 <h2 className="font-semibold truncate">{room.name}</h2>
                 <div className="flex items-center text-sm text-muted-foreground gap-1">
+                  {!room.isPublic && room.inviteCode && (
+                    <div className="flex items-center gap-1 mr-2">
+                      <Lock className="h-3 w-3 flex-shrink-0" />
+                      <span className="truncate">Code: {room.inviteCode}</span>
+                    </div>
+                  )}
                   <Users className="h-3 w-3 flex-shrink-0" />
                   <span className="truncate">
                     {room.participants?.filter(p => p.isOnline).length ?? 0} online · {room.participants?.length ?? 0} total
