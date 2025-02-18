@@ -17,7 +17,24 @@ interface ColorPickerProps extends Omit<React.InputHTMLAttributes<HTMLInputEleme
 const ColorPicker = React.forwardRef<HTMLDivElement, ColorPickerProps>(
   ({ label, className, value = '#000000', onChange, ...props }, ref) => {
     const [open, setOpen] = React.useState(false)
-    const hsva = React.useMemo(() => hexToHsva(value), [value]);
+    const hsva = React.useMemo(() => {
+      const converted = hexToHsva(value);
+      console.log('Converting hex to hsva:', value, converted);
+      return converted;
+    }, [value]);
+
+    const handleColorChange = React.useCallback((color: any) => {
+      console.log('Color wheel onChange:', color);
+      const newHsva = {
+        h: color.h,
+        s: color.s,
+        v: color.v,
+        a: 1
+      };
+      const newHex = hsvaToHex(newHsva);
+      console.log('Converting hsva to hex:', newHsva, newHex);
+      onChange?.(newHex);
+    }, [onChange]);
 
     return (
       <div className="flex flex-col gap-2" ref={ref}>
@@ -43,9 +60,7 @@ const ColorPicker = React.forwardRef<HTMLDivElement, ColorPickerProps>(
                   width={240}
                   height={240}
                   color={hsva}
-                  onChange={(color) => {
-                    onChange?.(hsvaToHex(color))
-                  }}
+                  onChange={handleColorChange}
                 />
               </div>
             </div>
