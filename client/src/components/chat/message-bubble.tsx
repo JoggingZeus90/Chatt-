@@ -25,6 +25,28 @@ const MAX_MESSAGE_LENGTH = 100;
 
 interface ExtendedMessageWithUser extends MessageWithUser {
   whisperTo?: string;
+  mentions?: string[];
+}
+
+// Function to parse and style mentions in message content
+function formatMessageContent(content: string) {
+  return content.split(/(@\w+)/).map((part, index) => {
+    if (part.startsWith('@')) {
+      return (
+        <span
+          key={index}
+          className="text-blue-500 font-medium hover:underline cursor-pointer"
+          onClick={() => {
+            // Could add user profile viewing functionality here
+            console.log('Clicked mention:', part);
+          }}
+        >
+          {part}
+        </span>
+      );
+    }
+    return <span key={index}>{part}</span>;
+  });
 }
 
 export function MessageBubble({ message, roomId }: { message: ExtendedMessageWithUser; roomId: number }) {
@@ -175,10 +197,10 @@ export function MessageBubble({ message, roomId }: { message: ExtendedMessageWit
           </div>
         )}
 
-        {/* Message content */}
+        {/* Message content with highlighted mentions */}
         {message.content && !isEditing && (
           <div className="mt-1">
-            <p>{message.content}</p>
+            <p>{formatMessageContent(message.content)}</p>
             {message.editedAt && (
               <span className="text-xs text-muted-foreground italic">
                 edited {format(new Date(message.editedAt), "HH:mm")}
