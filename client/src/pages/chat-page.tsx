@@ -10,7 +10,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Label } from "@/components/ui/label";
 import ChatRoom from "@/components/chat/chat-room";
 import { useState, useEffect } from "react";
-import { Plus, Loader2, Settings, LogOut } from "lucide-react";
+import { Plus, Loader2, Settings, LogOut, PanelLeftClose } from "lucide-react";
 import {
   Avatar,
   AvatarImage,
@@ -95,57 +95,71 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-screen">
-      <div className={`${isSidebarCollapsed ? "hidden" : "w-64"} md:block border-r bg-muted/50 p-4 flex flex-col transition-all`}>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold">Chat Rooms</h2>
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="icon" variant="ghost">
-                <Plus className="h-4 w-4" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create Room</DialogTitle>
-              </DialogHeader>
-              <form
-                onSubmit={form.handleSubmit((data) =>
-                  createRoomMutation.mutate(data)
-                )}
-                className="space-y-4"
+      <div className={`${isSidebarCollapsed ? "hidden" : "w-64"} md:block border-r bg-muted/50 flex flex-col h-full`}>
+        <div className="p-4 flex flex-col flex-grow">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold">Chat Rooms</h2>
+            <div className="flex gap-2">
+              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button size="icon" variant="ghost">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Create Room</DialogTitle>
+                  </DialogHeader>
+                  <form
+                    onSubmit={form.handleSubmit((data) =>
+                      createRoomMutation.mutate(data)
+                    )}
+                    className="space-y-4"
+                  >
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Room Name</Label>
+                      <Input id="name" {...form.register("name")} />
+                    </div>
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={createRoomMutation.isPending}
+                    >
+                      {createRoomMutation.isPending && (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      )}
+                      Create Room
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsSidebarCollapsed(true)}
+                className="md:hidden"
+                title="Hide sidebar"
               >
-                <div className="space-y-2">
-                  <Label htmlFor="name">Room Name</Label>
-                  <Input id="name" {...form.register("name")} />
-                </div>
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={createRoomMutation.isPending}
-                >
-                  {createRoomMutation.isPending && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  Create Room
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+                <PanelLeftClose className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          <div className="space-y-2 flex-1 overflow-auto">
+            {rooms?.map((room) => (
+              <Button
+                key={room.id}
+                variant={selectedRoom?.id === room.id ? "secondary" : "ghost"}
+                className="w-full justify-start"
+                onClick={() => setSelectedRoom(room)}
+              >
+                {room.name}
+              </Button>
+            ))}
+          </div>
         </div>
-        <div className="space-y-2 flex-1 overflow-auto">
-          {rooms?.map((room) => (
-            <Button
-              key={room.id}
-              variant={selectedRoom?.id === room.id ? "secondary" : "ghost"}
-              className="w-full justify-start"
-              onClick={() => setSelectedRoom(room)}
-            >
-              {room.name}
-            </Button>
-          ))}
-        </div>
-        <div className="pt-4 border-t mt-4 space-y-4">
-          {/* User Profile Section */}
+
+        {/* User Profile Section - Fixed at bottom */}
+        <div className="border-t p-4 mt-auto space-y-4 bg-background/50">
           <div className="flex items-center justify-between p-2 bg-secondary/50 rounded-lg">
             <div className="flex items-center gap-2">
               <Avatar className="h-8 w-8">
