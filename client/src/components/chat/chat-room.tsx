@@ -577,8 +577,9 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
     };
   }, [room.id, isTyping]);
 
+  // Update the useQuery for users to use room-specific endpoint
   const { data: allUsers } = useQuery<User[]>({
-    queryKey: ["/api/users"],
+    queryKey: [`/api/rooms/${room.id}/users`],
     refetchInterval: 1000, // Poll to keep online status updated
     select: (users) => {
       // Create a map to store the latest user data for each unique ID
@@ -945,26 +946,26 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
 
         {/* Update the users sidebar section */}
         <div className="w-64 border-l bg-muted/10 overflow-y-auto p-4 hidden md:block">
-          <h3 className="font-semibold mb-4">Users</h3>
+          <h3 className="font-semibold mb-4">Room Members</h3>
           <div className="space-y-2">
             {allUsers?.map((user) => (
               <div
                 key={user.id}
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/20 transition-colors"
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/50"
               >
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={user.avatarUrl ?? undefined} />
                   <AvatarFallback>{user.username[0].toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-baseline gap-2">
-                    <span className="font-medium truncate">{user.username}</span>
-                    <div
-                      className={`h-2 w-2 rounded-full ${user.isOnline ? "bg-green-500" : "bg-muted"}`}
-                      title={user.isOnline ? "Online" : "Offline"}
-                    />
-                  </div>
+                  <p className="text-sm font-medium truncate">{user.username}</p>
                 </div>
+                {user.isOnline && (
+                  <div
+                    className="h-2 w-2 rounded-full bg-green-500"
+                    title="Online"
+                  />
+                )}
               </div>
             ))}
           </div>

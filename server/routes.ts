@@ -319,6 +319,34 @@ export function registerRoutes(app: Express): Server {
     res.json(members);
   });
 
+  // Add room members endpoint (accessible to all authenticated users)
+  app.get("/api/rooms/:roomId/users", async (req, res) => {
+    console.log(`GET request received for ${req.url}`);
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const roomId = parseInt(req.params.roomId);
+      const users = await storage.getUsersInRoom(roomId); // Using the updated getUsers method with roomId
+
+      // Filter out sensitive information
+      const safeUsers = users.map(user => ({
+        id: user.id,
+        username: user.username,
+        isOnline: user.isOnline,
+        lastSeen: user.lastSeen,
+        avatarUrl: user.avatarUrl,
+        role: user.role,
+        suspended: user.suspended
+      }));
+
+      res.json(safeUsers);
+    } catch (error) {
+      console.error('Error fetching room users:', error);
+      res.status(500).send('Failed to fetch room users');
+    }
+  });
+
+
   // Online status
   app.post("/api/users/:userId/status", async (req, res) => {
     console.log(`POST request received for ${req.url}`); // Added request logging

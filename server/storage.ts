@@ -21,7 +21,32 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Add method to get all users (for moderators and admins)
-  async getUsers(): Promise<User[]> {
+  async getUsers(roomId?: number): Promise<User[]> {
+    if (roomId) {
+      const result = await db
+        .select({
+          id: users.id,
+          username: users.username,
+          password: users.password,
+          isOnline: users.isOnline,
+          lastSeen: users.lastSeen,
+          avatarUrl: users.avatarUrl,
+          role: users.role,
+          suspended: users.suspended,
+          suspendedAt: users.suspendedAt,
+          suspendedReason: users.suspendedReason,
+          muted: users.muted,
+          mutedUntil: users.mutedUntil,
+          mutedReason: users.mutedReason,
+          lastUsernameChange: users.lastUsernameChange
+        })
+        .from(roomMembers)
+        .innerJoin(users, eq(roomMembers.userId, users.id))
+        .where(eq(roomMembers.roomId, roomId));
+
+      return result;
+    }
+    // For admin purposes, return all users
     return db.select().from(users);
   }
 
