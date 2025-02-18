@@ -25,10 +25,14 @@ export default function ChatPage() {
 
   const { data: rooms, isLoading } = useQuery<Room[]>({
     queryKey: ["/api/rooms"],
-    select: (rooms) => rooms.map(room => ({
-      ...room,
-      participants: room.participants || []
-    }))
+    refetchInterval: 1000, // Add polling to keep room data fresh
+    select: (rooms) => {
+      console.log("Raw rooms data:", rooms);
+      return rooms.map(room => ({
+        ...room,
+        participants: room.participants || []
+      }));
+    }
   });
 
   const { data: unreadMentions } = useQuery<{ roomId: number; count: number }[]>({
@@ -56,7 +60,7 @@ export default function ChatPage() {
   });
 
   const handleRoomSelect = async (room: Room) => {
-    // Pass the full room object including participants
+    console.log("Selected room with participants:", room);
     setSelectedRoom(room);
     // Clear unread mentions when entering room
     if (unreadMentions?.some(m => m.roomId === room.id)) {

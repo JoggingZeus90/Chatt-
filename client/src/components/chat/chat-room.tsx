@@ -532,6 +532,11 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
   };
 
   useEffect(() => {
+    console.log("Room data in ChatRoom:", room);
+    console.log("Participants:", room.participants);
+  }, [room]);
+
+  useEffect(() => {
     const typingInterval = setInterval(async () => {
       try {
         const res = await apiRequest("GET", `/api/rooms/${room.id}/typing`);
