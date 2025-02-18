@@ -421,11 +421,14 @@ export default function ChatRoom({ room }: { room: Room }) {
     if (newValue.length <= MAX_MESSAGE_LENGTH) {
       setMessage(newValue);
 
+      // Always update typing status when input changes
       if (!isTyping) {
         setIsTyping(true);
-        apiRequest("POST", `/api/rooms/${room.id}/typing`, { isTyping: true });
+        apiRequest("POST", `/api/rooms/${room.id}/typing`, { isTyping: true })
+          .catch(error => console.error('Failed to update typing status:', error));
       }
 
+      // Reset the debounced timer
       setTypingDebounced();
 
       if (newValue.startsWith('/')) {
@@ -483,13 +486,15 @@ export default function ChatRoom({ room }: { room: Room }) {
 
   const setTypingDebounced = useDebouncedCallback(() => {
     setIsTyping(false);
-    apiRequest("POST", `/api/rooms/${room.id}/typing`, { isTyping: false });
+    apiRequest("POST", `/api/rooms/${room.id}/typing`, { isTyping: false })
+      .catch(error => console.error('Failed to update typing status:', error));
   }, 2000);
 
   useEffect(() => {
     const typingInterval = setInterval(async () => {
       try {
         const res = await apiRequest("GET", `/api/rooms/${room.id}/typing`);
+        if (!res.ok) throw new Error('Failed to fetch typing status');
         const data = await res.json();
         setTypingUsers(data);
       } catch (error) {
@@ -497,8 +502,15 @@ export default function ChatRoom({ room }: { room: Room }) {
       }
     }, 1000);
 
-    return () => clearInterval(typingInterval);
-  }, [room.id]);
+    return () => {
+      clearInterval(typingInterval);
+      // Clear typing status when component unmounts
+      if (isTyping) {
+        apiRequest("POST", `/api/rooms/${room.id}/typing`, { isTyping: false })
+          .catch(error => console.error('Failed to clear typing status:', error));
+      }
+    };
+  }, [room.id, isTyping]);
 
   return (
     <div className="flex flex-col h-full">

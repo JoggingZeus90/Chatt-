@@ -16,6 +16,7 @@ import * as schema from "@shared/schema";
 import { pool } from './db';
 import passport from 'passport'; // Import passport
 
+// Move typingUsers outside of registerRoutes to prevent resetting on hot reload
 const typingUsers: { [roomId: string]: { [userId: string]: boolean } } = {};
 
 function canChangeUsername(lastChange: Date | null): boolean {
@@ -530,7 +531,7 @@ export function registerRoutes(app: Express): Server {
   });
 
 
-  // Add typing status endpoints
+  // Update typing status endpoints
   app.post("/api/rooms/:roomId/typing", async (req, res) => {
     console.log(`POST request received for ${req.url}`);
     if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -538,6 +539,8 @@ export function registerRoutes(app: Express): Server {
     const roomId = req.params.roomId;
     const userId = req.user.id.toString();
     const { isTyping } = req.body;
+
+    console.log(`Updating typing status for user ${userId} in room ${roomId}: ${isTyping}`);
 
     if (!typingUsers[roomId]) {
       typingUsers[roomId] = {};
@@ -549,6 +552,7 @@ export function registerRoutes(app: Express): Server {
       delete typingUsers[roomId][userId];
     }
 
+    console.log('Current typing users:', typingUsers);
     res.sendStatus(200);
   });
 
@@ -557,7 +561,9 @@ export function registerRoutes(app: Express): Server {
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     const roomId = req.params.roomId;
-    res.json(typingUsers[roomId] || {});
+    const typingStatus = typingUsers[roomId] || {};
+    console.log('Sending typing status:', typingStatus);
+    res.json(typingStatus);
   });
 
   const httpServer = createServer(app);
