@@ -695,7 +695,7 @@ export default function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Roo
                     <div className="flex items-center gap-1 mr-2">
                       <Lock className="h-3 w-3 flex-shrink-0" />
                       <span className="truncate">
-                        Code: {room.inviteCode || 'No code available'}
+                        Code: {room.id.toString()}
                       </span>
                     </div>
                   )}
@@ -920,13 +920,11 @@ export default function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Roo
                               >
                                 <Avatar className="h-6 w-6">
                                   <AvatarImage src={user.avatarUrl ?? undefined} />
-                                  <AvatarFallback>{user.username[0].toUpperCase()}</AvatarFallback>
+                                  <AvatarFallback>
+                                    {user.username.slice(0, 2).toUpperCase()}
+                                  </AvatarFallback>
                                 </Avatar>
                                 <span>{user.username}</span>
-                                {user.isOnline && (
-                                  <div className="h-2 w-2 rounded-full bg-green-500 ml-auto"
-                                    title="Online" />
-                                )}
                               </CommandItem>
                             ))}
                         </CommandGroup>
@@ -934,11 +932,15 @@ export default function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Roo
                     </Command>
                   </div>
                 )}
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                  {message.length}/{MAX_MESSAGE_LENGTH}
+                </span>
               </div>
               <Button
                 type="submit"
-                className="flex-shrink-0"
+                size="icon"
                 disabled={sendMessageMutation.isPending || (!message.trim() && !mediaFile)}
+                className="flex-shrink-0"
               >
                 {sendMessageMutation.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -947,41 +949,11 @@ export default function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Roo
                 )}
               </Button>
             </div>
-            <div className="text-xs text-muted-foreground text-right">
-              {message.length}/{MAX_MESSAGE_LENGTH} characters
-            </div>
           </form>
         </div>
-
-        {/* Update the users sidebar section */}
-        <div className="w-64 border-l bg-muted/10 overflow-y-auto p-4 hidden md:block">
-          <h3 className="font-semibold mb-4">Room Members</h3>
-          <div className="space-y-2">
-            {allUsers?.map((user) => (
-              <div
-                key={user.id}
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/50"
-              >
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={user.avatarUrl ?? undefined} />
-                  <AvatarFallback>{user.username[0].toUpperCase()}</AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{user.username}</p>
-                </div>
-                {user.isOnline && (
-                  <div
-                    className="h-2 w-2 rounded-full bg-green-500"
-                    title="Online"
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
-      <audio ref={messageSoundRef} src={GOOGLE_MESSAGE_SOUND_URL} preload="auto" />
       <audio ref={audioRef} src={VINE_BOOM_URL} preload="auto" />
+      <audio ref={messageSoundRef} src={GOOGLE_MESSAGE_SOUND_URL} preload="auto" />
     </div>
   );
 }

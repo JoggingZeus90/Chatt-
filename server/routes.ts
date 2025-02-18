@@ -153,6 +153,7 @@ export function registerRoutes(app: Express): Server {
     try {
       // Get all rooms first
       const allRooms = await storage.getRooms();
+      console.log('All rooms:', allRooms);
 
       // Get room members for each room
       const roomsWithMembers = await Promise.all(
@@ -161,11 +162,13 @@ export function registerRoutes(app: Express): Server {
           return { ...room, participants: members };
         })
       );
+      console.log('Rooms with members:', roomsWithMembers);
 
       // Filter rooms to only show public ones and private ones where user is a member
       const accessibleRooms = roomsWithMembers.filter(room =>
         room.isPublic || room.participants.some(p => p.id === req.user.id)
       );
+      console.log('Accessible rooms:', accessibleRooms);
 
       res.json(accessibleRooms);
     } catch (error) {
@@ -183,6 +186,8 @@ export function registerRoutes(app: Express): Server {
     if (!parsed.success) return res.status(400).send(parsed.error.message);
 
     try {
+      console.log('Creating room with data:', parsed.data);
+
       // Create room first without invite code
       const room = await storage.createRoom({
         ...parsed.data,
@@ -190,8 +195,11 @@ export function registerRoutes(app: Express): Server {
         inviteCode: null // Initially set to null
       });
 
+      console.log('Room created:', room);
+
       // For private rooms, update the invite code to be the room ID
       if (!parsed.data.isPublic) {
+        console.log('Setting invite code for private room:', room.id.toString());
         await db
           .update(schema.rooms)
           .set({ inviteCode: room.id.toString() })
@@ -201,6 +209,8 @@ export function registerRoutes(app: Express): Server {
 
       // Add creator as first member
       await storage.joinRoom(room.id, req.user.id);
+
+      console.log('Final room data:', room);
       res.status(201).json(room);
     } catch (error) {
       console.error('Error creating room:', error);
