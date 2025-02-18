@@ -40,19 +40,20 @@ const ColorPicker = React.forwardRef<HTMLDivElement, ColorPickerProps>(
               {value}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-[280px] p-4" side="right">
+          <PopoverContent className="w-[280px] p-4" side="right" sideOffset={5}>
             <div className="flex flex-col gap-4">
-              <div className="relative">
-                <Wheel 
-                  width={240}
-                  height={240}
-                  color={hsva}
-                  onChange={(color) => {
-                    const newHsva = { ...color, a: 1 };
-                    setHsva(newHsva);
-                    onChange?.(hsvaToHex(newHsva));
-                  }}
-                />
+              <div className="relative flex items-center justify-center">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Wheel 
+                    width={240}
+                    height={240}
+                    color={hsva}
+                    onChange={(color) => {
+                      setHsva(color);
+                      onChange?.(hsvaToHex(color));
+                    }}
+                  />
+                </div>
               </div>
             </div>
           </PopoverContent>
