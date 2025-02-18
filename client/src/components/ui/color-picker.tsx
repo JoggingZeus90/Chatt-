@@ -22,7 +22,7 @@ const ColorPicker = React.forwardRef<HTMLInputElement, ColorPickerProps>(
             ref={ref}
             type="color"
             className={cn(
-              "h-10 p-1 cursor-pointer [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:border-none",
+              "h-10 p-1 cursor-pointer [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:border-none [&::-webkit-color-swatch]:!transition-[width,height] [&::-webkit-color-swatch]:!duration-75 [&::-webkit-color-swatch]:!ease-in-out [&::-moz-color-swatch]:!transition-[width,height] [&::-moz-color-swatch]:!duration-75 [&::-moz-color-swatch]:!ease-in-out",
               className
             )}
             value={value}
