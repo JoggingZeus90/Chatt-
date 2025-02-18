@@ -56,6 +56,7 @@ export default function ChatPage() {
   });
 
   const handleRoomSelect = async (room: Room) => {
+    // Pass the full room object including participants
     setSelectedRoom(room);
     // Clear unread mentions when entering room
     if (unreadMentions?.some(m => m.roomId === room.id)) {
