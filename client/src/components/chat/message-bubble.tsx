@@ -28,27 +28,47 @@ interface ExtendedMessageWithUser extends MessageWithUser {
   mentions?: string[];
 }
 
-// Function to parse and style mentions in message content
+// Function to parse and style mentions and links in message content
 function formatMessageContent(content: string | null) {
   if (!content) return "";
 
-  return content.split(/(@[^@\s]+(?:\s+[^@\s]+)*\s)/).map((part, index) => {
-    if (part.startsWith('@')) {
-      return (
-        <span
-          key={index}
-          className="text-blue-500 font-medium hover:underline cursor-pointer"
-          onClick={() => {
-            // Could add user profile viewing functionality here
-            console.log('Clicked mention:', part);
-          }}
-        >
-          {part}
-        </span>
-      );
-    }
-    return <span key={index}>{part}</span>;
-  });
+  // Split content into parts based on mentions and URLs
+  return content
+    .split(/(@[^@\s]+(?:\s+[^@\s]+)*\s|\b(?:https?:\/\/|www\.)[^\s]+\b)/g)
+    .map((part, index) => {
+      if (part.startsWith('@')) {
+        return (
+          <span
+            key={index}
+            className="text-blue-500 font-medium hover:underline cursor-pointer"
+            onClick={() => {
+              // Could add user profile viewing functionality here
+              console.log('Clicked mention:', part);
+            }}
+          >
+            {part}
+          </span>
+        );
+      } else if (/^(?:https?:\/\/|www\.)[^\s]+$/.test(part)) {
+        // Convert www. links to include https://
+        const href = part.startsWith('www.') ? `https://${part}` : part;
+        return (
+          <a
+            key={index}
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-500 hover:underline break-all"
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
+          >
+            {part}
+          </a>
+        );
+      }
+      return <span key={index}>{part}</span>;
+    });
 }
 
 export function MessageBubble({ message, roomId }: { message: ExtendedMessageWithUser; roomId: number }) {
