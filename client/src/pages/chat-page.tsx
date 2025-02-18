@@ -60,7 +60,6 @@ export default function ChatPage() {
   });
 
   const handleRoomSelect = async (room: Room) => {
-    console.log("Selected room with participants:", room);
     setSelectedRoom(room);
     // Clear unread mentions when entering room
     if (unreadMentions?.some(m => m.roomId === room.id)) {
