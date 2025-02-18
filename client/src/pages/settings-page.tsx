@@ -146,41 +146,12 @@ export default function SettingsPage() {
         </Link>
 
         <Card className="mb-8">
-          <Tabs defaultValue="appearance" className="w-full">
+          <Tabs defaultValue="profile" className="w-full">
             <TabsList className="w-full">
-              <TabsTrigger value="appearance" className="flex-1">Appearance</TabsTrigger>
               <TabsTrigger value="profile" className="flex-1">Profile</TabsTrigger>
+              <TabsTrigger value="appearance" className="flex-1">Appearance</TabsTrigger>
               {isAdmin && <TabsTrigger value="admin" className="flex-1">Admin</TabsTrigger>}
             </TabsList>
-
-            <TabsContent value="appearance" className="p-6 space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-medium">Theme</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Switch between light and dark mode
-                  </p>
-                </div>
-                <ThemeToggle />
-              </div>
-
-              <div className="space-y-2">
-                <h3 className="font-medium">Colors</h3>
-                <p className="text-sm text-muted-foreground">
-                  Customize the accent colors used throughout the app
-                </p>
-                <ColorPicker
-                  label="Primary Color"
-                  value={theme.primary}
-                  onChange={(newColor) => {
-                    setTheme({
-                      ...theme,
-                      primary: newColor,
-                    });
-                  }}
-                />
-              </div>
-            </TabsContent>
 
             <TabsContent value="profile" className="p-6">
               <Form {...form}>
@@ -314,6 +285,35 @@ export default function SettingsPage() {
                   </div>
                 </form>
               </Form>
+            </TabsContent>
+
+            <TabsContent value="appearance" className="p-6 space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium">Theme</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Switch between light and dark mode
+                  </p>
+                </div>
+                <ThemeToggle />
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="font-medium">Colors</h3>
+                <p className="text-sm text-muted-foreground">
+                  Customize the accent colors used throughout the app
+                </p>
+                <ColorPicker
+                  label="Primary Color"
+                  value={theme.primary}
+                  onChange={(newColor) => {
+                    setTheme({
+                      ...theme,
+                      primary: newColor,
+                    });
+                  }}
+                />
+              </div>
             </TabsContent>
 
             {isAdmin && (
