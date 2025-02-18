@@ -218,6 +218,9 @@ export default function SettingsPage() {
                         <FormLabel>Username</FormLabel>
                         <Input {...field} />
                         <FormMessage />
+                        <p className="text-sm text-muted-foreground mt-2">
+                          You can only change your username once every 7 days.
+                        </p>
                       </FormItem>
                     )}
                   />
