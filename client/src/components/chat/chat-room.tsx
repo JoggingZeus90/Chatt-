@@ -441,10 +441,11 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
     if (newValue.length <= MAX_MESSAGE_LENGTH) {
       setMessage(newValue);
 
-      // Check for @ mentions - updated regex to handle spaces
+      // Check for @ mentions
       const cursorPosition = e.target.selectionStart || 0;
       const beforeCursor = newValue.slice(0, cursorPosition);
-      const match = beforeCursor.match(/@([^@]*)$/);
+      // Updated regex to better handle spaces in usernames
+      const match = beforeCursor.match(/@([^@]*?)(?:\s+|$)$/);
 
       if (match) {
         const matchStart = match.index!;
@@ -524,6 +525,7 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
   const handleMentionSelect = (username: string) => {
     if (mentionMatchRef.current) {
       const { start, end } = mentionMatchRef.current;
+      // Add a space after the mention to separate it from the next word
       const newMessage = message.slice(0, start) + '@' + username + ' ' + message.slice(end);
       setMessage(newMessage);
       setShowMentions(false);
@@ -560,6 +562,14 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
   const { data: allUsers } = useQuery<User[]>({
     queryKey: ["/api/users"],
     refetchInterval: 1000, // Poll to keep online status updated
+    select: (users) => {
+      // Create a map to store the latest user data for each unique ID
+      const uniqueUsers = new Map();
+      users?.forEach(user => {
+        uniqueUsers.set(user.id, user);
+      });
+      return Array.from(uniqueUsers.values());
+    }
   });
 
   // Updated formatMessageContent function to handle mentions with spaces
@@ -844,6 +854,7 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
                     </Command>
                   </div>
                 )}
+                {/* Update the mentions popup section */}
                 {showMentions && (
                   <div className="absolute bottom-full mb-1 left-0 w-full z-50 max-h-[50vh] overflow-auto">
                     <Command className="border rounded-lg shadow-lg">
@@ -852,7 +863,7 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
                         <CommandEmpty>No users found.</CommandEmpty>
                         <CommandGroup heading="Users">
                           {allUsers
-                            ?.filter(p => p.username.toLowerCase().includes(mentionSearch.toLowerCase()))
+                            ?.filter(user => user.username.toLowerCase().includes(mentionSearch.toLowerCase()))
                             .map((user) => (
                               <CommandItem
                                 key={user.id}
@@ -894,26 +905,25 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
           </form>
         </div>
 
-        {/* Users sidebar */}
+        {/* Update the users sidebar section */}
         <div className="w-64 border-l bg-muted/10 overflow-y-auto p-4 hidden md:block">
           <h3 className="font-semibold mb-4">Users</h3>
           <div className="space-y-2">
-            {allUsers?.map((u) => (
+            {allUsers?.map((user) => (
               <div
-                key={u.id}
+                key={user.id}
                 className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/20 transition-colors"
               >
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={u.avatarUrl ?? undefined} />
-                  <AvatarFallback>{u.username[0].toUpperCase()}</AvatarFallback>                </Avatar>
+                  <AvatarImage src={user.avatarUrl ?? undefined} />
+                  <AvatarFallback>{user.username[0].toUpperCase()}</AvatarFallback>
+                </Avatar>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline gap-2">
-                    <span className="font-medium truncate">{u.username}</span>
+                    <span className="font-medium truncate">{user.username}</span>
                     <div
-                      className={`h-2 w-2 rounded-full ${
-                        u.isOnline ? "bg-green-500" : "bg-muted"
-                      }`}
-                      title={u.isOnline ? "Online" : "Offline"}
+                      className={`h-2 w-2 rounded-full ${user.isOnline ? "bg-green-500" : "bg-muted"}`}
+                      title={user.isOnline ? "Online" : "Offline"}
                     />
                   </div>
                 </div>
