@@ -21,6 +21,7 @@ export default function ChatPage() {
   const { user, logoutMutation } = useAuth();
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const { data: rooms, isLoading } = useQuery<Room[]>({
     queryKey: ["/api/rooms"],
@@ -35,16 +36,6 @@ export default function ChatPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
       setIsCreateDialogOpen(false);
       form.reset();
-    },
-  });
-
-  const leaveRoomMutation = useMutation({
-    mutationFn: async (roomId: number) => {
-      await apiRequest("POST", `/api/rooms/${roomId}/leave`);
-    },
-    onSuccess: () => {
-      setSelectedRoom(null);
-      queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
     },
   });
 
@@ -104,7 +95,7 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-screen">
-      <div className="w-64 border-r bg-muted/50 p-4 flex flex-col">
+      <div className={`${isSidebarCollapsed ? "hidden" : "w-64"} md:block border-r bg-muted/50 p-4 flex flex-col transition-all`}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-semibold">Chat Rooms</h2>
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
@@ -192,7 +183,10 @@ export default function ChatPage() {
       </div>
       <div className="flex-1">
         {selectedRoom ? (
-          <ChatRoom room={selectedRoom} />
+          <ChatRoom 
+            room={selectedRoom} 
+            onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)} 
+          />
         ) : (
           <div className="flex items-center justify-center h-full text-muted-foreground">
             Select a room to start chatting

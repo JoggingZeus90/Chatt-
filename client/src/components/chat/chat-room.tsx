@@ -5,30 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Room, MessageWithUser } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Send, Loader2, Image, X, ArrowDown, Pencil, Check, Trash2, LogOut, Users } from "lucide-react";
+import { Send, Loader2, Image, X, ArrowDown, Pencil, Check, Trash2, LogOut, Users, PanelLeftClose, PanelLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { format } from 'date-fns';
-import {
-  Command,
-  CommandDialog,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import { useDebouncedCallback } from "use-debounce";
 
 // Define inappropriate words to filter
 const INAPPROPRIATE_WORDS = [
@@ -122,7 +101,7 @@ const commands = [
   },
 ];
 
-export default function ChatRoom({ room }: { room: Room }) {
+export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onToggleSidebar: () => void }) {
   const { user } = useAuth();
   const [message, setMessage] = useState("");
   const [mediaFile, setMediaFile] = useState<File | null>(null);
@@ -130,6 +109,7 @@ export default function ChatRoom({ room }: { room: Room }) {
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
   const [newRoomName, setNewRoomName] = useState(room.name);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -532,135 +512,149 @@ export default function ChatRoom({ room }: { room: Room }) {
   return (
     <div className="flex flex-col h-full">
       <div className="border-b p-2 sm:p-4 flex items-center justify-between">
-        {isEditingName ? (
-          <div className="flex items-center gap-2 flex-1">
-            <Input
-              value={newRoomName}
-              onChange={(e) => setNewRoomName(e.target.value)}
-              className="max-w-md"
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  handleUpdateRoomName();
-                } else if (e.key === "Escape") {
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              setIsSidebarCollapsed(!isSidebarCollapsed);
+              onToggleSidebar();
+            }}
+            className="flex-shrink-0 md:hidden"
+            title={isSidebarCollapsed ? "Show sidebar" : "Hide sidebar"}
+          >
+            {isSidebarCollapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+          </Button>
+          {isEditingName ? (
+            <div className="flex items-center gap-2 flex-1">
+              <Input
+                value={newRoomName}
+                onChange={(e) => setNewRoomName(e.target.value)}
+                className="max-w-md"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleUpdateRoomName();
+                  } else if (e.key === "Escape") {
+                    setIsEditingName(false);
+                    setNewRoomName(room.name);
+                  }
+                }}
+              />
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={handleUpdateRoomName}
+                disabled={updateRoomNameMutation.isPending}
+              >
+                <Check className="h-4 w-4" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => {
                   setIsEditingName(false);
                   setNewRoomName(room.name);
-                }
-              }}
-            />
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={handleUpdateRoomName}
-              disabled={updateRoomNameMutation.isPending}
-            >
-              <Check className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={() => {
-                setIsEditingName(false);
-                setNewRoomName(room.name);
-              }}
-              disabled={updateRoomNameMutation.isPending}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 overflow-hidden">
-            <div className="flex flex-col min-w-0">
-              <h2 className="font-semibold truncate">{room.name}</h2>
-              <div className="flex items-center text-sm text-muted-foreground gap-1">
-                <Users className="h-3 w-3 flex-shrink-0" />
-                <span className="truncate">
-                  {room.participants?.filter(p => p.isOnline).length ?? 0} online · {room.participants?.length ?? 0} total
-                </span>
-              </div>
+                }}
+                disabled={updateRoomNameMutation.isPending}
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </div>
-            {(isOwner || user?.role === 'admin') && (
-              <>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => setIsEditingName(true)}
-                  className="flex-shrink-0"
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
+          ) : (
+            <div className="flex items-center gap-2 overflow-hidden">
+              <div className="flex flex-col min-w-0">
+                <h2 className="font-semibold truncate">{room.name}</h2>
+                <div className="flex items-center text-sm text-muted-foreground gap-1">
+                  <Users className="h-3 w-3 flex-shrink-0" />
+                  <span className="truncate">
+                    {room.participants?.filter(p => p.isOnline).length ?? 0} online · {room.participants?.length ?? 0} total
+                  </span>
+                </div>
+              </div>
+              {(isOwner || user?.role === 'admin') && (
+                <>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => setIsEditingName(true)}
+                    className="flex-shrink-0"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="text-destructive hover:text-destructive flex-shrink-0"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="sm:max-w-[425px]">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Room</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to delete this room? This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <Button
+                          variant="destructive"
+                          onClick={() => deleteRoomMutation.mutate()}
+                          disabled={deleteRoomMutation.isPending}
+                        >
+                          {deleteRoomMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            "Delete"
+                          )}
+                        </Button>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </>
+              )}
+              {!isOwner && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="text-destructive hover:text-destructive flex-shrink-0"
+                      className="text-muted-foreground hover:text-muted-foreground/80 flex-shrink-0"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <LogOut className="h-4 w-4" />
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent className="sm:max-w-[425px]">
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Delete Room</AlertDialogTitle>
+                      <AlertDialogTitle>Leave Room</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Are you sure you want to delete this room? This action cannot be undone.
+                        Are you sure you want to leave this room? You can always join back later.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
                       <Button
-                        variant="destructive"
-                        onClick={() => deleteRoomMutation.mutate()}
-                        disabled={deleteRoomMutation.isPending}
+                        variant="default"
+                        onClick={() => leaveRoomMutation.mutate()}
+                        disabled={leaveRoomMutation.isPending}
                       >
-                        {deleteRoomMutation.isPending ? (
+                        {leaveRoomMutation.isPending ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
-                          "Delete"
+                          "Leave"
                         )}
                       </Button>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
-              </>
-            )}
-            {!isOwner && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="text-muted-foreground hover:text-muted-foreground/80 flex-shrink-0"
-                  >
-                    <LogOut className="h-4 w-4" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent className="sm:max-w-[425px]">
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Leave Room</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Are you sure you want to leave this room? You can always join back later.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <Button
-                      variant="default"
-                      onClick={() => leaveRoomMutation.mutate()}
-                      disabled={leaveRoomMutation.isPending}
-                    >
-                      {leaveRoomMutation.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        "Leave"
-                      )}
-                    </Button>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
-          </div>
-        )}
+              )}
+            </div>
+          )}
+        </div>
       </div>
       <div
         className="flex-1 overflow-auto p-2 sm:p-4 relative"
