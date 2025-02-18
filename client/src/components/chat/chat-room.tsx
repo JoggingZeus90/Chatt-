@@ -564,7 +564,9 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
   });
 
   // Updated formatMessageContent function to handle mentions with spaces
-  function formatMessageContent(content: string) {
+  function formatMessageContent(content: string | null) {
+    if (!content) return "";
+
     return content.split(/(@[^@\s]+(?:\s+[^@\s]+)*\s)/).map((part, index) => {
       if (part.startsWith('@')) {
         return (
@@ -743,7 +745,7 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
               </div>
             ) : (
               messages?.map((message) => (
-                <MessageBubble key={message.id} message={{...message, content: formatMessageContent(message.content)}} roomId={room.id} />
+                <MessageBubble key={message.id} message={message} roomId={room.id} />
               ))
             )}
             <div ref={messagesEndRef} />
@@ -902,7 +904,7 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
                 key={u.id}
                 className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/20 transition-colors"
               >
-                <Avatar className="h-8 w-8">
+                <Avatar className="h-8 w8">
                   <AvatarImage src={u.avatarUrl ?? undefined} />
                   <AvatarFallback>{u.username[0].toUpperCase()}</AvatarFallback>
                 </Avatar>

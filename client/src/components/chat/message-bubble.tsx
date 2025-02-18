@@ -29,8 +29,10 @@ interface ExtendedMessageWithUser extends MessageWithUser {
 }
 
 // Function to parse and style mentions in message content
-function formatMessageContent(content: string) {
-  return content.split(/(@\w+)/).map((part, index) => {
+function formatMessageContent(content: string | null) {
+  if (!content) return "";
+
+  return content.split(/(@[^@\s]+(?:\s+[^@\s]+)*\s)/).map((part, index) => {
     if (part.startsWith('@')) {
       return (
         <span
