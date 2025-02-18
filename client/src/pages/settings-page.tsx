@@ -166,11 +166,13 @@ export default function SettingsPage() {
               </p>
               <ColorPicker
                 label="Primary Color"
-                defaultValue={theme.primary}
+                value={theme.primary}
                 onChange={(e) => {
+                  const newColor = e.target.value;
+                  document.documentElement.style.setProperty('--primary', newColor);
                   setTheme({
                     ...theme,
-                    primary: e.target.value,
+                    primary: newColor,
                   });
                 }}
               />
