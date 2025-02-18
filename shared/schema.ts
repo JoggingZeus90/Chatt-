@@ -75,6 +75,20 @@ export const roomMembers = pgTable("room_members", {
   joinedAt: timestamp("joined_at").notNull().defaultNow(),
 });
 
+export const unreadMentions = pgTable("unread_mentions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .references(() => users.id)
+    .notNull(),
+  messageId: integer("message_id")
+    .references(() => messages.id)
+    .notNull(),
+  roomId: integer("room_id")
+    .references(() => rooms.id)
+    .notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const insertRoomSchema = createInsertSchema(rooms).pick({
   name: true,
 });
@@ -90,6 +104,7 @@ export const insertMessageSchema = createInsertSchema(messages)
     content: z.string().max(100, "Message cannot exceed 100 characters").optional(),
     mediaUrl: z.string().optional().nullable(),
     mediaType: z.enum(["image", "video"]).optional().nullable(),
+    mentions: z.array(z.string()).optional(),
   });
 
 export const updateUserSchema = z.object({
@@ -117,3 +132,5 @@ export type Room = typeof rooms.$inferSelect & {
 export type Message = typeof messages.$inferSelect;
 export type MessageWithUser = Message & { user: User };
 export type RoomMember = typeof roomMembers.$inferSelect;
+export type UnreadMention = typeof unreadMentions.$inferSelect;
+export type InsertUnreadMention = typeof unreadMentions.$inferInsert;

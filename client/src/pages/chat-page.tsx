@@ -27,6 +27,11 @@ export default function ChatPage() {
     queryKey: ["/api/rooms"],
   });
 
+  const { data: unreadMentions } = useQuery<{ roomId: number; count: number }[]>({
+    queryKey: ["/api/mentions/unread"],
+    refetchInterval: 1000,
+  });
+
   const createRoomMutation = useMutation({
     mutationFn: async (data: { name: string }) => {
       const res = await apiRequest("POST", "/api/rooms", data);
@@ -46,7 +51,16 @@ export default function ChatPage() {
     },
   });
 
-  // Update online status
+  const handleRoomSelect = async (room: Room) => {
+    setSelectedRoom(room);
+    // Clear unread mentions when entering room
+    if (unreadMentions?.some(m => m.roomId === room.id)) {
+      await apiRequest("POST", `/api/rooms/${room.id}/mentions/clear`);
+      queryClient.invalidateQueries({ queryKey: ["/api/mentions/unread"] });
+    }
+  };
+
+
   useEffect(() => {
     if (!user) return;
 
@@ -95,7 +109,7 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-screen">
-      <div 
+      <div
         className={`
           ${isSidebarCollapsed ? "w-0" : "w-64"} 
           border-r bg-muted/50 flex flex-col h-full overflow-hidden
@@ -146,16 +160,18 @@ export default function ChatPage() {
               <Button
                 key={room.id}
                 variant={selectedRoom?.id === room.id ? "secondary" : "ghost"}
-                className="w-full justify-start"
-                onClick={() => setSelectedRoom(room)}
+                className="w-full justify-start relative"
+                onClick={() => handleRoomSelect(room)}
               >
                 {room.name}
+                {unreadMentions?.some(m => m.roomId === room.id) && (
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-blue-500" />
+                )}
               </Button>
             ))}
           </div>
         </div>
 
-        {/* User Profile Section - Fixed at bottom */}
         <div className="border-t p-4 mt-auto space-y-4 bg-background/50 min-w-[16rem]">
           <div className="flex items-center justify-between p-2 bg-secondary/50 rounded-lg">
             <div className="flex items-center gap-2">
@@ -166,7 +182,6 @@ export default function ChatPage() {
               <span className="font-medium text-sm">{user?.username}</span>
             </div>
           </div>
-          {/* Action Buttons */}
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -194,9 +209,9 @@ export default function ChatPage() {
       </div>
       <div className="flex-1">
         {selectedRoom ? (
-          <ChatRoom 
-            room={selectedRoom} 
-            onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)} 
+          <ChatRoom
+            room={selectedRoom}
+            onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           />
         ) : (
           <div className="flex items-center justify-center h-full text-muted-foreground">

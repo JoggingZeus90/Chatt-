@@ -29,6 +29,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 // Define inappropriate words to filter
 const INAPPROPRIATE_WORDS = [
@@ -142,6 +143,9 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
   const messageSoundRef = useRef<HTMLAudioElement>(null);
   const [typingUsers, setTypingUsers] = useState<{ [key: string]: boolean }>({});
   const [isTyping, setIsTyping] = useState(false);
+  const [showMentions, setShowMentions] = useState(false);
+  const [mentionSearch, setMentionSearch] = useState("");
+  const mentionMatchRef = useRef<{ start: number; end: number } | null>(null);
 
   const isOwner = user?.id === room.createdById;
 
@@ -151,13 +155,14 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
   });
 
   const sendMessageMutation = useMutation({
-    mutationFn: async ({ content, mediaUrl, mediaType, whisperTo }: { content: string; mediaUrl?: string; mediaType?: string; whisperTo?: string }) => {
+    mutationFn: async ({ content, mediaUrl, mediaType, whisperTo, mentions }: { content: string; mediaUrl?: string; mediaType?: string; whisperTo?: string; mentions?: string[] }) => {
       const res = await apiRequest("POST", `/api/rooms/${room.id}/messages`, {
         content,
         roomId: room.id,
         mediaUrl,
         mediaType,
         whisperTo,
+        mentions,
       });
       if (!res.ok) {
         const error = await res.text();
@@ -315,6 +320,9 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
     setShowCommands(false);
     if (!message.trim() && !mediaFile) return;
 
+    // Check for mentions in the message
+    const mentions = message.match(/@(\w+)/g)?.map(mention => mention.slice(1)) || [];
+
     if (user?.muted) {
       const mutedUntil = new Date(user.mutedUntil!);
       if (mutedUntil > new Date()) {
@@ -417,6 +425,7 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
         mediaUrl: uploadedMediaUrl,
         mediaType: uploadedMediaType,
         whisperTo,
+        mentions,
       });
     } catch (error) {
       toast({
@@ -431,15 +440,26 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
     const newValue = e.target.value;
     if (newValue.length <= MAX_MESSAGE_LENGTH) {
       setMessage(newValue);
-      console.log('Message changed, setting typing status to true');
 
-      // Always update typing status when input changes
+      // Check for @ mentions
+      const cursorPosition = e.target.selectionStart || 0;
+      const beforeCursor = newValue.slice(0, cursorPosition);
+      const match = beforeCursor.match(/@(\w*)$/);
+
+      if (match) {
+        const matchStart = match.index!;
+        setShowMentions(true);
+        setMentionSearch(match[1]);
+        mentionMatchRef.current = { start: matchStart, end: cursorPosition };
+      } else {
+        setShowMentions(false);
+        mentionMatchRef.current = null;
+      }
+
       setIsTyping(true);
       apiRequest("POST", `/api/rooms/${room.id}/typing`, { isTyping: true })
-        .then(() => console.log('Successfully updated typing status to true'))
         .catch(error => console.error('Failed to update typing status:', error));
 
-      // Reset the debounced timer
       setTypingDebounced();
 
       if (newValue.startsWith('/')) {
@@ -496,22 +516,27 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
   };
 
   const setTypingDebounced = useDebouncedCallback(() => {
-    console.log('Debounced callback triggered, setting typing status to false');
     setIsTyping(false);
     apiRequest("POST", `/api/rooms/${room.id}/typing`, { isTyping: false })
-      .then(() => console.log('Successfully updated typing status to false'))
       .catch(error => console.error('Failed to update typing status:', error));
   }, 2000);
 
+  const handleMentionSelect = (username: string) => {
+    if (mentionMatchRef.current) {
+      const { start, end } = mentionMatchRef.current;
+      const newMessage = message.slice(0, start) + '@' + username + ' ' + message.slice(end);
+      setMessage(newMessage);
+      setShowMentions(false);
+      inputRef.current?.focus();
+    }
+  };
+
   useEffect(() => {
-    console.log('Setting up typing status interval');
     const typingInterval = setInterval(async () => {
       try {
-        console.log('Fetching typing status for room:', room.id);
         const res = await apiRequest("GET", `/api/rooms/${room.id}/typing`);
         if (!res.ok) throw new Error('Failed to fetch typing status');
         const data = await res.json();
-        console.log('Received typing status:', data);
         setTypingUsers(data);
       } catch (error) {
         console.error('Failed to fetch typing status:', error);
@@ -519,12 +544,9 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
     }, 1000);
 
     return () => {
-      console.log('Cleaning up typing status interval');
       clearInterval(typingInterval);
-      // Clear typing status when component unmounts
       if (isTyping) {
         apiRequest("POST", `/api/rooms/${room.id}/typing`, { isTyping: false })
-          .then(() => console.log('Successfully cleared typing status on unmount'))
           .catch(error => console.error('Failed to clear typing status:', error));
       }
     };
@@ -757,7 +779,7 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
             <Input
               value={message}
               onChange={handleMessageChange}
-              placeholder="Type a message..."
+              placeholder="Type a message... Use @ to mention users"
               disabled={sendMessageMutation.isPending}
               maxLength={MAX_MESSAGE_LENGTH}
               ref={inputRef}
@@ -782,6 +804,33 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
                           </div>
                         </CommandItem>
                       ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </div>
+            )}
+            {showMentions && room.participants && (
+              <div className="absolute bottom-full mb-1 left-0 w-full z-50 max-h-[50vh] overflow-auto">
+                <Command className="border rounded-lg shadow-lg">
+                  <CommandInput placeholder="Search users..." value={mentionSearch} onValueChange={setMentionSearch} />
+                  <CommandList>
+                    <CommandEmpty>No users found.</CommandEmpty>
+                    <CommandGroup heading="Users">
+                      {room.participants
+                        .filter(p => p.username.toLowerCase().includes(mentionSearch.toLowerCase()))
+                        .map((participant) => (
+                          <CommandItem
+                            key={participant.id}
+                            onSelect={() => handleMentionSelect(participant.username)}
+                            className="flex items-center gap-2"
+                          >
+                            <Avatar className="h-6 w-6">
+                              <AvatarImage src={participant.avatarUrl ?? undefined} />
+                              <AvatarFallback>{participant.username[0].toUpperCase()}</AvatarFallback>
+                            </Avatar>
+                            <span>{participant.username}</span>
+                          </CommandItem>
+                        ))}
                     </CommandGroup>
                   </CommandList>
                 </Command>
