@@ -327,12 +327,28 @@ export function registerRoutes(app: Express): Server {
     res.sendStatus(200);
   });
 
-  // Get room members
+  // Get room members (only members who can access the room)
   app.get("/api/rooms/:roomId/members", async (req, res) => {
-    console.log(`GET request received for ${req.url}`); // Added request logging
+    console.log(`GET request received for ${req.url}`);
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    const members = await storage.getRoomMembers(parseInt(req.params.roomId));
-    res.json(members);
+
+    try {
+      const roomId = parseInt(req.params.roomId);
+      const users = await storage.getRoomMembers(roomId);
+      const safeUsers = users.map(user => ({
+        id: user.id,
+        username: user.username,
+        isOnline: user.isOnline,
+        lastSeen: user.lastSeen,
+        avatarUrl: user.avatarUrl,
+        role: user.role,
+        suspended: user.suspended
+      }));
+      res.json(safeUsers);
+    } catch (error) {
+      console.error('Error fetching room members:', error);
+      res.status(500).send('Failed to fetch room members');
+    }
   });
 
   // Get all users in a room (accessible to authenticated users)
@@ -454,7 +470,8 @@ export function registerRoutes(app: Express): Server {
         isOnline: user.isOnline,
         lastSeen: user.lastSeen,
         avatarUrl: user.avatarUrl,
-        role: user.role
+        role: user.role,
+        suspended: user.suspended
       }));
       res.json(safeUsers);
     } catch (error) {
