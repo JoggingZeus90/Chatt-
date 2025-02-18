@@ -174,11 +174,27 @@ export function registerRoutes(app: Express): Server {
     res.status(201).json(room);
   });
 
+  // Add automatic room joining when getting messages
   app.get("/api/rooms/:roomId/messages", async (req, res) => {
-    console.log(`GET request received for ${req.url}`); // Added request logging
+    console.log(`GET request received for ${req.url}`);
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    const messages = await storage.getMessages(parseInt(req.params.roomId));
-    res.json(messages);
+
+    try {
+      const roomId = parseInt(req.params.roomId);
+      const userId = req.user.id;
+
+      // Automatically join room if not already a member
+      const isMember = await storage.isRoomMember(roomId, userId);
+      if (!isMember) {
+        await storage.joinRoom(roomId, userId);
+      }
+
+      const messages = await storage.getMessages(parseInt(req.params.roomId));
+      res.json(messages);
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+      res.status(500).json({ error: 'Failed to fetch messages' });
+    }
   });
 
   app.post("/api/rooms/:roomId/messages", async (req, res) => {
