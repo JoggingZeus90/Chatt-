@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { MessageBubble } from "./message-bubble";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Room, MessageWithUser, User } from "@shared/schema"; // Added User import
+import { Room, MessageWithUser, User } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Send, Loader2, Image, X, ArrowDown, Pencil, Check, Trash2, LogOut, Users, PanelLeftClose, PanelLeft, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -141,7 +141,7 @@ const commands = [
   },
 ];
 
-export default function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onToggleSidebar: () => void; onLeave: (roomId: number) => void }) {
+export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onToggleSidebar: () => void; onLeave: (roomId: number) => void }) {
   const { user } = useAuth();
   const [message, setMessage] = useState("");
   const [mediaFile, setMediaFile] = useState<File | null>(null);
@@ -881,6 +881,9 @@ export default function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Roo
                   ref={inputRef}
                   className="pr-12"
                 />
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                  {message.length}/{MAX_MESSAGE_LENGTH}
+                </span>
                 {showCommands && (
                   <div className="absolute bottom-full mb-1 left-0 w-full z-50 max-h-[50vh] overflow-auto" ref={commandsRef}>
                     <Command className="border rounded-lg shadow-lg">
@@ -908,12 +911,18 @@ export default function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Roo
                 {showMentions && (
                   <div className="absolute bottom-full mb-1 left-0 w-full z-50 max-h-[50vh] overflow-auto">
                     <Command className="border rounded-lg shadow-lg">
-                      <CommandInput placeholder="Search users..." value={mentionSearch} onValueChange={setMentionSearch} />
+                      <CommandInput
+                        placeholder="Search users..."
+                        value={mentionSearch}
+                        onValueChange={setMentionSearch}
+                      />
                       <CommandList>
                         <CommandEmpty>No users found.</CommandEmpty>
                         <CommandGroup heading="Users">
                           {allUsers
-                            ?.filter(user => user.username.toLowerCase().includes(mentionSearch.toLowerCase()))
+                            ?.filter(user =>
+                              user.username.toLowerCase().includes(mentionSearch.toLowerCase())
+                            )
                             .map((user) => (
                               <CommandItem
                                 key={user.id}
@@ -938,8 +947,8 @@ export default function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Roo
               <Button
                 type="submit"
                 size="icon"
-                disabled={sendMessageMutation.isPending || (!message.trim() && !mediaFile)}
                 className="flex-shrink-0"
+                disabled={sendMessageMutation.isPending || (!message.trim() && !mediaFile)}
               >
                 {sendMessageMutation.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -950,9 +959,34 @@ export default function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Roo
             </div>
           </form>
         </div>
+        <div className="w-64 border-l hidden md:block">
+          <div className="p-4 border-b">
+            <h3 className="font-semibold">Members</h3>
+          </div>
+          <div className="p-2">
+            {room.participants?.map((member) => (
+              <div key={member.id} className="flex items-center gap-2 p-2">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={member.avatarUrl ?? undefined} />
+                  <AvatarFallback>
+                    {member.username[0]?.toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col">
+                  <span className="text-sm font-medium">{member.username}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {member.isOnline ? "Online" : "Offline"}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
-      <audio ref={audioRef} src={VINE_BOOM_URL} />
-      <audio ref={messageSoundRef} src={GOOGLE_MESSAGE_SOUND_URL} />
+      <audio ref={audioRef} src={VINE_BOOM_URL} preload="auto" />
+      <audio ref={messageSoundRef} src={GOOGLE_MESSAGE_SOUND_URL} preload="auto" />
     </div>
   );
 }
+
+export default ChatRoom;

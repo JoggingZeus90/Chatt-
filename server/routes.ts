@@ -356,22 +356,24 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).send("Room not found");
       }
 
+      // Check if user is already a member
+      const isMember = await storage.isRoomMember(roomId, userId);
+      if (isMember) {
+        const members = await storage.getRoomMembers(roomId);
+        return res.json(members);
+      }
+
       // For private rooms, verify the invite code
       if (!room.isPublic) {
         const providedCode = req.body.inviteCode;
-        console.log('Joining private room. Room ID:', roomId, 'Provided code:', providedCode);
+        console.log('Joining private room. Room ID:', roomId, 'Invite code:', room.inviteCode, 'Provided code:', providedCode);
 
-        // The invite code should match the room ID for private rooms
-        if (!providedCode || providedCode !== roomId.toString()) {
+        if (!providedCode || providedCode !== room.inviteCode) {
           return res.status(403).send("Invalid invite code");
         }
       }
 
-      // Check if user is already a member
-      const isMember = await storage.isRoomMember(roomId, userId);
-      if (!isMember) {
-        await storage.joinRoom(roomId, userId);
-      }
+      await storage.joinRoom(roomId, userId);
 
       // Return updated room members
       const members = await storage.getRoomMembers(roomId);
