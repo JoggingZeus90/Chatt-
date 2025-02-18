@@ -730,11 +730,11 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
           </div>
           {showScrollButton && (
             <Button
-              className="fixed bottom-24 right-72 rounded-full shadow-lg z-50 md:block hidden"
+              className="fixed bottom-28 right-72 rounded-full shadow-lg z-50 md:block hidden p-3"
               size="icon"
               onClick={scrollToBottom}
             >
-              <ArrowDown className="h-4 w-4" />
+              <ArrowDown className="h-5 w-5" />
             </Button>
           )}
           <form onSubmit={handleSubmit} className="border-t p-2 sm:p-4 space-y-4 relative">
