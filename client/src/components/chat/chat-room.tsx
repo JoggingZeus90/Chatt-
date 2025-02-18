@@ -544,7 +544,7 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
             className="flex-shrink-0"
             title={isSidebarCollapsed ? "Show sidebar" : "Hide sidebar"}
           >
-            {isSidebarCollapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+            <PanelLeftClose className={`h-4 w-4 transition-transform duration-200 ${isSidebarCollapsed ? "rotate-180" : ""}`} />
           </Button>
           {isEditingName ? (
             <div className="flex items-center gap-2 flex-1">
