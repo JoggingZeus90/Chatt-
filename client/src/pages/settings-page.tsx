@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Form, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { UserManagement } from "@/components/ui/user-management";
+import { ColorPicker } from "@/components/ui/color-picker";
 import {
   Avatar,
   AvatarImage,
@@ -147,7 +148,7 @@ export default function SettingsPage() {
           <CardHeader>
             <CardTitle>Appearance</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-medium">Theme</h3>
@@ -156,6 +157,23 @@ export default function SettingsPage() {
                 </p>
               </div>
               <ThemeToggle />
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="font-medium">Colors</h3>
+              <p className="text-sm text-muted-foreground">
+                Customize the accent colors used throughout the app
+              </p>
+              <ColorPicker
+                label="Primary Color"
+                defaultValue={theme.primary}
+                onChange={(e) => {
+                  setTheme({
+                    ...theme,
+                    primary: e.target.value,
+                  });
+                }}
+              />
             </div>
           </CardContent>
         </Card>
