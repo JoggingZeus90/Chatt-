@@ -134,7 +134,7 @@ const ColorPicker = React.forwardRef<HTMLDivElement, ColorPickerProps>(
                   }}
                 />
                 <div
-                  className="absolute w-4 h-4 -mt-2 -ml-2 border-2 border-white rounded-full shadow-md pointer-events-none"
+                  className="absolute w-4 h-4 transform -translate-x-1/2 -translate-y-1/2 border-2 border-white rounded-full shadow-md pointer-events-none"
                   style={{
                     left: `${(hsva.s / 100) * 120 * Math.cos((hsva.h - 90) * Math.PI / 180) + 120}px`,
                     top: `${(hsva.s / 100) * 120 * Math.sin((hsva.h - 90) * Math.PI / 180) + 120}px`,
