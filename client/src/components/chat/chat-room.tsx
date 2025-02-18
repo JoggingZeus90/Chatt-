@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Room, MessageWithUser } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Send, Loader2, Image, X, ArrowDown, Pencil, Check, Trash2, LogOut } from "lucide-react";
+import { Send, Loader2, Image, X, ArrowDown, Pencil, Check, Trash2, LogOut, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -327,9 +327,9 @@ export default function ChatRoom({ room }: { room: Room }) {
     if (messageContent === '/sus') {
       uploadedMediaUrl = SUS_IMAGE_URL;
       uploadedMediaType = 'image';
-      messageContent = ''; 
+      messageContent = '';
       if (audioRef.current) {
-        audioRef.current.volume = 0.3; 
+        audioRef.current.volume = 0.3;
         audioRef.current.currentTime = 0;
         audioRef.current.play();
       }
@@ -511,7 +511,16 @@ export default function ChatRoom({ room }: { room: Room }) {
           </div>
         ) : (
           <div className="flex items-center gap-2">
-            <h2 className="font-semibold">{room.name}</h2>
+            <div className="flex flex-col">
+              <h2 className="font-semibold">{room.name}</h2>
+              <div className="flex items-center text-sm text-muted-foreground gap-1">
+                <Users className="h-3 w-3" />
+                <span>
+                  {messages?.filter(m => m.user.isOnline).length ?? 0} online · {messages?.reduce((acc, m) =>
+                    acc.includes(m.userId) ? acc : [...acc, m.userId], [] as number[]).length ?? 0} total
+                </span>
+              </div>
+            </div>
             {(isOwner || user?.role === 'admin') && (
               <>
                 <Button
