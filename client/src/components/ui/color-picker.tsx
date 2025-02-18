@@ -51,25 +51,24 @@ const ColorPicker = React.forwardRef<HTMLDivElement, ColorPickerProps>(
       const x = e.clientX - rect.left - centerX;
       const y = e.clientY - rect.top - centerY;
 
-      // Calculate angle (hue) and distance from center (saturation)
-      let hue = Math.atan2(y, x) * (180 / Math.PI);
-      // Convert to positive degrees and rotate to match standard color wheel
-      hue = (hue + 360) % 360;
+      // Calculate angle and distance from center
+      // atan2 returns angle in radians, convert to degrees
+      // Subtract 90 to align with standard color wheel (red at 0°)
+      let hue = Math.atan2(-x, y) * (180 / Math.PI) + 180;
 
       // Calculate distance for saturation (0-100%)
       const radius = rect.width / 2;
       const distance = Math.sqrt(x * x + y * y);
       const saturation = Math.min(distance / radius * 100, 100);
 
-      const newHsva = {
+      setHsva({
         h: hue,
         s: saturation,
         v: 100,
         a: 1
-      };
+      });
 
-      setHsva(newHsva);
-      onChange?.(hsvaToHex(newHsva));
+      onChange?.(hsvaToHex({ h: hue, s: saturation, v: 100, a: 1 }));
     };
 
     React.useEffect(() => {
@@ -94,10 +93,10 @@ const ColorPicker = React.forwardRef<HTMLDivElement, ColorPickerProps>(
     // Calculate position for the selector dot
     const selectorStyle = React.useMemo(() => {
       const radius = (hsva.s / 100) * 120; // 120px is half of 240px (wheel size)
-      const angle = (hsva.h * Math.PI) / 180;
+      const angleRad = ((hsva.h - 180) * Math.PI) / 180;
       return {
-        left: `${radius * Math.cos(angle) + 120}px`,
-        top: `${radius * Math.sin(angle) + 120}px`,
+        left: `${-radius * Math.sin(angleRad) + 120}px`,
+        top: `${radius * Math.cos(angleRad) + 120}px`,
         backgroundColor: hsvaToHex(hsva),
       };
     }, [hsva]);
@@ -126,6 +125,7 @@ const ColorPicker = React.forwardRef<HTMLDivElement, ColorPickerProps>(
                 className="relative w-[240px] h-[240px] rounded-full cursor-crosshair"
                 style={{
                   background: `conic-gradient(
+                    from 0deg,
                     hsl(0, 100%, 50%),
                     hsl(60, 100%, 50%),
                     hsl(120, 100%, 50%),
