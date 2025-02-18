@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { MessageBubble } from "./message-bubble";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Room, MessageWithUser } from "@shared/schema";
+import { Room, MessageWithUser, User } from "@shared/schema"; // Added User import
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Send, Loader2, Image, X, ArrowDown, Pencil, Check, Trash2, LogOut, Users, PanelLeftClose, PanelLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -557,6 +557,12 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
     };
   }, [room.id, isTyping]);
 
+  // Add query to fetch all users
+  const { data: allUsers } = useQuery<User[]>({ // Added type annotation
+    queryKey: ["/api/users"],
+    refetchInterval: 1000, // Poll to keep online status updated
+  });
+
   return (
     <div className="flex flex-col h-full">
       <div className="border-b p-2 sm:p-4 flex items-center justify-between">
@@ -704,160 +710,199 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
           )}
         </div>
       </div>
-      <div
-        className="flex-1 overflow-auto p-2 sm:p-4 relative"
-        ref={messagesContainerRef}
-      >
-        {isLoading ? (
-          <div className="flex justify-center">
-            <Loader2 className="h-6 w-6 animate-spin" />
-          </div>
-        ) : (
-          messages?.map((message) => (
-            <MessageBubble key={message.id} message={message} roomId={room.id} />
-          ))
-        )}
-        <div ref={messagesEndRef} />
-        {showScrollButton && (
-          <Button
-            className="fixed bottom-32 right-4 sm:right-8 rounded-full shadow-lg"
-            size="icon"
-            onClick={scrollToBottom}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Messages section */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <div
+            className="flex-1 overflow-auto p-2 sm:p-4 relative"
+            ref={messagesContainerRef}
           >
-            <ArrowDown className="h-4 w-4" />
-          </Button>
-        )}
+            {isLoading ? (
+              <div className="flex justify-center">
+                <Loader2 className="h-6 w-6 animate-spin" />
+              </div>
+            ) : (
+              messages?.map((message) => (
+                <MessageBubble key={message.id} message={message} roomId={room.id} />
+              ))
+            )}
+            <div ref={messagesEndRef} />
+            {showScrollButton && (
+              <Button
+                className="fixed bottom-32 right-4 sm:right-8 rounded-full shadow-lg"
+                size="icon"
+                onClick={scrollToBottom}
+              >
+                <ArrowDown className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+          <form onSubmit={handleSubmit} className="border-t p-2 sm:p-4 space-y-4 relative">
+            {Object.entries(typingUsers)
+              .filter(([userId, isTyping]) => isTyping && userId !== user?.id.toString())
+              .map(([userId]) => {
+                const typingUser = room.participants?.find(p => p.id.toString() === userId);
+                return typingUser && (
+                  <div key={userId} className="absolute -top-6 left-4 text-sm text-muted-foreground">
+                    {typingUser.username} is typing...
+                  </div>
+                );
+              })}
+            {mediaPreviewUrl && (
+              <div className="relative inline-block">
+                {ALLOWED_FILE_TYPES[mediaFile?.type as keyof typeof ALLOWED_FILE_TYPES] === "image" ? (
+                  <img
+                    src={mediaPreviewUrl}
+                    alt="Preview"
+                    className="max-h-32 rounded-lg"
+                  />
+                ) : (
+                  <video
+                    src={mediaPreviewUrl}
+                    className="max-h-32 rounded-lg"
+                    controls
+                  />
+                )}
+                <button
+                  type="button"
+                  onClick={clearMediaPreview}
+                  className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 hover:bg-destructive/90"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+            <div className="flex gap-2 relative">
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/gif,video/mp4,video/webm"
+                className="hidden"
+                onChange={handleFileSelect}
+                ref={fileInputRef}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="flex-shrink-0"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Image className="h-4 w-4" />
+              </Button>
+              <div className="flex-1 relative">
+                <Input
+                  value={message}
+                  onChange={handleMessageChange}
+                  placeholder="Type a message... Use @ to mention users"
+                  disabled={sendMessageMutation.isPending}
+                  maxLength={MAX_MESSAGE_LENGTH}
+                  ref={inputRef}
+                  className="pr-12"
+                />
+                {showCommands && (
+                  <div className="absolute bottom-full mb-1 left-0 w-full z-50 max-h-[50vh] overflow-auto" ref={commandsRef}>
+                    <Command className="border rounded-lg shadow-lg">
+                      <CommandInput placeholder="Search commands..." />
+                      <CommandList>
+                        <CommandEmpty>No commands found.</CommandEmpty>
+                        <CommandGroup heading="Available Commands">
+                          {commands.map((command) => (
+                            <CommandItem
+                              key={command.name}
+                              onSelect={() => handleCommandSelect(command)}
+                              className="flex flex-col items-start"
+                            >
+                              <div className="font-medium">{command.format}</div>
+                              <div className="text-sm text-muted-foreground">
+                                {command.description}
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </div>
+                )}
+                {showMentions && room.participants && (
+                  <div className="absolute bottom-full mb-1 left-0 w-full z-50 max-h-[50vh] overflow-auto">
+                    <Command className="border rounded-lg shadow-lg">
+                      <CommandInput placeholder="Search users..." value={mentionSearch} onValueChange={setMentionSearch} />
+                      <CommandList>
+                        <CommandEmpty>No users found.</CommandEmpty>
+                        <CommandGroup heading="Users">
+                          {room.participants
+                            .filter(p => p.username.toLowerCase().includes(mentionSearch.toLowerCase()))
+                            .map((participant) => (
+                              <CommandItem
+                                key={participant.id}
+                                onSelect={() => handleMentionSelect(participant.username)}
+                                className="flex items-center gap-2"
+                              >
+                                <Avatar className="h-6 w-6">
+                                  <AvatarImage src={participant.avatarUrl ?? undefined} />
+                                  <AvatarFallback>{participant.username[0].toUpperCase()}</AvatarFallback>
+                                </Avatar>
+                                <span>{participant.username}</span>
+                              </CommandItem>
+                            ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </div>
+                )}
+              </div>
+              <Button
+                type="submit"
+                className="flex-shrink-0"
+                disabled={sendMessageMutation.isPending || (!message.trim() && !mediaFile)}
+              >
+                {sendMessageMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+            <div className="text-xs text-muted-foreground text-right">
+              {message.length}/{MAX_MESSAGE_LENGTH} characters
+            </div>
+          </form>
+        </div>
+
+        {/* Users sidebar */}
+        <div className="w-64 border-l bg-muted/10 overflow-y-auto p-4 hidden md:block">
+          <h3 className="font-semibold mb-4">Users</h3>
+          <div className="space-y-2">
+            {allUsers?.map((u) => (
+              <div
+                key={u.id}
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/20 transition-colors"
+              >
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={u.avatarUrl ?? undefined} />
+                  <AvatarFallback>{u.username[0].toUpperCase()}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium truncate">{u.username}</span>
+                    <div
+                      className={`h-2 w-2 rounded-full ${
+                        u.isOnline ? 'bg-green-500' : 'bg-gray-300'
+                      }`}
+                      title={u.isOnline ? 'Online' : 'Offline'}
+                    />
+                  </div>
+                  {!u.isOnline && u.lastSeen && (
+                    <p className="text-xs text-muted-foreground truncate">
+                      Last seen: {format(new Date(u.lastSeen), 'PP')}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
-      <form onSubmit={handleSubmit} className="border-t p-2 sm:p-4 space-y-4 relative">
-        {Object.entries(typingUsers)
-          .filter(([userId, isTyping]) => isTyping && userId !== user?.id.toString())
-          .map(([userId]) => {
-            const typingUser = room.participants?.find(p => p.id.toString() === userId);
-            return typingUser && (
-              <div key={userId} className="absolute -top-6 left-4 text-sm text-muted-foreground">
-                {typingUser.username} is typing...
-              </div>
-            );
-          })}
-        {mediaPreviewUrl && (
-          <div className="relative inline-block">
-            {ALLOWED_FILE_TYPES[mediaFile?.type as keyof typeof ALLOWED_FILE_TYPES] === "image" ? (
-              <img
-                src={mediaPreviewUrl}
-                alt="Preview"
-                className="max-h-32 rounded-lg"
-              />
-            ) : (
-              <video
-                src={mediaPreviewUrl}
-                className="max-h-32 rounded-lg"
-                controls
-              />
-            )}
-            <button
-              type="button"
-              onClick={clearMediaPreview}
-              className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 hover:bg-destructive/90"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        )}
-        <div className="flex gap-2 relative">
-          <input
-            type="file"
-            accept="image/jpeg,image/png,image/gif,video/mp4,video/webm"
-            className="hidden"
-            onChange={handleFileSelect}
-            ref={fileInputRef}
-          />
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="flex-shrink-0"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <Image className="h-4 w-4" />
-          </Button>
-          <div className="flex-1 relative">
-            <Input
-              value={message}
-              onChange={handleMessageChange}
-              placeholder="Type a message... Use @ to mention users"
-              disabled={sendMessageMutation.isPending}
-              maxLength={MAX_MESSAGE_LENGTH}
-              ref={inputRef}
-              className="pr-12"
-            />
-            {showCommands && (
-              <div className="absolute bottom-full mb-1 left-0 w-full z-50 max-h-[50vh] overflow-auto" ref={commandsRef}>
-                <Command className="border rounded-lg shadow-lg">
-                  <CommandInput placeholder="Search commands..." />
-                  <CommandList>
-                    <CommandEmpty>No commands found.</CommandEmpty>
-                    <CommandGroup heading="Available Commands">
-                      {commands.map((command) => (
-                        <CommandItem
-                          key={command.name}
-                          onSelect={() => handleCommandSelect(command)}
-                          className="flex flex-col items-start"
-                        >
-                          <div className="font-medium">{command.format}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {command.description}
-                          </div>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </div>
-            )}
-            {showMentions && room.participants && (
-              <div className="absolute bottom-full mb-1 left-0 w-full z-50 max-h-[50vh] overflow-auto">
-                <Command className="border rounded-lg shadow-lg">
-                  <CommandInput placeholder="Search users..." value={mentionSearch} onValueChange={setMentionSearch} />
-                  <CommandList>
-                    <CommandEmpty>No users found.</CommandEmpty>
-                    <CommandGroup heading="Users">
-                      {room.participants
-                        .filter(p => p.username.toLowerCase().includes(mentionSearch.toLowerCase()))
-                        .map((participant) => (
-                          <CommandItem
-                            key={participant.id}
-                            onSelect={() => handleMentionSelect(participant.username)}
-                            className="flex items-center gap-2"
-                          >
-                            <Avatar className="h-6 w-6">
-                              <AvatarImage src={participant.avatarUrl ?? undefined} />
-                              <AvatarFallback>{participant.username[0].toUpperCase()}</AvatarFallback>
-                            </Avatar>
-                            <span>{participant.username}</span>
-                          </CommandItem>
-                        ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </div>
-            )}
-          </div>
-          <Button
-            type="submit"
-            className="flex-shrink-0"
-            disabled={sendMessageMutation.isPending || (!message.trim() && !mediaFile)}
-          >
-            {sendMessageMutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-          </Button>
-        </div>
-        <div className="text-xs text-muted-foreground text-right">
-          {message.length}/{MAX_MESSAGE_LENGTH} characters
-        </div>
-      </form>
       <audio ref={messageSoundRef} src={GOOGLE_MESSAGE_SOUND_URL} preload="auto" />
       <audio ref={audioRef} src={VINE_BOOM_URL} preload="auto" />
     </div>

@@ -396,6 +396,30 @@ export function registerRoutes(app: Express): Server {
     res.json(users);
   });
 
+  // Get all users (accessible to authenticated users)
+  app.get("/api/users", async (req, res) => {
+    console.log(`GET request received for ${req.url}`);
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const users = await storage.getUsers();
+      // Filter out sensitive information
+      const safeUsers = users.map(user => ({
+        id: user.id,
+        username: user.username,
+        isOnline: user.isOnline,
+        lastSeen: user.lastSeen,
+        avatarUrl: user.avatarUrl,
+        role: user.role
+      }));
+      res.json(safeUsers);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      res.status(500).send('Failed to fetch users');
+    }
+  });
+
+
   // Moderation actions (available to moderators and admins)
   app.post("/api/users/:userId/mute", requireRole(UserRole.MODERATOR), async (req, res) => {
     try {
