@@ -137,6 +137,14 @@ export class DatabaseStorage implements IStorage {
         isOnline: users.isOnline,
         lastSeen: users.lastSeen,
         avatarUrl: users.avatarUrl,
+        role: users.role,
+        suspended: users.suspended,
+        suspendedAt: users.suspendedAt,
+        suspendedReason: users.suspendedReason,
+        muted: users.muted,
+        mutedUntil: users.mutedUntil,
+        mutedReason: users.mutedReason,
+        lastUsernameChange: users.lastUsernameChange
       })
       .from(roomMembers)
       .innerJoin(users, eq(roomMembers.userId, users.id))

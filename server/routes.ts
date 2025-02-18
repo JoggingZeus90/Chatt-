@@ -283,10 +283,24 @@ export function registerRoutes(app: Express): Server {
 
   // Join room
   app.post("/api/rooms/:roomId/join", async (req, res) => {
-    console.log(`POST request received for ${req.url}`); // Added request logging
+    console.log(`POST request received for ${req.url}`);
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    await storage.joinRoom(parseInt(req.params.roomId), req.user.id);
-    res.sendStatus(200);
+
+    try {
+      const roomId = parseInt(req.params.roomId);
+      const userId = req.user.id;
+
+      // Check if user is already a member
+      const isMember = await storage.isRoomMember(roomId, userId);
+      if (!isMember) {
+        await storage.joinRoom(roomId, userId);
+      }
+
+      res.sendStatus(200);
+    } catch (error) {
+      console.error('Error joining room:', error);
+      res.status(500).send('Failed to join room');
+    }
   });
 
   // Leave room
