@@ -1,12 +1,11 @@
 import { IStorage } from "./types";
 import { users, type User, type InsertUser, rooms, type Room, messages, type Message, roomMembers, type RoomMember, UserRole, UserRoleType } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
 import { MessageWithUser } from "@shared/schema";
-import { randomBytes, scrypt as scryptAsync } from "crypto";
 
 const PostgresSessionStore = connectPg(session);
 
@@ -20,10 +19,9 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  // Add method to get all users (for moderators and admins)
   async getUsers(roomId?: number): Promise<User[]> {
     if (roomId) {
-      const result = await db
+      return db
         .select({
           id: users.id,
           username: users.username,
@@ -40,13 +38,10 @@ export class DatabaseStorage implements IStorage {
           mutedReason: users.mutedReason,
           lastUsernameChange: users.lastUsernameChange
         })
-        .from(roomMembers)
-        .innerJoin(users, eq(roomMembers.userId, users.id))
+        .from(users)
+        .innerJoin(roomMembers, eq(roomMembers.userId, users.id))
         .where(eq(roomMembers.roomId, roomId));
-
-      return result;
     }
-    // For admin purposes, return all users
     return db.select().from(users);
   }
 
@@ -164,36 +159,38 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getRoomMembers(roomId: number): Promise<User[]> {
-    const result = await db
-      .select({
-        id: users.id,
-        username: users.username,
-        password: users.password,
-        isOnline: users.isOnline,
-        lastSeen: users.lastSeen,
-        avatarUrl: users.avatarUrl,
-        role: users.role,
-        suspended: users.suspended,
-        suspendedAt: users.suspendedAt,
-        suspendedReason: users.suspendedReason,
-        muted: users.muted,
-        mutedUntil: users.mutedUntil,
-        mutedReason: users.mutedReason,
-        lastUsernameChange: users.lastUsernameChange
-      })
-      .from(roomMembers)
-      .innerJoin(users, eq(roomMembers.userId, users.id))
+    const members = await db
+      .select()
+      .from(users)
+      .innerJoin(roomMembers, eq(users.id, roomMembers.userId))
       .where(eq(roomMembers.roomId, roomId));
 
-    return result;
+    return members.map(member => ({
+      id: member.users.id,
+      username: member.users.username,
+      password: member.users.password,
+      isOnline: member.users.isOnline,
+      lastSeen: member.users.lastSeen,
+      avatarUrl: member.users.avatarUrl,
+      role: member.users.role,
+      suspended: member.users.suspended,
+      suspendedAt: member.users.suspendedAt,
+      suspendedReason: member.users.suspendedReason,
+      muted: member.users.muted,
+      mutedUntil: member.users.mutedUntil,
+      mutedReason: member.users.mutedReason,
+      lastUsernameChange: member.users.lastUsernameChange
+    }));
   }
 
   async isRoomMember(roomId: number, userId: number): Promise<boolean> {
     const result = await db
       .select()
       .from(roomMembers)
-      .where(eq(roomMembers.roomId, roomId))
-      .where(eq(roomMembers.userId, userId));
+      .where(and(
+        eq(roomMembers.roomId, roomId),
+        eq(roomMembers.userId, userId)
+      ));
 
     return result.length > 0;
   }

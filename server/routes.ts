@@ -321,7 +321,19 @@ export function registerRoutes(app: Express): Server {
         await storage.joinRoom(roomId, userId);
       }
 
-      res.sendStatus(200);
+      // Return updated room members
+      const members = await storage.getRoomMembers(roomId);
+      const safeMembers = members.map(member => ({
+        id: member.id,
+        username: member.username,
+        isOnline: member.isOnline,
+        lastSeen: member.lastSeen,
+        avatarUrl: member.avatarUrl,
+        role: member.role,
+        suspended: member.suspended
+      }));
+
+      res.json(safeMembers);
     } catch (error) {
       console.error('Error joining room:', error);
       res.status(500).send('Failed to join room');
@@ -343,21 +355,22 @@ export function registerRoutes(app: Express): Server {
 
     try {
       const roomId = parseInt(req.params.roomId);
-      const users = await storage.getRoomMembers(roomId);
+      const members = await storage.getRoomMembers(roomId);
+
+      console.log(`Found ${members.length} members for room ${roomId}`);
 
       // Filter out sensitive information
-      const safeUsers = users.map(user => ({
-        id: user.id,
-        username: user.username,
-        isOnline: user.isOnline,
-        lastSeen: user.lastSeen,
-        avatarUrl: user.avatarUrl,
-        role: user.role,
-        suspended: user.suspended
+      const safeMembers = members.map(member => ({
+        id: member.id,
+        username: member.username,
+        isOnline: member.isOnline,
+        lastSeen: member.lastSeen,
+        avatarUrl: member.avatarUrl,
+        role: member.role,
+        suspended: member.suspended
       }));
 
-      console.log(`Found ${safeUsers.length} members for room ${roomId}`);
-      res.json(safeUsers);
+      res.json(safeMembers);
     } catch (error) {
       console.error('Error fetching room members:', error);
       res.status(500).send('Failed to fetch room members');
