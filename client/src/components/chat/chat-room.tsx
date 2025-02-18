@@ -531,7 +531,7 @@ export default function ChatRoom({ room }: { room: Room }) {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="border-b p-4 flex items-center justify-between">
+      <div className="border-b p-2 sm:p-4 flex items-center justify-between">
         {isEditingName ? (
           <div className="flex items-center gap-2 flex-1">
             <Input
@@ -569,12 +569,12 @@ export default function ChatRoom({ room }: { room: Room }) {
             </Button>
           </div>
         ) : (
-          <div className="flex items-center gap-2">
-            <div className="flex flex-col">
-              <h2 className="font-semibold">{room.name}</h2>
+          <div className="flex items-center gap-2 overflow-hidden">
+            <div className="flex flex-col min-w-0">
+              <h2 className="font-semibold truncate">{room.name}</h2>
               <div className="flex items-center text-sm text-muted-foreground gap-1">
-                <Users className="h-3 w-3" />
-                <span>
+                <Users className="h-3 w-3 flex-shrink-0" />
+                <span className="truncate">
                   {room.participants?.filter(p => p.isOnline).length ?? 0} online · {room.participants?.length ?? 0} total
                 </span>
               </div>
@@ -585,6 +585,7 @@ export default function ChatRoom({ room }: { room: Room }) {
                   size="icon"
                   variant="ghost"
                   onClick={() => setIsEditingName(true)}
+                  className="flex-shrink-0"
                 >
                   <Pencil className="h-4 w-4" />
                 </Button>
@@ -593,12 +594,12 @@ export default function ChatRoom({ room }: { room: Room }) {
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="text-destructive hover:text-destructive"
+                      className="text-destructive hover:text-destructive flex-shrink-0"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </AlertDialogTrigger>
-                  <AlertDialogContent>
+                  <AlertDialogContent className="sm:max-w-[425px]">
                     <AlertDialogHeader>
                       <AlertDialogTitle>Delete Room</AlertDialogTitle>
                       <AlertDialogDescription>
@@ -629,12 +630,12 @@ export default function ChatRoom({ room }: { room: Room }) {
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="text-muted-foreground hover:text-muted-foreground/80"
+                    className="text-muted-foreground hover:text-muted-foreground/80 flex-shrink-0"
                   >
                     <LogOut className="h-4 w-4" />
                   </Button>
                 </AlertDialogTrigger>
-                <AlertDialogContent>
+                <AlertDialogContent className="sm:max-w-[425px]">
                   <AlertDialogHeader>
                     <AlertDialogTitle>Leave Room</AlertDialogTitle>
                     <AlertDialogDescription>
@@ -662,7 +663,7 @@ export default function ChatRoom({ room }: { room: Room }) {
         )}
       </div>
       <div
-        className="flex-1 overflow-auto p-4 relative"
+        className="flex-1 overflow-auto p-2 sm:p-4 relative"
         ref={messagesContainerRef}
       >
         {isLoading ? (
@@ -677,7 +678,7 @@ export default function ChatRoom({ room }: { room: Room }) {
         <div ref={messagesEndRef} />
         {showScrollButton && (
           <Button
-            className="fixed bottom-32 right-8 rounded-full shadow-lg"
+            className="fixed bottom-32 right-4 sm:right-8 rounded-full shadow-lg"
             size="icon"
             onClick={scrollToBottom}
           >
@@ -685,7 +686,7 @@ export default function ChatRoom({ room }: { room: Room }) {
           </Button>
         )}
       </div>
-      <form onSubmit={handleSubmit} className="border-t p-4 space-y-4 relative">
+      <form onSubmit={handleSubmit} className="border-t p-2 sm:p-4 space-y-4 relative">
         {Object.entries(typingUsers)
           .filter(([userId, isTyping]) => isTyping && userId !== user?.id.toString())
           .map(([userId]) => {
@@ -732,6 +733,7 @@ export default function ChatRoom({ room }: { room: Room }) {
             type="button"
             variant="outline"
             size="icon"
+            className="flex-shrink-0"
             onClick={() => fileInputRef.current?.click()}
           >
             <Image className="h-4 w-4" />
@@ -744,9 +746,10 @@ export default function ChatRoom({ room }: { room: Room }) {
               disabled={sendMessageMutation.isPending}
               maxLength={MAX_MESSAGE_LENGTH}
               ref={inputRef}
+              className="pr-12"
             />
             {showCommands && (
-              <div className="absolute bottom-full mb-1 left-0 w-full z-50" ref={commandsRef}>
+              <div className="absolute bottom-full mb-1 left-0 w-full z-50 max-h-[50vh] overflow-auto" ref={commandsRef}>
                 <Command className="border rounded-lg shadow-lg">
                   <CommandInput placeholder="Search commands..." />
                   <CommandList>
@@ -772,6 +775,7 @@ export default function ChatRoom({ room }: { room: Room }) {
           </div>
           <Button
             type="submit"
+            className="flex-shrink-0"
             disabled={sendMessageMutation.isPending || (!message.trim() && !mediaFile)}
           >
             {sendMessageMutation.isPending ? (
