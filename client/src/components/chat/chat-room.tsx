@@ -670,12 +670,14 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
     if (!room.isPublic && !room.participants?.some(p => p.id === user?.id)) {
       const inviteCode = prompt("Please enter the invite code to join this private room:");
       if (inviteCode) {
+        console.log('Attempting to join with invite code:', inviteCode);
         joinRoomMutation.mutate(inviteCode);
       }
     } else if (!room.participants?.some(p => p.id === user?.id)) {
+      console.log('Attempting to join public room');
       joinRoomMutation.mutate();
     }
-  }, [room.id, room.isPublic, user?.id, joinRoomMutation]);
+  }, [room.id, room.isPublic, user?.id]);
 
   return (
     <div className="flex flex-col h-full">
