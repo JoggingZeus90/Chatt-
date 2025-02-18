@@ -25,6 +25,10 @@ export default function ChatPage() {
 
   const { data: rooms, isLoading } = useQuery<Room[]>({
     queryKey: ["/api/rooms"],
+    select: (rooms) => rooms.map(room => ({
+      ...room,
+      participants: room.participants || []
+    }))
   });
 
   const { data: unreadMentions } = useQuery<{ roomId: number; count: number }[]>({
