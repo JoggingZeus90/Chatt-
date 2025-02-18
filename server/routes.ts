@@ -178,7 +178,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Create room and automatically add creator as member
-  // Update room creation to generate invite code for private rooms
+  // Update room creation to use room ID as invite code
   app.post("/api/rooms", async (req, res) => {
     console.log(`POST request received for ${req.url}`);
     if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -188,17 +188,22 @@ export function registerRoutes(app: Express): Server {
     try {
       console.log('Creating room with data:', parsed.data);
 
-      // Generate invite code for private rooms
-      const inviteCode = !parsed.data.isPublic ?
-        `${Date.now()}-${Math.random().toString(36).substring(2, 15)}` :
-        null;
-
-      // Create room with invite code
+      // Create room first to get the ID
       const room = await storage.createRoom({
         ...parsed.data,
         createdById: req.user.id,
-        inviteCode
+        inviteCode: null // Initially set to null
       });
+
+      // If it's a private room, update the invite code to be the room ID
+      if (!parsed.data.isPublic) {
+        const [updatedRoom] = await db
+          .update(schema.rooms)
+          .set({ inviteCode: room.id.toString() })
+          .where(eq(schema.rooms.id, room.id))
+          .returning();
+        room.inviteCode = updatedRoom.inviteCode;
+      }
 
       console.log('Room created:', room);
 
@@ -345,8 +350,12 @@ export function registerRoutes(app: Express): Server {
       const roomId = parseInt(req.params.roomId);
       const userId = req.user.id;
 
-      // Get room details to check visibility
-      const room = await storage.getRoom(roomId);
+      // Get room details
+      const [room] = await db
+        .select()
+        .from(schema.rooms)
+        .where(eq(schema.rooms.id, roomId));
+
       if (!room) {
         return res.status(404).send("Room not found");
       }
@@ -358,7 +367,7 @@ export function registerRoutes(app: Express): Server {
         return res.json(members);
       }
 
-      // For private rooms, verify the invite code
+      // For private rooms, verify the invite code matches the room ID
       if (!room.isPublic) {
         const providedCode = req.body.inviteCode;
         console.log('Joining private room:', {
@@ -367,11 +376,11 @@ export function registerRoutes(app: Express): Server {
           providedCode
         });
 
-        if (!providedCode || providedCode !== room.inviteCode) {
+        if (!providedCode || providedCode !== roomId.toString()) {
           return res.status(403).json({
             error: "Invalid invite code",
             provided: providedCode,
-            expected: room.inviteCode
+            expected: roomId.toString()
           });
         }
       }
