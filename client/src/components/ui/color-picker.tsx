@@ -23,11 +23,6 @@ const ColorPicker = React.forwardRef<HTMLDivElement, ColorPickerProps>(
       setHsva(hexToHsva(value));
     }, [value]);
 
-    const handleColorChange = React.useCallback((color: { h: number; s: number; v: number }) => {
-      setHsva({ h: color.h, s: color.s, v: color.v, a: 1 });
-      onChange?.(hsvaToHex({ h: color.h, s: color.s, v: color.v, a: 1 }));
-    }, [onChange]);
-
     return (
       <div className="flex flex-col gap-2" ref={ref}>
         {label && <Label>{label}</Label>}
@@ -45,14 +40,18 @@ const ColorPicker = React.forwardRef<HTMLDivElement, ColorPickerProps>(
               {value}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-[280px] p-4">
+          <PopoverContent className="w-[280px] p-4" side="right">
             <div className="flex flex-col gap-4">
-              <div className="relative aspect-square">
+              <div className="relative">
                 <Wheel 
                   width={240}
                   height={240}
                   color={hsva}
-                  onChange={handleColorChange}
+                  onChange={(color) => {
+                    const newHsva = { ...color, a: 1 };
+                    setHsva(newHsva);
+                    onChange?.(hsvaToHex(newHsva));
+                  }}
                 />
               </div>
             </div>
