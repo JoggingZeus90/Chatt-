@@ -1,10 +1,13 @@
 import { createContext, useContext, useEffect, useState } from "react";
 
-type Theme = "dark" | "light";
+type Theme = {
+  mode: "dark" | "light";
+  primary: string;
+};
 
 type ThemeProviderProps = {
   children: React.ReactNode;
-  defaultTheme?: Theme;
+  defaultTheme?: Theme["mode"];
   storageKey?: string;
 };
 
@@ -14,7 +17,10 @@ type ThemeProviderState = {
 };
 
 const initialState: ThemeProviderState = {
-  theme: "light",
+  theme: {
+    mode: "light",
+    primary: "#0066cc",
+  },
   setTheme: () => null,
 };
 
@@ -26,15 +32,24 @@ export function ThemeProvider({
   storageKey = "ui-theme",
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
-  );
+  const [theme, setTheme] = useState<Theme>(() => {
+    const storedTheme = localStorage.getItem(storageKey);
+    if (storedTheme) {
+      try {
+        return JSON.parse(storedTheme);
+      } catch {
+        return { mode: defaultTheme, primary: "#0066cc" };
+      }
+    }
+    return { mode: defaultTheme, primary: "#0066cc" };
+  });
 
   useEffect(() => {
     const root = window.document.documentElement;
     root.classList.remove("light", "dark");
-    root.classList.add(theme);
-    localStorage.setItem(storageKey, theme);
+    root.classList.add(theme.mode);
+    root.style.setProperty("--primary", theme.primary);
+    localStorage.setItem(storageKey, JSON.stringify(theme));
   }, [theme, storageKey]);
 
   const value = {
