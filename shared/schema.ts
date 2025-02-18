@@ -111,7 +111,9 @@ export const updateUserSchema = z.object({
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
-export type Room = typeof rooms.$inferSelect;
+export type Room = typeof rooms.$inferSelect & {
+  participants?: User[];
+};
 export type Message = typeof messages.$inferSelect;
 export type MessageWithUser = Message & { user: User };
 export type RoomMember = typeof roomMembers.$inferSelect;

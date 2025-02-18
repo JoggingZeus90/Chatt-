@@ -516,8 +516,7 @@ export default function ChatRoom({ room }: { room: Room }) {
               <div className="flex items-center text-sm text-muted-foreground gap-1">
                 <Users className="h-3 w-3" />
                 <span>
-                  {messages?.filter(m => m.user.isOnline).length ?? 0} online · {messages?.reduce((acc, m) =>
-                    acc.includes(m.userId) ? acc : [...acc, m.userId], [] as number[]).length ?? 0} total
+                  {room.participants?.filter(p => p.isOnline).length ?? 0} online · {room.participants?.length ?? 0} total
                 </span>
               </div>
             </div>

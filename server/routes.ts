@@ -146,7 +146,16 @@ export function registerRoutes(app: Express): Server {
     console.log(`GET request received for ${req.url}`); // Added request logging
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const rooms = await storage.getRooms();
-    res.json(rooms);
+
+    // Get participants for each room
+    const roomsWithParticipants = await Promise.all(
+      rooms.map(async (room) => {
+        const participants = await storage.getRoomMembers(room.id);
+        return { ...room, participants };
+      })
+    );
+
+    res.json(roomsWithParticipants);
   });
 
   app.post("/api/rooms", async (req, res) => {
