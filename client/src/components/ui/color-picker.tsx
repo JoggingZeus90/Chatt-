@@ -44,41 +44,46 @@ const ColorPicker = React.forwardRef<HTMLDivElement, ColorPickerProps>(
       if (!wheel) return;
 
       const rect = wheel.getBoundingClientRect();
-      const center = { x: rect.width / 2, y: rect.height / 2 };
-      const x = e.clientX - rect.left - center.x;
-      const y = e.clientY - rect.top - center.y;
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+
+      // Calculate relative position from center
+      const x = e.clientX - rect.left - centerX;
+      const y = e.clientY - rect.top - centerY;
+
+      // Calculate angle (hue) and distance from center (saturation)
+      let hue = Math.atan2(y, x) * (180 / Math.PI);
+      // Convert to positive degrees and rotate to match standard color wheel
+      hue = (hue + 360) % 360;
+
+      // Calculate distance for saturation (0-100%)
       const radius = rect.width / 2;
+      const distance = Math.sqrt(x * x + y * y);
+      const saturation = Math.min(distance / radius * 100, 100);
 
-      // Calculate angle and distance from center
-      let angle = Math.atan2(y, x) * (180 / Math.PI);
-      // Rotate 90 degrees counterclockwise to align with standard HSL color wheel
-      angle = (angle + 450) % 360;
-
-      const distance = Math.min(Math.sqrt(x * x + y * y), radius);
-      const saturation = (distance / radius) * 100;
-
-      const newColor = {
-        h: angle,
+      const newHsva = {
+        h: hue,
         s: saturation,
         v: 100,
         a: 1
       };
 
-      setHsva(newColor);
-      onChange?.(hsvaToHex(newColor));
+      setHsva(newHsva);
+      onChange?.(hsvaToHex(newHsva));
     };
 
     React.useEffect(() => {
       if (isDragging) {
         const handleGlobalMouseUp = () => setIsDragging(false);
         const handleGlobalMouseMove = (e: MouseEvent) => {
-          if (isDragging) {
+          if (isDragging && wheelRef.current) {
             handleColorSelect(e as unknown as React.MouseEvent<HTMLDivElement>);
           }
         };
 
         window.addEventListener('mouseup', handleGlobalMouseUp);
         window.addEventListener('mousemove', handleGlobalMouseMove);
+
         return () => {
           window.removeEventListener('mouseup', handleGlobalMouseUp);
           window.removeEventListener('mousemove', handleGlobalMouseMove);
@@ -86,8 +91,19 @@ const ColorPicker = React.forwardRef<HTMLDivElement, ColorPickerProps>(
       }
     }, [isDragging]);
 
+    // Calculate position for the selector dot
+    const selectorStyle = React.useMemo(() => {
+      const radius = (hsva.s / 100) * 120; // 120px is half of 240px (wheel size)
+      const angle = (hsva.h * Math.PI) / 180;
+      return {
+        left: `${radius * Math.cos(angle) + 120}px`,
+        top: `${radius * Math.sin(angle) + 120}px`,
+        backgroundColor: hsvaToHex(hsva),
+      };
+    }, [hsva]);
+
     return (
-      <div className="flex flex-col gap-2" ref={ref}>
+      <div className={cn("flex flex-col gap-2", className)} ref={ref}>
         {label && <Label>{label}</Label>}
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
@@ -134,11 +150,7 @@ const ColorPicker = React.forwardRef<HTMLDivElement, ColorPickerProps>(
                 />
                 <div
                   className="absolute w-4 h-4 transform -translate-x-1/2 -translate-y-1/2 border-2 border-white rounded-full shadow-md pointer-events-none"
-                  style={{
-                    left: `${(hsva.s / 100) * 120 * Math.cos((hsva.h + 90) * Math.PI / 180) + 120}px`,
-                    top: `${(hsva.s / 100) * 120 * Math.sin((hsva.h + 90) * Math.PI / 180) + 120}px`,
-                    backgroundColor: hsvaToHex(hsva),
-                  }}
+                  style={selectorStyle}
                 />
               </div>
             </div>
