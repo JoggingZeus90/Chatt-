@@ -670,11 +670,18 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
     if (!room.isPublic && !room.participants?.some(p => p.id === user?.id)) {
       const inviteCode = prompt("Please enter the invite code to join this private room:");
       if (inviteCode) {
-        console.log('Attempting to join with invite code:', inviteCode);
+        console.log('Attempting to join private room:', {
+          roomId: room.id,
+          inviteCode: inviteCode,
+          isPublic: room.isPublic
+        });
         joinRoomMutation.mutate(inviteCode);
       }
     } else if (!room.participants?.some(p => p.id === user?.id)) {
-      console.log('Attempting to join public room');
+      console.log('Attempting to join public room:', {
+        roomId: room.id,
+        isPublic: room.isPublic
+      });
       joinRoomMutation.mutate();
     }
   }, [room.id, room.isPublic, user?.id]);
@@ -888,7 +895,7 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
                 )}
                 <button
                   type="button"
-                  onClick={clearMediaPreview}
+                                    onClick={clearMediaPreview}
                   className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 hover:bg-destructive/90"
                 >
                   <X className="h-4 w-4" />
