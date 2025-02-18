@@ -326,7 +326,7 @@ export function registerRoutes(app: Express): Server {
 
     try {
       const roomId = parseInt(req.params.roomId);
-      const users = await storage.getUsersInRoom(roomId); // Using the updated getUsers method with roomId
+      const users = await storage.getRoomMembers(roomId);
 
       // Filter out sensitive information
       const safeUsers = users.map(user => ({
