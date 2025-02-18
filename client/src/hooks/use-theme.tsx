@@ -46,16 +46,16 @@ export function ThemeProvider({
 
   useEffect(() => {
     const root = window.document.documentElement;
+
     // Update color mode
     root.classList.remove("light", "dark");
     root.classList.add(theme.mode);
 
-    // Update CSS variables for primary color
+    // Convert hex to HSL for primary color
     const hsl = hexToHSL(theme.primary);
-    root.style.setProperty("--primary", hsl);
-    root.style.setProperty("--primary-h", `${hsl.h}`);
-    root.style.setProperty("--primary-s", `${hsl.s}%`);
-    root.style.setProperty("--primary-l", `${hsl.l}%`);
+
+    // Set CSS custom properties for Tailwind
+    root.style.setProperty("--primary", `${hsl.h} ${hsl.s}% ${hsl.l}%`);
 
     localStorage.setItem(storageKey, JSON.stringify(theme));
   }, [theme, storageKey]);
