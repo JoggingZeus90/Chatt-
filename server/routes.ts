@@ -183,16 +183,21 @@ export function registerRoutes(app: Express): Server {
     if (!parsed.success) return res.status(400).send(parsed.error.message);
 
     try {
-      // Generate invite code for private rooms
-      const inviteCode = !parsed.data.isPublic ?
-        `${Math.random().toString(36).substring(2, 8)}` :
-        null;
-
+      // Create room first without invite code
       const room = await storage.createRoom({
         ...parsed.data,
         createdById: req.user.id,
-        inviteCode
+        inviteCode: null // Initially set to null
       });
+
+      // For private rooms, update the invite code to be the room ID
+      if (!parsed.data.isPublic) {
+        await db
+          .update(schema.rooms)
+          .set({ inviteCode: room.id.toString() })
+          .where(eq(schema.rooms.id, room.id));
+        room.inviteCode = room.id.toString();
+      }
 
       // Add creator as first member
       await storage.joinRoom(room.id, req.user.id);
