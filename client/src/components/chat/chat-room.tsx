@@ -541,7 +541,7 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
               setIsSidebarCollapsed(!isSidebarCollapsed);
               onToggleSidebar();
             }}
-            className="flex-shrink-0 md:hidden"
+            className="flex-shrink-0"
             title={isSidebarCollapsed ? "Show sidebar" : "Hide sidebar"}
           >
             {isSidebarCollapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
