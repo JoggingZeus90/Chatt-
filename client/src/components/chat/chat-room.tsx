@@ -8,6 +8,27 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Send, Loader2, Image, X, ArrowDown, Pencil, Check, Trash2, LogOut, Users, PanelLeftClose, PanelLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { useDebouncedCallback } from "use-debounce";
+import { format } from "date-fns";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 
 // Define inappropriate words to filter
 const INAPPROPRIATE_WORDS = [

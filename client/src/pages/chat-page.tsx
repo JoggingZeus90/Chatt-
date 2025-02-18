@@ -10,7 +10,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Label } from "@/components/ui/label";
 import ChatRoom from "@/components/chat/chat-room";
 import { useState, useEffect } from "react";
-import { Plus, Loader2, Settings, LogOut, PanelLeftClose } from "lucide-react";
+import { Plus, Loader2, Settings, LogOut, PanelLeftClose, PanelLeft } from "lucide-react";
 import {
   Avatar,
   AvatarImage,
@@ -95,8 +95,14 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-screen">
-      <div className={`${isSidebarCollapsed ? "hidden" : "w-64"} md:block border-r bg-muted/50 flex flex-col h-full`}>
-        <div className="p-4 flex flex-col flex-grow">
+      <div 
+        className={`
+          ${isSidebarCollapsed ? "w-0" : "w-64"} 
+          border-r bg-muted/50 flex flex-col h-full overflow-hidden
+          transition-[width] duration-200 ease-in-out
+        `}
+      >
+        <div className="p-4 flex flex-col flex-grow min-w-[16rem]">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold">Chat Rooms</h2>
             <div className="flex gap-2">
@@ -133,15 +139,6 @@ export default function ChatPage() {
                   </form>
                 </DialogContent>
               </Dialog>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsSidebarCollapsed(true)}
-                className="md:hidden"
-                title="Hide sidebar"
-              >
-                <PanelLeftClose className="h-4 w-4" />
-              </Button>
             </div>
           </div>
           <div className="space-y-2 flex-1 overflow-auto">
@@ -159,7 +156,7 @@ export default function ChatPage() {
         </div>
 
         {/* User Profile Section - Fixed at bottom */}
-        <div className="border-t p-4 mt-auto space-y-4 bg-background/50">
+        <div className="border-t p-4 mt-auto space-y-4 bg-background/50 min-w-[16rem]">
           <div className="flex items-center justify-between p-2 bg-secondary/50 rounded-lg">
             <div className="flex items-center gap-2">
               <Avatar className="h-8 w-8">
