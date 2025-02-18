@@ -41,32 +41,50 @@ const INAPPROPRIATE_WORDS = [
 
 // Function to check if a word contains inappropriate content
 function containsInappropriateWord(text: string): boolean {
-  const words = text.toLowerCase().split(/\s+/);
-  return words.some(word =>
-    INAPPROPRIATE_WORDS.some(badWord =>
-      word.includes(badWord) ||
-      // Check for common letter substitutions
-      word.replace(/[01345$@]/g, (m) => ({
-        '0': 'o',
-        '1': 'i',
-        '3': 'e',
-        '4': 'a',
-        '5': 's',
-        '$': 's',
-        '@': 'a'
-      })[m] || m).includes(badWord)
-    )
-  );
+  // Split out URLs from the text to avoid filtering them
+  const parts = text.split(/(\b(?:https?:\/\/|www\.)[^\s]+\b)/g);
+  // Only check non-URL parts for inappropriate words
+  return parts
+    .filter((part, index) => index % 2 === 0) // Even indices are non-URL parts
+    .some(part => {
+      const words = part.toLowerCase().split(/\s+/);
+      return words.some(word =>
+        INAPPROPRIATE_WORDS.some(badWord =>
+          word.includes(badWord) ||
+          word.replace(/[01345$@]/g, (m) => ({
+            '0': 'o',
+            '1': 'i',
+            '3': 'e',
+            '4': 'a',
+            '5': 's',
+            '$': 's',
+            '@': 'a'
+          })[m] || m).includes(badWord)
+        )
+      );
+    });
 }
 
 // Function to replace inappropriate words with hashtags
 function filterInappropriateWords(text: string): string {
-  let filteredText = text;
-  INAPPROPRIATE_WORDS.forEach(word => {
-    const regex = new RegExp(word, 'gi');
-    filteredText = filteredText.replace(regex, match => '#'.repeat(match.length));
-  });
-  return filteredText;
+  // Split the text into URL and non-URL parts
+  const parts = text.split(/(\b(?:https?:\/\/|www\.)[^\s]+\b)/g);
+
+  // Process each part, preserving URLs
+  return parts
+    .map((part, index) => {
+      // If it's a URL (odd indices), keep it unchanged
+      if (index % 2 === 1) return part;
+
+      // For non-URL parts, apply the filter
+      let filteredText = part;
+      INAPPROPRIATE_WORDS.forEach(word => {
+        const regex = new RegExp(word, 'gi');
+        filteredText = filteredText.replace(regex, match => '#'.repeat(match.length));
+      });
+      return filteredText;
+    })
+    .join('');
 }
 
 const MAX_MESSAGE_LENGTH = 100;
@@ -572,26 +590,46 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
     }
   });
 
-  // Updated formatMessageContent function to handle mentions with spaces
+  // Updated formatMessageContent function to handle both mentions and URLs
   function formatMessageContent(content: string | null) {
     if (!content) return "";
 
-    return content.split(/(@[^@\s]+(?:\s+[^@\s]+)*\s)/).map((part, index) => {
-      if (part.startsWith('@')) {
-        return (
-          <span
-            key={index}
-            className="text-blue-500 font-medium hover:underline cursor-pointer"
-            onClick={() => {
-              console.log('Clicked mention:', part);
-            }}
-          >
-            {part}
-          </span>
-        );
-      }
-      return <span key={index}>{part}</span>;
-    });
+    // Split content into parts based on mentions and URLs
+    return content
+      .split(/(@[^@\s]+(?:\s+[^@\s]+)*\s|\b(?:https?:\/\/|www\.)[^\s]+\b)/g)
+      .map((part, index) => {
+        if (part.startsWith('@')) {
+          return (
+            <span
+              key={index}
+              className="text-blue-500 font-medium hover:underline cursor-pointer"
+              onClick={() => {
+                console.log('Clicked mention:', part);
+              }}
+            >
+              {part}
+            </span>
+          );
+        } else if (/^(?:https?:\/\/|www\.)[^\s]+$/.test(part)) {
+          // Convert www. links to include https://
+          const href = part.startsWith('www.') ? `https://${part}` : part;
+          return (
+            <a
+              key={index}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-500 hover:underline break-all"
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+            >
+              {part}
+            </a>
+          );
+        }
+        return <span key={index}>{part}</span>;
+      });
   }
 
   return (
@@ -877,7 +915,7 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
                                 <span>{user.username}</span>
                                 {user.isOnline && (
                                   <div className="h-2 w-2 rounded-full bg-green-500 ml-auto"
-                                       title="Online" />
+                                    title="Online" />
                                 )}
                               </CommandItem>
                             ))}
