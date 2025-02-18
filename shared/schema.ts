@@ -48,6 +48,7 @@ export const rooms = pgTable("rooms", {
     .notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   isPublic: boolean("is_public").notNull().default(true),
+  inviteCode: text("invite_code").unique(),
 });
 
 export const messages = pgTable("messages", {
@@ -117,7 +118,6 @@ export const updateUserSchema = z.object({
     .pipe(z.string().min(6, "Password must be at least 6 characters").optional()),
   avatarUrl: z.string().url().optional(),
 }).refine((data) => {
-  // Only require current password if new password is being set
   if (data.newPassword && !data.currentPassword) {
     return false;
   }

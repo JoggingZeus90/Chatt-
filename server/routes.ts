@@ -145,23 +145,37 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Chat rooms
+  // Modify getRooms endpoint to filter private rooms
   app.get("/api/rooms", async (req, res) => {
-    console.log(`GET request received for ${req.url}`); // Added request logging
+    console.log(`GET request received for ${req.url}`);
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    const rooms = await storage.getRooms();
 
-    // Get participants for each room
-    const roomsWithParticipants = await Promise.all(
-      rooms.map(async (room) => {
-        const participants = await storage.getRoomMembers(room.id);
-        return { ...room, participants };
-      })
-    );
+    try {
+      // Get all rooms first
+      const allRooms = await storage.getRooms();
 
-    res.json(roomsWithParticipants);
+      // Filter rooms to only show public ones and private ones where user is a member
+      const accessibleRooms = allRooms.filter(room =>
+        room.isPublic || room.participants?.some(p => p.id === req.user.id)
+      );
+
+      // Get participants for each accessible room
+      const roomsWithParticipants = await Promise.all(
+        accessibleRooms.map(async (room) => {
+          const participants = await storage.getRoomMembers(room.id);
+          return { ...room, participants };
+        })
+      );
+
+      res.json(roomsWithParticipants);
+    } catch (error) {
+      console.error('Error fetching rooms:', error);
+      res.status(500).send('Failed to fetch rooms');
+    }
   });
 
   // Create room and automatically add creator as member
+  // Update room creation to generate invite code for private rooms
   app.post("/api/rooms", async (req, res) => {
     console.log(`POST request received for ${req.url}`);
     if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -169,9 +183,15 @@ export function registerRoutes(app: Express): Server {
     if (!parsed.success) return res.status(400).send(parsed.error.message);
 
     try {
+      // Generate invite code for private rooms
+      const inviteCode = !parsed.data.isPublic ?
+        `${Math.random().toString(36).substring(2, 8)}` :
+        null;
+
       const room = await storage.createRoom({
         ...parsed.data,
         createdById: req.user.id,
+        inviteCode
       });
 
       // Add creator as first member
@@ -352,11 +372,29 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Leave room
+  // Update leave room to properly remove user
   app.post("/api/rooms/:roomId/leave", async (req, res) => {
-    console.log(`POST request received for ${req.url}`); // Added request logging
+    console.log(`POST request received for ${req.url}`);
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    await storage.leaveRoom(parseInt(req.params.roomId), req.user.id);
-    res.sendStatus(200);
+
+    try {
+      const roomId = parseInt(req.params.roomId);
+      const userId = req.user.id;
+
+      await storage.leaveRoom(roomId, userId);
+
+      // After leaving, check if this was the last member
+      const members = await storage.getRoomMembers(roomId);
+      if (members.length === 0) {
+        // If no members left, delete the room
+        await storage.deleteRoom(roomId, userId);
+      }
+
+      res.sendStatus(200);
+    } catch (error) {
+      console.error('Error leaving room:', error);
+      res.status(500).send('Failed to leave room');
+    }
   });
 
   // Get room members (only members who have access to the room)

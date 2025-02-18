@@ -73,6 +73,16 @@ export default function ChatPage() {
     },
   });
 
+  const leaveRoomMutation = useMutation({
+    mutationFn: async (roomId: number) => {
+      await apiRequest("POST", `/api/rooms/${roomId}/leave`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
+      setSelectedRoom(null);
+    },
+  });
+
   const form = useForm({
     resolver: zodResolver(insertRoomSchema),
     defaultValues: {
@@ -87,6 +97,10 @@ export default function ChatPage() {
       await apiRequest("POST", `/api/rooms/${room.id}/mentions/clear`);
       queryClient.invalidateQueries({ queryKey: ["/api/mentions/unread"] });
     }
+  };
+
+  const handleLeaveRoom = async (roomId: number) => {
+    await leaveRoomMutation.mutate(roomId);
   };
 
   useEffect(() => {
@@ -176,7 +190,14 @@ export default function ChatPage() {
                 onClick={() => handleRoomSelect(room)}
               >
                 {!room.isPublic && <Lock className="h-4 w-4 flex-shrink-0" />}
-                <span className="truncate">{room.name}</span>
+                <span className="truncate">
+                  {room.name}
+                  {!room.isPublic && room.inviteCode && (
+                    <span className="ml-2 text-xs text-muted-foreground">
+                      ({room.inviteCode})
+                    </span>
+                  )}
+                </span>
                 {unreadMentions?.some(m => m.roomId === room.id) && (
                   <div className="absolute right-2 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-blue-500" />
                 )}
@@ -225,6 +246,7 @@ export default function ChatPage() {
           <ChatRoom
             room={selectedRoom}
             onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            onLeave={handleLeaveRoom}
           />
         ) : (
           <div className="flex items-center justify-center h-full text-muted-foreground">
