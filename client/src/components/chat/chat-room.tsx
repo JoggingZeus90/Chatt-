@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Room, MessageWithUser, User } from "@shared/schema"; // Added User import
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Send, Loader2, Image, X, ArrowDown, Pencil, Check, Trash2, LogOut, Users, PanelLeftClose, PanelLeft, Link2 } from "lucide-react";
+import { Send, Loader2, Image, X, ArrowDown, Pencil, Check, Trash2, LogOut, Users, PanelLeftClose, PanelLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useDebouncedCallback } from "use-debounce";
@@ -576,14 +576,7 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
   function formatMessageContent(content: string | null) {
     if (!content) return "";
 
-    // Split content into parts that are either:
-    // 1. @mentions followed by space
-    // 2. URLs (http/https)
-    // 3. Regular text
-    const parts = content.split(/(@[^@\s]+(?:\s+[^@\s]+)*\s|(?:https?:\/\/[^\s]+))/);
-
-    return parts.map((part, index) => {
-      // Handle @mentions
+    return content.split(/(@[^@\s]+(?:\s+[^@\s]+)*\s)/).map((part, index) => {
       if (part.startsWith('@')) {
         return (
           <span
@@ -597,39 +590,8 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
           </span>
         );
       }
-
-      // Handle URLs
-      if (isValidUrl(part)) {
-        return (
-          <a
-            key={index}
-            href={part}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-500 hover:underline inline-flex items-center gap-1"
-            onClick={(e) => {
-              e.stopPropagation(); // Prevent message click handlers
-            }}
-          >
-            <Link2 className="h-3 w-3" />
-            {part}
-          </a>
-        );
-      }
-
-      // Return regular text
       return <span key={index}>{part}</span>;
     });
-  }
-
-  // Function to check if a string is a valid URL
-  function isValidUrl(string: string) {
-    try {
-      new URL(string);
-      return true;
-    } catch (_) {
-      return false;
-    }
   }
 
   return (
