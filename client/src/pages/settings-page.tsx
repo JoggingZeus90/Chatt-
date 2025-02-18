@@ -1,7 +1,7 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Form, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { UserManagement } from "@/components/ui/user-management";
@@ -11,6 +11,7 @@ import {
   AvatarImage,
   AvatarFallback,
 } from "@/components/ui/avatar";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -145,188 +146,183 @@ export default function SettingsPage() {
         </Link>
 
         <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Appearance</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-medium">Theme</h3>
-                <p className="text-sm text-muted-foreground">
-                  Switch between light and dark mode
-                </p>
+          <Tabs defaultValue="appearance" className="w-full">
+            <TabsList className="w-full">
+              <TabsTrigger value="appearance" className="flex-1">Appearance</TabsTrigger>
+              <TabsTrigger value="profile" className="flex-1">Profile</TabsTrigger>
+              {isAdmin && <TabsTrigger value="admin" className="flex-1">Admin</TabsTrigger>}
+            </TabsList>
+
+            <TabsContent value="appearance" className="p-6 space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium">Theme</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Switch between light and dark mode
+                  </p>
+                </div>
+                <ThemeToggle />
               </div>
-              <ThemeToggle />
-            </div>
 
-            <div className="space-y-2">
-              <h3 className="font-medium">Colors</h3>
-              <p className="text-sm text-muted-foreground">
-                Customize the accent colors used throughout the app
-              </p>
-              <ColorPicker
-                label="Primary Color"
-                value={theme.primary}
-                onChange={(newColor) => {
-                  setTheme({
-                    ...theme,
-                    primary: newColor,
-                  });
-                }}
-              />
-            </div>
-          </CardContent>
-        </Card>
+              <div className="space-y-2">
+                <h3 className="font-medium">Colors</h3>
+                <p className="text-sm text-muted-foreground">
+                  Customize the accent colors used throughout the app
+                </p>
+                <ColorPicker
+                  label="Primary Color"
+                  value={theme.primary}
+                  onChange={(newColor) => {
+                    setTheme({
+                      ...theme,
+                      primary: newColor,
+                    });
+                  }}
+                />
+              </div>
+            </TabsContent>
 
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Profile Settings</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit((data) => updateProfileMutation.mutate(data))} className="space-y-6">
-                <div className="flex flex-col items-center space-y-4">
-                  <Avatar className="h-24 w-24">
-                    <AvatarImage src={form.watch("avatarUrl")} />
-                    <AvatarFallback>
-                      {form.watch("username")?.[0]?.toUpperCase() || '?'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => document.getElementById('avatar-upload')?.click()}
-                    >
-                      <Upload className="w-4 h-4 mr-2" />
-                      Upload Image
-                    </Button>
-                    <input
-                      id="avatar-upload"
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleFileUpload}
+            <TabsContent value="profile" className="p-6">
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit((data) => updateProfileMutation.mutate(data))} className="space-y-6">
+                  <div className="flex flex-col items-center space-y-4">
+                    <Avatar className="h-24 w-24">
+                      <AvatarImage src={form.watch("avatarUrl")} />
+                      <AvatarFallback>
+                        {form.watch("username")?.[0]?.toUpperCase() || '?'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => document.getElementById('avatar-upload')?.click()}
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        Upload Image
+                      </Button>
+                      <input
+                        id="avatar-upload"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleFileUpload}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="avatarUrl"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Avatar URL (optional)</FormLabel>
+                          <Input
+                            type="url"
+                            placeholder="https://example.com/avatar.jpg"
+                            {...field}
+                          />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="username"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Username</FormLabel>
+                          <Input {...field} />
+                          <FormMessage />
+                          <p className="text-sm text-muted-foreground mt-2">
+                            You can only change your username once every 7 days.
+                          </p>
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="currentPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Current Password</FormLabel>
+                          <Input type="password" {...field} />
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="newPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>New Password (optional)</FormLabel>
+                          <Input type="password" {...field} />
+                          <FormMessage />
+                        </FormItem>
+                      )}
                     />
                   </div>
-                </div>
 
-                <div className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="avatarUrl"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Avatar URL (optional)</FormLabel>
-                        <Input
-                          type="url"
-                          placeholder="https://example.com/avatar.jpg"
-                          {...field}
-                        />
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="flex justify-end gap-4">
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button type="button" variant="destructive">
+                          Delete Account
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete your
+                            account and remove all of your data from our servers.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => deleteAccountMutation.mutate()}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            {deleteAccountMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <>
+                                <AlertTriangle className="h-4 w-4 mr-2" />
+                                Delete Account
+                              </>
+                            )}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
 
-                  <FormField
-                    control={form.control}
-                    name="username"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Username</FormLabel>
-                        <Input {...field} />
-                        <FormMessage />
-                        <p className="text-sm text-muted-foreground mt-2">
-                          You can only change your username once every 7 days.
-                        </p>
-                      </FormItem>
-                    )}
-                  />
+                    <Button
+                      type="submit"
+                      disabled={updateProfileMutation.isPending}
+                    >
+                      {updateProfileMutation.isPending && (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      )}
+                      Save Changes
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            </TabsContent>
 
-                  <FormField
-                    control={form.control}
-                    name="currentPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Current Password</FormLabel>
-                        <Input type="password" {...field} />
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="newPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>New Password (optional)</FormLabel>
-                        <Input type="password" {...field} />
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="flex justify-end gap-4">
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button type="button" variant="destructive">
-                        Delete Account
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This action cannot be undone. This will permanently delete your
-                          account and remove all of your data from our servers.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => deleteAccountMutation.mutate()}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          {deleteAccountMutation.isPending ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <>
-                              <AlertTriangle className="h-4 w-4 mr-2" />
-                              Delete Account
-                            </>
-                          )}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-
-                  <Button
-                    type="submit"
-                    disabled={updateProfileMutation.isPending}
-                  >
-                    {updateProfileMutation.isPending && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    )}
-                    Save Changes
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          </CardContent>
+            {isAdmin && (
+              <TabsContent value="admin" className="p-6">
+                <UserManagement />
+              </TabsContent>
+            )}
+          </Tabs>
         </Card>
-
-        {isAdmin && (
-          <Card>
-            <CardHeader>
-              <CardTitle>User Management</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <UserManagement />
-            </CardContent>
-          </Card>
-        )}
       </div>
     </div>
   );
