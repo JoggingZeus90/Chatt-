@@ -17,23 +17,15 @@ interface ColorPickerProps extends Omit<React.InputHTMLAttributes<HTMLInputEleme
 const ColorPicker = React.forwardRef<HTMLDivElement, ColorPickerProps>(
   ({ label, className, value = '#000000', onChange, ...props }, ref) => {
     const [open, setOpen] = React.useState(false)
-    const hsva = React.useMemo(() => {
-      const converted = hexToHsva(value);
-      console.log('Converting hex to hsva:', value, converted);
-      return converted;
+    const [hsva, setHsva] = React.useState(() => hexToHsva(value));
+
+    React.useEffect(() => {
+      setHsva(hexToHsva(value));
     }, [value]);
 
-    const handleColorChange = React.useCallback((color: any) => {
-      console.log('Color wheel onChange:', color);
-      const newHsva = {
-        h: color.h,
-        s: color.s,
-        v: color.v,
-        a: 1
-      };
-      const newHex = hsvaToHex(newHsva);
-      console.log('Converting hsva to hex:', newHsva, newHex);
-      onChange?.(newHex);
+    const handleColorChange = React.useCallback((color: { h: number; s: number; v: number }) => {
+      setHsva({ h: color.h, s: color.s, v: color.v, a: 1 });
+      onChange?.(hsvaToHex({ h: color.h, s: color.s, v: color.v, a: 1 }));
     }, [onChange]);
 
     return (
