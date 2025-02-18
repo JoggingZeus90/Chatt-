@@ -169,7 +169,6 @@ export default function SettingsPage() {
                 value={theme.primary}
                 onChange={(e) => {
                   const newColor = e.target.value;
-                  document.documentElement.style.setProperty('--primary', newColor);
                   setTheme({
                     ...theme,
                     primary: newColor,
