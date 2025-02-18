@@ -823,26 +823,30 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
                     </Command>
                   </div>
                 )}
-                {showMentions && room.participants && (
+                {showMentions && (
                   <div className="absolute bottom-full mb-1 left-0 w-full z-50 max-h-[50vh] overflow-auto">
                     <Command className="border rounded-lg shadow-lg">
                       <CommandInput placeholder="Search users..." value={mentionSearch} onValueChange={setMentionSearch} />
                       <CommandList>
                         <CommandEmpty>No users found.</CommandEmpty>
                         <CommandGroup heading="Users">
-                          {room.participants
-                            .filter(p => p.username.toLowerCase().includes(mentionSearch.toLowerCase()))
-                            .map((participant) => (
+                          {allUsers
+                            ?.filter(p => p.username.toLowerCase().includes(mentionSearch.toLowerCase()))
+                            .map((user) => (
                               <CommandItem
-                                key={participant.id}
-                                onSelect={() => handleMentionSelect(participant.username)}
+                                key={user.id}
+                                onSelect={() => handleMentionSelect(user.username)}
                                 className="flex items-center gap-2"
                               >
                                 <Avatar className="h-6 w-6">
-                                  <AvatarImage src={participant.avatarUrl ?? undefined} />
-                                  <AvatarFallback>{participant.username[0].toUpperCase()}</AvatarFallback>
+                                  <AvatarImage src={user.avatarUrl ?? undefined} />
+                                  <AvatarFallback>{user.username[0].toUpperCase()}</AvatarFallback>
                                 </Avatar>
-                                <span>{participant.username}</span>
+                                <span>{user.username}</span>
+                                {user.isOnline && (
+                                  <div className="h-2 w-2 rounded-full bg-green-500 ml-auto" 
+                                       title="Online" />
+                                )}
                               </CommandItem>
                             ))}
                         </CommandGroup>
@@ -900,7 +904,7 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
                 </div>
               </div>
             ))}
-          </div>
+                    </div>
         </div>
       </div>
       <audio ref={messageSoundRef} src={GOOGLE_MESSAGE_SOUND_URL} preload="auto" />
