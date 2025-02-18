@@ -320,8 +320,8 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
     setShowCommands(false);
     if (!message.trim() && !mediaFile) return;
 
-    // Check for mentions in the message
-    const mentions = message.match(/@(\w+)/g)?.map(mention => mention.slice(1)) || [];
+    // Check for mentions in the message - Updated to handle spaces
+    const mentions = message.match(/@([^@\s]+(?:\s+[^@\s]+)*)/g)?.map(mention => mention.slice(1)) || [];
 
     if (user?.muted) {
       const mutedUntil = new Date(user.mutedUntil!);
@@ -441,15 +441,15 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
     if (newValue.length <= MAX_MESSAGE_LENGTH) {
       setMessage(newValue);
 
-      // Check for @ mentions
+      // Check for @ mentions - updated regex to handle spaces
       const cursorPosition = e.target.selectionStart || 0;
       const beforeCursor = newValue.slice(0, cursorPosition);
-      const match = beforeCursor.match(/@(\w*)$/);
+      const match = beforeCursor.match(/@([^@]*)$/);
 
       if (match) {
         const matchStart = match.index!;
         setShowMentions(true);
-        setMentionSearch(match[1]);
+        setMentionSearch(match[1].trim());
         mentionMatchRef.current = { start: matchStart, end: cursorPosition };
       } else {
         setShowMentions(false);
@@ -562,6 +562,26 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
     queryKey: ["/api/users"],
     refetchInterval: 1000, // Poll to keep online status updated
   });
+
+  // Updated formatMessageContent function to handle mentions with spaces
+  function formatMessageContent(content: string) {
+    return content.split(/(@[^@\s]+(?:\s+[^@\s]+)*\s)/).map((part, index) => {
+      if (part.startsWith('@')) {
+        return (
+          <span
+            key={index}
+            className="text-blue-500 font-medium hover:underline cursor-pointer"
+            onClick={() => {
+              console.log('Clicked mention:', part);
+            }}
+          >
+            {part}
+          </span>
+        );
+      }
+      return <span key={index}>{part}</span>;
+    });
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -723,7 +743,7 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
               </div>
             ) : (
               messages?.map((message) => (
-                <MessageBubble key={message.id} message={message} roomId={room.id} />
+                <MessageBubble key={message.id} message={{...message, content: formatMessageContent(message.content)}} roomId={room.id} />
               ))
             )}
             <div ref={messagesEndRef} />
@@ -873,7 +893,7 @@ export default function ChatRoom({ room, onToggleSidebar }: { room: Room; onTogg
           </form>
         </div>
 
-        {/* Users sidebar -  Replaced with updated JSX from edited snippet */}
+        {/* Users sidebar */}
         <div className="w-64 border-l bg-muted/10 overflow-y-auto p-4 hidden md:block">
           <h3 className="font-semibold mb-4">Users</h3>
           <div className="space-y-2">
