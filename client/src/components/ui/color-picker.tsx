@@ -44,21 +44,21 @@ const ColorPicker = React.forwardRef<HTMLDivElement, ColorPickerProps>(
       if (!wheel) return;
 
       const rect = wheel.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      const centerX = rect.width / 2;
-      const centerY = rect.height / 2;
+      const x = e.clientX - rect.left - rect.width / 2;  // Centered x coordinate
+      const y = e.clientY - rect.top - rect.height / 2;  // Centered y coordinate
+      const radius = rect.width / 2;
 
       // Calculate angle and distance from center
-      const angle = Math.atan2(y - centerY, x - centerX);
-      const distance = Math.min(Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2)), centerX);
+      // atan2 returns angle in radians, convert to degrees and adjust to start from right (0°)
+      let angle = Math.atan2(y, x) * (180 / Math.PI);
+      // Normalize angle to [0, 360) range, starting from right and going counterclockwise
+      angle = (angle + 360) % 360;
 
-      // Convert to HSV
-      const hue = ((angle * 180 / Math.PI) + 360) % 360;
-      const saturation = (distance / centerX) * 100;
+      const distance = Math.min(Math.sqrt(x * x + y * y), radius);
+      const saturation = (distance / radius) * 100;
 
       const newColor = {
-        h: hue,
+        h: angle,
         s: saturation,
         v: 100,
         a: 1
@@ -110,7 +110,7 @@ const ColorPicker = React.forwardRef<HTMLDivElement, ColorPickerProps>(
                 className="relative w-[240px] h-[240px] rounded-full cursor-crosshair"
                 style={{
                   background: `conic-gradient(
-                    from 0deg,
+                    from 90deg,
                     hsl(0, 100%, 50%),
                     hsl(60, 100%, 50%),
                     hsl(120, 100%, 50%),
@@ -136,8 +136,8 @@ const ColorPicker = React.forwardRef<HTMLDivElement, ColorPickerProps>(
                 <div
                   className="absolute w-4 h-4 -mt-2 -ml-2 border-2 border-white rounded-full shadow-md pointer-events-none"
                   style={{
-                    left: `${(hsva.s / 100) * 120 * Math.cos((hsva.h * Math.PI) / 180) + 120}px`,
-                    top: `${(hsva.s / 100) * 120 * Math.sin((hsva.h * Math.PI) / 180) + 120}px`,
+                    left: `${(hsva.s / 100) * 120 * Math.cos((hsva.h - 90) * Math.PI / 180) + 120}px`,
+                    top: `${(hsva.s / 100) * 120 * Math.sin((hsva.h - 90) * Math.PI / 180) + 120}px`,
                     backgroundColor: hsvaToHex(hsva),
                   }}
                 />
