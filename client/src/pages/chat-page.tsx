@@ -68,19 +68,19 @@ export default function ChatPage() {
       }
     },
     onSuccess: ({ roomId }) => {
-      // Get current mentions from the cache
-      const currentMentions = queryClient.getQueryData<{ roomId: number; count: number }[]>(["/api/mentions/unread"]);
+      // Immediately update the cache to remove mentions
+      queryClient.setQueryData<{ roomId: number; count: number }[]>(
+        ["/api/mentions/unread"],
+        (old) => (old || []).filter(mention => mention.roomId !== roomId)
+      );
 
-      if (currentMentions) {
-        // Remove mentions for the cleared room
-        const updatedMentions = currentMentions.filter(mention => mention.roomId !== roomId);
+      // Temporarily pause the query to prevent immediate refetch
+      queryClient.cancelQueries({ queryKey: ["/api/mentions/unread"] });
 
-        // Update the cache with the filtered mentions
-        queryClient.setQueryData(["/api/mentions/unread"], updatedMentions);
-
-        // Invalidate the query to trigger a background refetch
+      // Schedule a delayed refetch to ensure server state is consistent
+      setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ["/api/mentions/unread"] });
-      }
+      }, 2000);
     },
     onError: (error: Error) => {
       toast({
