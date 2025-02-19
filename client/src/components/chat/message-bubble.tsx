@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { format } from "date-fns";
 import { UserStatus } from "./user-status";
 import { useState, useEffect, useRef } from "react";
-import { AlertCircle, Loader2, Trash2, Pencil, X, Check } from "lucide-react";
+import { AlertCircle, Loader2, Trash2, Pencil, X, Check, Maximize2 } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -20,6 +20,11 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 const MAX_MESSAGE_LENGTH = 100;
 
@@ -28,16 +33,13 @@ interface ExtendedMessageWithUser extends MessageWithUser {
   mentions?: string[];
 }
 
-// Function to parse and style mentions and links in message content
 function formatMessageContent(content: string | null) {
   if (!content) return "";
 
-  // Updated regex to properly handle mention boundaries
   return content
     .split(/(@(?:everyone|admin|mod|[^@\s]+)(?:\s|$)|\b(?:https?:\/\/|www\.)[^\s]+\b)/g)
     .map((part, index) => {
       if (part?.startsWith('@')) {
-        // Trim any trailing space from the mention
         const mention = part.trim();
         return (
           <span
@@ -81,16 +83,11 @@ export function MessageBubble({ message, roomId }: { message: ExtendedMessageWit
   const [imageLoading, setImageLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(message.content || "");
+  const [showImageModal, setShowImageModal] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  // If this is a whisper and the current user can't see it, don't render anything
-  if (!canSeeWhisper) {
-    return null;
-  }
-
-  // Create an absolute URL for the media
   const mediaUrl = message.mediaUrl
     ? message.mediaUrl.startsWith('http')
       ? message.mediaUrl
@@ -169,6 +166,10 @@ export function MessageBubble({ message, roomId }: { message: ExtendedMessageWit
     }
   };
 
+  if (!canSeeWhisper) {
+    return null;
+  }
+
   return (
     <div
       className={cn("flex gap-2 mb-4", {
@@ -194,7 +195,6 @@ export function MessageBubble({ message, roomId }: { message: ExtendedMessageWit
           }
         )}
       >
-        {/* Message header with username and timestamp */}
         <div className="flex items-baseline gap-2">
           {!isOwn && (
             <div className="flex items-baseline gap-2">
@@ -209,7 +209,6 @@ export function MessageBubble({ message, roomId }: { message: ExtendedMessageWit
           </span>
         </div>
 
-        {/* Whisper indicator */}
         {isWhisper && (
           <div className="text-xs italic mb-1">
             {isOwn
@@ -219,7 +218,6 @@ export function MessageBubble({ message, roomId }: { message: ExtendedMessageWit
           </div>
         )}
 
-        {/* Message content with highlighted mentions */}
         {message.content && !isEditing && (
           <div className="mt-1">
             <p>{formatMessageContent(message.content)}</p>
@@ -231,27 +229,42 @@ export function MessageBubble({ message, roomId }: { message: ExtendedMessageWit
           </div>
         )}
 
-        {/* Media content */}
         {mediaUrl && message.mediaType === "image" && !imageError && (
-          <div className="mt-2 relative">
+          <div className="mt-2 relative group">
             {imageLoading && (
               <div className="absolute inset-0 flex items-center justify-center bg-secondary/20">
                 <Loader2 className="h-6 w-6 animate-spin" />
               </div>
             )}
-            <img
-              ref={imgRef}
-              src={mediaUrl}
-              alt="Shared image"
-              className="rounded-lg max-w-full max-h-64 object-contain"
-              onError={() => {
-                setImageError(true);
-                setImageLoading(false);
-              }}
-              onLoad={() => {
-                setImageLoading(false);
-              }}
-            />
+            <Dialog open={showImageModal} onOpenChange={setShowImageModal}>
+              <DialogTrigger asChild>
+                <div className="relative cursor-pointer group">
+                  <img
+                    ref={imgRef}
+                    src={mediaUrl}
+                    alt="Shared image"
+                    className="rounded-lg max-w-full max-h-64 object-contain"
+                    onError={() => {
+                      setImageError(true);
+                      setImageLoading(false);
+                    }}
+                    onLoad={() => {
+                      setImageLoading(false);
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                    <Maximize2 className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
+                  </div>
+                </div>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl w-full p-0 bg-transparent border-0">
+                <img
+                  src={mediaUrl}
+                  alt="Full size image"
+                  className="w-full h-full object-contain rounded-lg"
+                />
+              </DialogContent>
+            </Dialog>
           </div>
         )}
 
@@ -262,7 +275,6 @@ export function MessageBubble({ message, roomId }: { message: ExtendedMessageWit
           </div>
         )}
 
-        {/* Message actions */}
         <div className={cn(
           "absolute top-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2",
           isOwn ? "-left-20" : "-right-8"
@@ -310,7 +322,6 @@ export function MessageBubble({ message, roomId }: { message: ExtendedMessageWit
           )}
         </div>
 
-        {/* Edit form */}
         {isEditing && (
           <div className="mt-1 space-y-2">
             <Input
