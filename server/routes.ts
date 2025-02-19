@@ -346,7 +346,7 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ error: "Room not found" });
       }
 
-      if (!room.isPublic && room.inviteCode !== providedCode) {
+      if (room.inviteCode && room.inviteCode !== providedCode) {
         console.log('Invalid invite code:', { provided: providedCode, expected: room.inviteCode });
         return res.status(403).json({ error: "Invalid invite code" });
       }

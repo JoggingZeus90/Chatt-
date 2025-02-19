@@ -113,7 +113,7 @@ export default function ChatPage() {
     mutationFn: async (code: string) => {
       const rooms = await apiRequest("GET", "/api/rooms");
       const roomsData = await rooms.json();
-      const room = roomsData.find((r: any) => !r.isPublic && r.inviteCode === code);
+      const room = roomsData.find((r: any) => r.inviteCode === code);
       
       if (!room) {
         throw new Error("Invalid room code");
