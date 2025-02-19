@@ -429,8 +429,10 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
     setShowCommands(false);
     if (!message.trim() && !mediaFile) return;
 
-    // Check for mentions in the message - Updated to handle spaces
-    const mentions = message.match(/@([^@\s]+(?:\s+[^@\s]+)*)/g)?.map(mention => mention.slice(1)) || [];
+    // Updated mention extraction regex to handle spaces in usernames
+    const mentions = message.match(/@([^@\n]+?)(?:\s|$)/g)?.map(mention => 
+      mention.slice(1).trim()
+    ).filter(Boolean) || [];
 
     if (user?.muted) {
       const mutedUntil = new Date(user.mutedUntil!);
@@ -553,8 +555,8 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
       // Check for @ mentions
       const cursorPosition = e.target.selectionStart || 0;
       const beforeCursor = newValue.slice(0, cursorPosition);
-      // Updated regex to better handle spaces in usernames
-      const match = beforeCursor.match(/@([^@]*)(?:\s+|$)$/);
+      // Updated regex to handle spaces properly
+      const match = beforeCursor.match(/@([^@\n]+?)(?:\s+|$)$/);
 
       if (match) {
         const matchStart = match.index!;
@@ -565,9 +567,6 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
         setShowMentions(false);
         mentionMatchRef.current = null;
       }
-
-      // Check for mentions in the message - Updated to handle spaces
-      const mentions = message.match(/@([^@\s]+(?:\s+[^@\s]+)*)/g)?.map(mention => mention.slice(1)) || [];
 
       setIsTyping(true);
       apiRequest("POST", `/api/rooms/${room.id}/typing`, { isTyping: true })

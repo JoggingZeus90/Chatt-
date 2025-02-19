@@ -34,7 +34,7 @@ export default function ChatPage() {
 
   const { data: rooms, isLoading } = useQuery<Room[]>({
     queryKey: ["/api/rooms"],
-    refetchInterval: 5000, 
+    refetchInterval: 5000,
     select: (rooms) => {
       console.log("Raw rooms data:", rooms);
       return rooms.map(room => ({
@@ -44,7 +44,7 @@ export default function ChatPage() {
     }
   });
 
-  const { data: unreadMentions } = useQuery<{ roomId: number; count: number }[]>({
+  const { data: unreadMentions, isLoading: isLoadingMentions } = useQuery<{ roomId: number; count: number }[]>({
     queryKey: ["/api/mentions/unread"],
     refetchInterval: 1000,
   });
@@ -141,7 +141,7 @@ export default function ChatPage() {
     };
   }, [user, logoutMutation.isPending]);
 
-  if (isLoading) {
+  if (isLoading || isLoadingMentions) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -201,7 +201,7 @@ export default function ChatPage() {
                     )}
                   </span>
                   {hasUnreadMentions && (
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-blue-500 animate-pulse shadow-lg" />
                   )}
                 </Button>
               );
