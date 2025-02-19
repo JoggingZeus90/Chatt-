@@ -118,14 +118,16 @@ export default function SettingsPage() {
         description: "Your profile has been updated successfully.",
       });
 
-      // Update form with new values
-      form.reset({
-        username: updatedUser.username,
-        avatarUrl: updatedUser.avatarUrl || "",
-        currentPassword: "",
-        newPassword: "",
-        appearOffline: updatedUser.appearOffline,
-      });
+      // Only reset the form if this is a full profile update
+      if (Object.keys(form.getValues()).length > 1) {
+        form.reset({
+          username: updatedUser.username,
+          avatarUrl: updatedUser.avatarUrl || "",
+          currentPassword: "",
+          newPassword: "",
+          appearOffline: updatedUser.appearOffline,
+        });
+      }
     },
     onError: (error: Error) => {
       toast({
@@ -140,7 +142,6 @@ export default function SettingsPage() {
     form.setValue("appearOffline", checked);
     // Immediately submit the form when appearOffline changes
     updateProfileMutation.mutate({
-      ...form.getValues(),
       appearOffline: checked,
     });
   };
