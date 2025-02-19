@@ -142,9 +142,10 @@ export default function SettingsPage() {
     form.setValue("appearOffline", checked);
 
     try {
-      // Only send the appearOffline field to update
-      const updatedUser = await updateProfileMutation.mutateAsync({
-        appearOffline: checked
+      // Send the appearOffline update through the mutation
+      await updateProfileMutation.mutateAsync({
+        appearOffline: checked,
+        currentPassword: "", // Add empty string for current password since it's required by the schema
       });
 
       // Update the user data in the cache to reflect new status
