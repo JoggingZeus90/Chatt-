@@ -257,7 +257,7 @@ export function MessageBubble({ message, roomId }: { message: ExtendedMessageWit
                   </div>
                 </div>
               </DialogTrigger>
-              <DialogContent className="fixed inset-0 bg-black/90 border-0 p-0 flex items-center justify-center">
+              <DialogContent className="fixed inset-0 bg-black/90 border-0 p-0 m-0 w-screen h-screen flex items-center justify-center">
                 <Button
                   variant="ghost"
                   size="icon"
