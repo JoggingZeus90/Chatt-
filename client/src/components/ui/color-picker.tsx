@@ -5,16 +5,19 @@ import { hexToHsva, hsvaToHex } from '@uiw/color-convert';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
 import { Paintbrush } from "lucide-react"
+import { Slider } from "@/components/ui/slider"
 
 interface ColorPickerProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange'> {
   label?: string
   className?: string
   value?: string
+  contrast?: number
   onChange?: (value: string) => void
+  onContrastChange?: (value: number) => void
 }
 
 const ColorPicker = React.forwardRef<HTMLDivElement, ColorPickerProps>(
-  ({ label, className, value = '#000000', onChange, ...props }, ref) => {
+  ({ label, className, value = '#000000', contrast = 100, onChange, onContrastChange, ...props }, ref) => {
     const [open, setOpen] = React.useState(false)
     const [hsva, setHsva] = React.useState(() => hexToHsva(value));
     const wheelRef = React.useRef<HTMLDivElement>(null);
@@ -52,8 +55,6 @@ const ColorPicker = React.forwardRef<HTMLDivElement, ColorPickerProps>(
       const y = e.clientY - rect.top - centerY;
 
       // Calculate angle and distance from center
-      // atan2 returns angle in radians, convert to degrees
-      // Subtract 90 to align with standard color wheel (red at 0°)
       let hue = Math.atan2(-x, y) * (180 / Math.PI) + 180;
 
       // Calculate distance for saturation (0-100%)
@@ -92,7 +93,7 @@ const ColorPicker = React.forwardRef<HTMLDivElement, ColorPickerProps>(
 
     // Calculate position for the selector dot
     const selectorStyle = React.useMemo(() => {
-      const radius = (hsva.s / 100) * 120; // 120px is half of 240px (wheel size)
+      const radius = (hsva.s / 100) * 120;
       const angleRad = ((hsva.h - 180) * Math.PI) / 180;
       return {
         left: `${-radius * Math.sin(angleRad) + 120}px`,
@@ -152,6 +153,22 @@ const ColorPicker = React.forwardRef<HTMLDivElement, ColorPickerProps>(
                   className="absolute w-4 h-4 transform -translate-x-1/2 -translate-y-1/2 border-2 border-white rounded-full shadow-md pointer-events-none"
                   style={selectorStyle}
                 />
+              </div>
+              <div className="space-y-2">
+                <Label>Contrast</Label>
+                <Slider
+                  value={[contrast]}
+                  min={50}
+                  max={150}
+                  step={1}
+                  onValueChange={([value]) => onContrastChange?.(value)}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>50%</span>
+                  <span>{contrast}%</span>
+                  <span>150%</span>
+                </div>
               </div>
             </div>
           </PopoverContent>

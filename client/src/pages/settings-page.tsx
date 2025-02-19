@@ -373,10 +373,17 @@ export default function SettingsPage() {
                 <ColorPicker
                   label="Primary Color"
                   value={theme.primary}
+                  contrast={theme.contrast}
                   onChange={(newColor) => {
                     setTheme({
                       ...theme,
                       primary: newColor,
+                    });
+                  }}
+                  onContrastChange={(newContrast) => {
+                    setTheme({
+                      ...theme,
+                      contrast: newContrast,
                     });
                   }}
                 />

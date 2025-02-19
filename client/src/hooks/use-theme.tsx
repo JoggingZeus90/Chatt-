@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 type Theme = {
   mode: "dark" | "light";
   primary: string;
+  contrast: number; // Add contrast to theme type
 };
 
 type ThemeProviderProps = {
@@ -20,6 +21,7 @@ const initialState: ThemeProviderState = {
   theme: {
     mode: "light",
     primary: "#0066cc",
+    contrast: 100, // Default contrast value
   },
   setTheme: () => null,
 };
@@ -38,10 +40,10 @@ export function ThemeProvider({
       try {
         return JSON.parse(storedTheme);
       } catch {
-        return { mode: defaultTheme, primary: "#0066cc" };
+        return { mode: defaultTheme, primary: "#0066cc", contrast: 100 };
       }
     }
-    return { mode: defaultTheme, primary: "#0066cc" };
+    return { mode: defaultTheme, primary: "#0066cc", contrast: 100 };
   });
 
   useEffect(() => {
@@ -54,8 +56,11 @@ export function ThemeProvider({
     // Convert hex to HSL for primary color
     const hsl = hexToHSL(theme.primary);
 
+    // Apply contrast to lightness
+    const adjustedL = (hsl.l * theme.contrast) / 100;
+
     // Set CSS custom properties for Tailwind
-    root.style.setProperty("--primary", `${hsl.h} ${hsl.s}% ${hsl.l}%`);
+    root.style.setProperty("--primary", `${hsl.h} ${hsl.s}% ${adjustedL}%`);
 
     localStorage.setItem(storageKey, JSON.stringify(theme));
   }, [theme, storageKey]);
