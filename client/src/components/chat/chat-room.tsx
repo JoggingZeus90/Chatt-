@@ -151,7 +151,7 @@ const commands = [
   },
 ];
 
-export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onToggleSidebar: () => void; onLeave: (roomId: number) => void }) {
+export const ChatRoom = ({ room, onToggleSidebar, onLeave }: { room: Room; onToggleSidebar: () => void; onLeave: (roomId: number) => void }) => {
   const { user } = useAuth();
   const [message, setMessage] = useState("");
   const [mediaFile, setMediaFile] = useState<File | null>(null);
@@ -897,12 +897,12 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
               <div className="flex justify-center">
                 <Loader2 className="h-6 w-6 animate-spin" />
               </div>
-            ): (
+            ) : (
               messages?.map((message) => (
                 <MessageBubble key={message.id} message={message} roomId={room.id} />
               ))
             )}
-            <div ref={messagesEndRef} /><div />
+            <div ref={messagesEndRef} />
           </div>
           {showScrollButton && (
             <Button
@@ -951,7 +951,7 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
             <div className="flex gap-2 items-center relative">
               <input
                 type="file"
-                accept="image/jpeg,image/png,image/gif,video/mp4,video/webm"
+                accept={Object.keys(ALLOWED_FILE_TYPES).join(",")}
                 className="hidden"
                 ref={fileInputRef}
                 onChange={handleFileSelect}
@@ -959,12 +959,13 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
               <div className="flex-1 relative">
                 <Input
                   ref={inputRef}
+                  type="text"
+                  placeholder="Use @ to mention people..."
+                  className="pr-12"
                   value={message}
                   onChange={handleMessageChange}
-                  placeholder="Type a message... Use @ to mention people"
                   maxLength={MAX_MESSAGE_LENGTH}
                   disabled={sendMessageMutation.isPending}
-                  className="pr-12"
                 />
                 <span className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
                   {message.length}/{MAX_MESSAGE_LENGTH}
@@ -979,45 +980,33 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
                       />
                       <CommandList>
                         <CommandEmpty>No users found</CommandEmpty>
-                        {/* Special mentions group */}
-                        <CommandGroup heading="Special Mentions">
-                          {SPECIAL_MENTIONS
-                            .filter(mention =>
-                              mention.username.toLowerCase().includes(mentionSearch.toLowerCase())
-                            )
-                            .map(mention => (
-                              <CommandItem
-                                key={mention.id}
-                                value={mention.username}
-                                onSelect={() => handleMentionSelect(mention.username)}
-                                className="cursor-pointer"
-                              >
-                                <Users className="h-4 w-4 mr-2" />
-                                <div className="flex flex-col">
-                                  <span>@{mention.username}</span>
-                                  <span className="text-xs text-muted-foreground">{mention.description}</span>
-                                </div>
-                              </CommandItem>
-                            ))}
-                        </CommandGroup>
-                        {/* Users group */}
-                        <CommandGroup heading="Users">
+                        <CommandGroup>
+                          {SPECIAL_MENTIONS.map((mention) => (
+                            <CommandItem
+                              key={mention.id}
+                              value={mention.username}
+                              onSelect={() => handleMentionSelect(mention.username)}
+                            >
+                              <span className="font-medium">@{mention.username}</span>
+                              <span className="ml-2 text-muted-foreground text-sm">{mention.description}</span>
+                            </CommandItem>
+                          ))}
                           {room.participants
                             ?.filter(participant =>
-                              participant.username.toLowerCase().includes(mentionSearch.toLowerCase())
+                              participant.username.toLowerCase().includes(mentionSearch.toLowerCase()) &&
+                              participant.id !== user?.id
                             )
-                            .map(participant => (
+                            .map((participant) => (
                               <CommandItem
                                 key={participant.id}
                                 value={participant.username}
                                 onSelect={() => handleMentionSelect(participant.username)}
-                                className="cursor-pointer"
                               >
                                 <Avatar className="h-6 w-6 mr-2">
                                   <AvatarImage src={participant.avatarUrl ?? undefined} />
                                   <AvatarFallback>{participant.username[0].toUpperCase()}</AvatarFallback>
                                 </Avatar>
-                                {participant.username}
+                                <span className="font-medium">@{participant.username}</span>
                               </CommandItem>
                             ))}
                         </CommandGroup>
@@ -1028,12 +1017,12 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
               </div>
               <Button
                 type="button"
-                variant="outline"
+                variant="ghost"
                 size="icon"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={sendMessageMutation.isPending}
               >
-                <Image className="h-4 w-4" />
+                <Image className="h-5 w-5" />
               </Button>
               <Button
                 type="submit"
@@ -1041,12 +1030,34 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
                 disabled={sendMessageMutation.isPending || (!message.trim() && !mediaFile)}
               >
                 {sendMessageMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
-                  <Send className="h-4 w-4" />
+                  <Send className="h-5 w-5" />
                 )}
               </Button>
             </div>
+            {showCommands && (
+              <div ref={commandsRef} className="absolute bottom-20 left-4 w-64 bg-popover border rounded-lg shadow-lg overflow-hidden">
+                <Command>
+                  <CommandInput placeholder="Search commands..." />
+                  <CommandList>
+                    <CommandEmpty>No commands found</CommandEmpty>
+                    <CommandGroup>
+                      {commands.map((command) => (
+                        <CommandItem
+                          key={command.name}
+                          value={command.name}
+                          onSelect={() => handleCommandSelect(command)}
+                        >
+                          <span className="font-medium">/{command.name}</span>
+                          <span className="ml-2 text-muted-foreground text-sm">{command.description}</span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </div>
+            )}
           </form>
         </div>
         <div className="w-64 border-l hidden md:block">

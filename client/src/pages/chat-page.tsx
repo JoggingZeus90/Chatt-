@@ -10,7 +10,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Label } from "@/components/ui/label";
 import ChatRoom from "@/components/chat/chat-room";
 import { useState, useEffect } from "react";
-import { Plus, Loader2, Settings, LogOut, PanelLeftClose, PanelLeft, Users, Lock, Unlock } from "lucide-react";
+import { Plus, Loader2, Settings, LogOut, PanelLeftClose, PanelLeft, Users, Lock } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -96,9 +96,15 @@ export default function ChatPage() {
 
   const handleRoomSelect = async (room: Room) => {
     setSelectedRoom(room);
-    if (unreadMentions?.some(m => m.roomId === room.id)) {
-      await apiRequest("POST", `/api/rooms/${room.id}/mentions/clear`);
-      queryClient.invalidateQueries({ queryKey: ["/api/mentions/unread"] });
+    // Clear unread mentions when selecting a room
+    const hasUnreadMentions = unreadMentions?.some(m => m.roomId === room.id && m.count > 0);
+    if (hasUnreadMentions) {
+      try {
+        await apiRequest("POST", `/api/rooms/${room.id}/mentions/clear`);
+        queryClient.invalidateQueries({ queryKey: ["/api/mentions/unread"] });
+      } catch (error) {
+        console.error("Failed to clear mentions:", error);
+      }
     }
   };
 
