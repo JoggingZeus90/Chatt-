@@ -34,7 +34,7 @@ export default function ChatPage() {
 
   const { data: rooms, isLoading } = useQuery<Room[]>({
     queryKey: ["/api/rooms"],
-    refetchInterval: 5000, // Reduced from 1000ms to 5000ms to prevent excessive reloading
+    refetchInterval: 5000, 
     select: (rooms) => {
       console.log("Raw rooms data:", rooms);
       return rooms.map(room => ({
@@ -182,27 +182,30 @@ export default function ChatPage() {
             </div>
           </div>
           <div className="space-y-2 flex-1 overflow-auto">
-            {rooms?.map((room) => (
-              <Button
-                key={room.id}
-                variant={selectedRoom?.id === room.id ? "secondary" : "ghost"}
-                className="w-full justify-start relative gap-2"
-                onClick={() => handleRoomSelect(room)}
-              >
-                {!room.isPublic && <Lock className="h-4 w-4 flex-shrink-0" />}
-                <span className="truncate">
-                  {room.name}
-                  {!room.isPublic && room.inviteCode && (
-                    <span className="ml-2 text-xs text-muted-foreground">
-                      ({room.inviteCode})
-                    </span>
+            {rooms?.map((room) => {
+              const hasUnreadMentions = unreadMentions?.some(m => m.roomId === room.id && m.count > 0);
+              return (
+                <Button
+                  key={room.id}
+                  variant={selectedRoom?.id === room.id ? "secondary" : "ghost"}
+                  className="w-full justify-start relative gap-2"
+                  onClick={() => handleRoomSelect(room)}
+                >
+                  {!room.isPublic && <Lock className="h-4 w-4 flex-shrink-0" />}
+                  <span className="truncate">
+                    {room.name}
+                    {!room.isPublic && room.inviteCode && (
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        ({room.inviteCode})
+                      </span>
+                    )}
+                  </span>
+                  {hasUnreadMentions && (
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
                   )}
-                </span>
-                {unreadMentions?.some(m => m.roomId === room.id) && (
-                  <div className="absolute right-2 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-blue-500" />
-                )}
-              </Button>
-            ))}
+                </Button>
+              );
+            })}
           </div>
         </div>
 

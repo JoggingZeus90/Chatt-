@@ -554,7 +554,7 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
       const cursorPosition = e.target.selectionStart || 0;
       const beforeCursor = newValue.slice(0, cursorPosition);
       // Updated regex to better handle spaces in usernames
-      const match = beforeCursor.match(/@([^@]*?)(?:\s+|$)$/);
+      const match = beforeCursor.match(/@([^@]*)(?:\s+|$)$/);
 
       if (match) {
         const matchStart = match.index!;
@@ -565,6 +565,9 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
         setShowMentions(false);
         mentionMatchRef.current = null;
       }
+
+      // Check for mentions in the message - Updated to handle spaces
+      const mentions = message.match(/@([^@\s]+(?:\s+[^@\s]+)*)/g)?.map(mention => mention.slice(1)) || [];
 
       setIsTyping(true);
       apiRequest("POST", `/api/rooms/${room.id}/typing`, { isTyping: true })
@@ -905,7 +908,7 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
               <ArrowDown className="h-5 w-5" />
             </Button>
           )}
-          <form onSubmit={handleSubmit} className="border-t p-2 sm:p-4 space-y-4">
+          <form onSubmit={handleSubmit} className="border-t p-2 sm4 space-y-4">
             {Object.entries(typingUsers)
               .filter(([userId, isTyping]) => isTyping && userId !== user?.id.toString())
               .map(([userId]) => {
