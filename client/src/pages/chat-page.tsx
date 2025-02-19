@@ -44,9 +44,12 @@ export default function ChatPage() {
     }
   });
 
-  const { data: unreadMentions, isLoading: isLoadingMentions } = useQuery<{ roomId: number; count: number }[]>({
+  const { data: unreadMentions } = useQuery<{ roomId: number; count: number }[]>({
     queryKey: ["/api/mentions/unread"],
     refetchInterval: 1000,
+    // Don't show loading state during refetches
+    refetchOnWindowFocus: false,
+    staleTime: 0,
   });
 
   const createRoomMutation = useMutation({
@@ -141,7 +144,7 @@ export default function ChatPage() {
     };
   }, [user, logoutMutation.isPending]);
 
-  if (isLoading || isLoadingMentions) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin" />
