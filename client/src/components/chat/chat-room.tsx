@@ -31,6 +31,12 @@ import {
 } from "@/components/ui/command";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
+const SPECIAL_MENTIONS = [
+  { id: 'everyone', username: 'everyone', description: 'Mention all users in the room' },
+  { id: 'admin', username: 'admin', description: 'Mention all administrators' },
+  { id: 'mod', username: 'mod', description: 'Mention all moderators' }
+] as const;
+
 // Define inappropriate words to filter
 const INAPPROPRIATE_WORDS = [
   // Common profanity
@@ -429,8 +435,8 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
     setShowCommands(false);
     if (!message.trim() && !mediaFile) return;
 
-    // Updated mention extraction regex to handle spaces in usernames
-    const mentions = message.match(/@([^@\n]+?)(?:\s|$)/g)?.map(mention => 
+    // Updated mention extraction regex to handle spaces and special groups
+    const mentions = message.match(/@(everyone|admin|mod|[^@\n]+?)(?:\s|$)/g)?.map(mention =>
       mention.slice(1).trim()
     ).filter(Boolean) || [];
 
@@ -555,8 +561,8 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
       // Check for @ mentions
       const cursorPosition = e.target.selectionStart || 0;
       const beforeCursor = newValue.slice(0, cursorPosition);
-      // Updated regex to handle spaces properly
-      const match = beforeCursor.match(/@([^@\n]+?)(?:\s+|$)$/);
+      // Updated regex to handle spaces properly and special mentions
+      const match = beforeCursor.match(/@(everyone|admin|mod|[^@\n]+?)(?:\s|$)$/);
 
       if (match) {
         const matchStart = match.index!;
@@ -911,7 +917,7 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
             {Object.entries(typingUsers)
               .filter(([userId, isTyping]) => isTyping && userId !== user?.id.toString())
               .map(([userId]) => {
-                                const typingUser = room.participants?.find(p => p.id.toString() === userId);
+                const typingUser = room.participants?.find(p => p.id.toString() === userId);
                 return typingUser && (
                   <div key={userId} className="absolute -top-6 left-4 text-sm text-muted-foreground">
                     {typingUser.username} is typing...
@@ -946,95 +952,83 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
                 type="file"
                 accept="image/jpeg,image/png,image/gif,video/mp4,video/webm"
                 className="hidden"
-                onChange={handleFileSelect}
                 ref={fileInputRef}
+                onChange={handleFileSelect}
               />
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="flex-shrink-0"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Image className="h-4 w-4" />
-              </Button>
-              <div className="flex-1 relative">
-                <Input
-                  value={message}
-                  onChange={handleMessageChange}
-                  placeholder="Type a message... Use @ to mention users"
-                  disabled={sendMessageMutation.isPending}
-                  maxLength={MAX_MESSAGE_LENGTH}
-                  ref={inputRef}
-                  className="pr-12"
-                />
-                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                  {message.length}/{MAX_MESSAGE_LENGTH}
-                </span>
-                {showCommands && (
-                  <div className="absolute bottom-full mb-1 left-0 w-full z-50 max-h-[50vh] overflow-auto" ref={commandsRef}>
-                    <Command className="border rounded-lg shadow-lg">
-                      <CommandInput placeholder="Search commands..." />
-                      <CommandList>
-                        <CommandEmpty>No commands found.</CommandEmpty>
-                        <CommandGroup heading="Available Commands">
-                          {commands.map((command) => (
+              <Input
+                ref={inputRef}
+                value={message}
+                onChange={handleMessageChange}
+                placeholder="Type a message..."
+                maxLength={MAX_MESSAGE_LENGTH}
+                disabled={sendMessageMutation.isPending}
+              />
+              {showMentions && room.participants && (
+                <div className="absolute bottom-full left-0 mb-2 w-64 bg-popover text-popover-foreground shadow-lg rounded-lg border overflow-hidden z-50">
+                  <Command>
+                    <CommandInput 
+                      placeholder="Search users..." 
+                      value={mentionSearch} 
+                      onChange={(e) => setMentionSearch(e.target.value)}
+                    />
+                    <CommandList>
+                      <CommandEmpty>No users found</CommandEmpty>
+                      {/* Special mentions group */}
+                      <CommandGroup heading="Special Mentions">
+                        {SPECIAL_MENTIONS
+                          .filter(mention => mention.username.toLowerCase().includes(mentionSearch.toLowerCase()))
+                          .map(mention => (
                             <CommandItem
-                              key={command.name}
-                              onSelect={() => handleCommandSelect(command)}
-                              className="flex flex-col items-start"
+                              key={mention.id}
+                              value={mention.username}
+                              onSelect={handleMentionSelect}
+                              className="cursor-pointer"
                             >
-                              <div className="font-medium">{command.format}</div>
-                              <div className="text-sm text-muted-foreground">
-                                {command.description}
+                              <Users className="h-4 w-4 mr-2" />
+                              <div className="flex flex-col">
+                                <span>@{mention.username}</span>
+                                <span className="text-xs text-muted-foreground">{mention.description}</span>
                               </div>
                             </CommandItem>
                           ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </div>
-                )}
-                {showMentions && (
-                  <div className="absolute bottom-full mb-1 left-0 w-full z-50 max-h-[50vh] overflow-auto">
-                    <Command className="border rounded-lg shadow-lg">
-                      <CommandInput
-                        placeholder="Search users..."
-                        value={mentionSearch}
-                        onValueChange={setMentionSearch}
-                      />
-                      <CommandList>
-                        <CommandEmpty>No users found.</CommandEmpty>
-                        <CommandGroup heading="Users">
-                          {allUsers
-                            ?.filter(user =>
-                              user.username.toLowerCase().includes(mentionSearch.toLowerCase())
-                            )
-                            .map((user) => (
-                              <CommandItem
-                                key={user.id}
-                                onSelect={() => handleMentionSelect(user.username)}
-                                className="flex items-center gap-2"
-                              >
-                                <Avatar className="h-6 w-6">
-                                  <AvatarImage src={user.avatarUrl ?? undefined} />
-                                  <AvatarFallback>
-                                    {user.username[0]?.toUpperCase()}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <span>{user.username}</span>
-                              </CommandItem>
-                            ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </div>
-                )}
-              </div>
+                      </CommandGroup>
+                      {/* Users group */}
+                      <CommandGroup heading="Users">
+                        {room.participants
+                          .filter(participant =>
+                            participant.username.toLowerCase().includes(mentionSearch.toLowerCase())
+                          )
+                          .map(participant => (
+                            <CommandItem
+                              key={participant.id}
+                              value={participant.username}
+                              onSelect={handleMentionSelect}
+                              className="cursor-pointer"
+                            >
+                              <Avatar className="h-6 w-6 mr-2">
+                                <AvatarImage src={participant.avatarUrl ?? undefined} />
+                                <AvatarFallback>{participant.username[0].toUpperCase()}</AvatarFallback>
+                              </Avatar>
+                              {participant.username}
+                            </CommandItem>
+                          ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </div>
+              )}
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={sendMessageMutation.isPending}
+              >
+                <Image className="h-4 w-4" />
+              </Button>
               <Button
                 type="submit"
                 size="icon"
-                className="flex-shrink-0"
                 disabled={sendMessageMutation.isPending || (!message.trim() && !mediaFile)}
               >
                 {sendMessageMutation.isPending ? (
@@ -1070,8 +1064,8 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
           </div>
         </div>
       </div>
-      <audio ref={audioRef} src={VINE_BOOM_URL} preload="auto" />
-      <audio ref={messageSoundRef} src={GOOGLE_MESSAGE_SOUND_URL} preload="auto" />
+      <audio ref={audioRef} src={VINE_BOOM_URL} />
+      <audio ref={messageSoundRef} src={GOOGLE_MESSAGE_SOUND_URL} />
     </div>
   );
 }
