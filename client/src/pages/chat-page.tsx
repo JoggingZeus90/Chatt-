@@ -50,6 +50,7 @@ export default function ChatPage() {
     refetchInterval: 1000,
     refetchOnWindowFocus: true,
     staleTime: 0,
+    cacheTime: 0, // Disable caching to prevent stale data
   });
 
   const clearMentionsMutation = useMutation({
@@ -57,36 +58,27 @@ export default function ChatPage() {
       try {
         const res = await apiRequest("POST", `/api/rooms/${roomId}/mentions/clear`);
 
-        // Only try to parse JSON if we get a successful response
-        if (res.ok) {
-          // For successful responses that might be empty
-          const text = await res.text();
-          if (!text) {
-            return null; // Handle empty responses
-          }
-
-          try {
-            return JSON.parse(text);
-          } catch (e) {
-            console.error('Response was not JSON:', text);
-            return null; // Handle non-JSON but successful responses
-          }
-        } else {
+        if (!res.ok) {
           const error = await res.text();
           throw new Error(error || 'Failed to clear mentions');
         }
+
+        // For successful responses, we don't need to parse the response
+        // Just return the roomId for onSuccess handler
+        return { roomId };
       } catch (error) {
         console.error('Clear mentions error:', error);
         throw error;
       }
     },
-    onSuccess: () => {
-      // Force immediate refetch of unread mentions
-      queryClient.removeQueries({ queryKey: ["/api/mentions/unread"] });
-      queryClient.prefetchQuery({
-        queryKey: ["/api/mentions/unread"],
-        queryFn: () => apiRequest("GET", "/api/mentions/unread").then(res => res.json())
-      });
+    onSuccess: ({ roomId }) => {
+      // Instead of refetching, directly update the cache
+      const currentMentions = queryClient.getQueryData<{ roomId: number; count: number }[]>(["/api/mentions/unread"]) || [];
+      const updatedMentions = currentMentions.filter(mention => mention.roomId !== roomId);
+
+      queryClient.setQueryData(["/api/mentions/unread"], updatedMentions);
+
+      // Still refetch to ensure consistency
       refetchUnreadMentions();
     },
     onError: (error: Error) => {
