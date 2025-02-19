@@ -201,12 +201,15 @@ export function MessageBubble({ message, roomId }: { message: ExtendedMessageWit
         <div className="flex items-baseline gap-2">
           {!isOwn && (
             <div className="flex items-baseline gap-2">
-              <span className="font-semibold text-sm">
+              <span className="font-semibold text-sm flex items-center">
                 {message.user.username}
                 {message.user.role === UserRole.OWNER && (
-                  <span className="ml-1" title="Owner">
-                    👑
-                  </span>
+                  <img
+                    src="/attached_assets/kisspng-portable-network-graphics-computer-icons-clip-art-1713882188597.webp"
+                    alt="Owner"
+                    title="Owner"
+                    className="ml-1 w-4 h-4 inline-block"
+                  />
                 )}
               </span>
               <span className="text-xs px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
