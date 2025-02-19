@@ -342,26 +342,12 @@ export function registerRoutes(app: Express): Server {
         .select()
         .from(schema.rooms)
         .where(eq(schema.rooms.id, roomId));
-      
+
       if (!room) {
         console.log('Room not found:', roomId);
         return res.status(404).json({ error: "Room not found" });
       }
 
-      if (!room.isPublic) {
-        if (providedCode !== room.inviteCode) {
-          console.log('Invalid invite code:', { provided: providedCode, expected: room.inviteCode });
-          return res.status(403).json({ error: "Invalid invite code" });
-        }
-      }
-      console.log('Found room:', room);
-      const isMember = await storage.isRoomMember(roomId, userId);
-      console.log('User membership status:', { userId, roomId, isMember });
-      if (isMember) {
-        const members = await storage.getRoomMembers(roomId);
-        console.log('User is already a member, returning member list');
-        return res.json(members);
-      }
       if (!room.isPublic) {
         if (req.user.role !== UserRole.OWNER) {
           console.log('Private room join attempt:', {
@@ -375,10 +361,10 @@ export function registerRoutes(app: Express): Server {
               error: "Invite code is required for private rooms"
             });
           }
-          const isValidCode = await validateRoomCode(roomId, providedCode);
-          if (!isValidCode) {
+          if (providedCode !== room.inviteCode) {
             console.log('Invalid invite code:', {
-              provided: providedCode
+              provided: providedCode,
+              expected: room.inviteCode
             });
             return res.status(403).json({
               error: "Invalid invite code"
@@ -748,8 +734,7 @@ export function registerRoutes(app: Express): Server {
       });
       const mentionsByRoom = mentions.reduce((acc, mention) => {
         acc[mention.roomId] = (acc[mention.roomId] || 0) + 1;
-        return acc;
-      }, {} as Record<number, number>);
+        return acc;      }, {} as Record<number, number>);
       const result = Object.entries(mentionsByRoom).map(([roomId, count]) => ({
         roomId: parseInt(roomId),
         count,
