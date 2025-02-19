@@ -54,12 +54,30 @@ export default function ChatPage() {
 
   const clearMentionsMutation = useMutation({
     mutationFn: async (roomId: number) => {
-      const res = await apiRequest("POST", `/api/rooms/${roomId}/mentions/clear`);
-      if (!res.ok) {
-        const error = await res.text();
-        throw new Error(error || "Failed to clear mentions");
+      try {
+        const res = await apiRequest("POST", `/api/rooms/${roomId}/mentions/clear`);
+        const text = await res.text();
+        console.log('Clear mentions response:', { status: res.status, text });
+
+        if (!res.ok) {
+          try {
+            const error = JSON.parse(text);
+            throw new Error(error.error || 'Failed to clear mentions');
+          } catch (e) {
+            throw new Error(text || 'Failed to clear mentions');
+          }
+        }
+
+        try {
+          return JSON.parse(text);
+        } catch (e) {
+          console.error('Failed to parse response:', e);
+          throw new Error('Invalid server response');
+        }
+      } catch (error) {
+        console.error('Clear mentions error:', error);
+        throw error;
       }
-      return res.json();
     },
     onSuccess: () => {
       // Force immediate refetch of unread mentions
