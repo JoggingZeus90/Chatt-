@@ -49,18 +49,21 @@ function containsInappropriateWord(text: string): boolean {
     .some(part => {
       const words = part.toLowerCase().split(/\s+/);
       return words.some(word =>
-        INAPPROPRIATE_WORDS.some(badWord =>
-          word.includes(badWord) ||
-          word.replace(/[01345$@]/g, (m) => ({
-            '0': 'o',
-            '1': 'i',
-            '3': 'e',
-            '4': 'a',
-            '5': 's',
-            '$': 's',
-            '@': 'a'
-          })[m] || m).includes(badWord)
-        )
+        INAPPROPRIATE_WORDS.some(badWord => {
+          // Create a regex pattern that matches the whole word with word boundaries
+          const pattern = new RegExp(`\\b${badWord}\\b`, 'i');
+          // Check both original word and l33t speak version
+          return pattern.test(word) ||
+            pattern.test(word.replace(/[01345$@]/g, (m) => ({
+              '0': 'o',
+              '1': 'i',
+              '3': 'e',
+              '4': 'a',
+              '5': 's',
+              '$': 's',
+              '@': 'a'
+            })[m] || m));
+        })
       );
     });
 }
@@ -79,7 +82,8 @@ function filterInappropriateWords(text: string): string {
       // For non-URL parts, apply the filter
       let filteredText = part;
       INAPPROPRIATE_WORDS.forEach(word => {
-        const regex = new RegExp(word, 'gi');
+        // Create a regex that matches whole words only
+        const regex = new RegExp(`\\b${word}\\b`, 'gi');
         filteredText = filteredText.replace(regex, match => '#'.repeat(match.length));
       });
       return filteredText;
