@@ -3,7 +3,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 type Theme = {
   mode: "dark" | "light";
   primary: string;
-  contrast: number; // Add contrast to theme type
+  contrast: number;
 };
 
 type ThemeProviderProps = {
@@ -21,7 +21,7 @@ const initialState: ThemeProviderState = {
   theme: {
     mode: "light",
     primary: "#0066cc",
-    contrast: 100, // Default contrast value
+    contrast: 100,
   },
   setTheme: () => null,
 };

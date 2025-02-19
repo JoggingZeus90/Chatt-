@@ -91,16 +91,57 @@ const ColorPicker = React.forwardRef<HTMLDivElement, ColorPickerProps>(
       }
     }, [isDragging]);
 
-    // Calculate position for the selector dot
+    // Calculate position for the selector dot and apply contrast
     const selectorStyle = React.useMemo(() => {
       const radius = (hsva.s / 100) * 120;
       const angleRad = ((hsva.h - 180) * Math.PI) / 180;
+      const hex = hsvaToHex(hsva);
+      const hsl = hexToHSL(hex);
+      const adjustedL = (hsl.l * contrast) / 100;
+
       return {
         left: `${-radius * Math.sin(angleRad) + 120}px`,
         top: `${radius * Math.cos(angleRad) + 120}px`,
-        backgroundColor: hsvaToHex(hsva),
+        backgroundColor: `hsl(${hsl.h}, ${hsl.s}%, ${adjustedL}%)`,
       };
-    }, [hsva]);
+    }, [hsva, contrast]);
+
+    // Helper function to convert hex to HSL (same as in useTheme)
+    function hexToHSL(hex: string) {
+      hex = hex.replace("#", "");
+      const r = parseInt(hex.substring(0, 2), 16) / 255;
+      const g = parseInt(hex.substring(2, 4), 16) / 255;
+      const b = parseInt(hex.substring(4, 6), 16) / 255;
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      let h = 0;
+      let s = 0;
+      let l = (max + min) / 2;
+
+      if (max !== min) {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch (max) {
+          case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+          case g: h = (b - r) / d + 2; break;
+          case b: h = (r - g) / d + 4; break;
+        }
+        h = h / 6;
+      }
+
+      return {
+        h: Math.round(h * 360),
+        s: Math.round(s * 100),
+        l: Math.round(l * 100)
+      };
+    }
+
+    // Get adjusted color for preview
+    const previewColor = React.useMemo(() => {
+      const hsl = hexToHSL(value);
+      const adjustedL = (hsl.l * contrast) / 100;
+      return `hsl(${hsl.h}, ${hsl.s}%, ${adjustedL}%)`;
+    }, [value, contrast]);
 
     return (
       <div className={cn("flex flex-col gap-2", className)} ref={ref}>
@@ -113,7 +154,7 @@ const ColorPicker = React.forwardRef<HTMLDivElement, ColorPickerProps>(
             >
               <div
                 className="mr-2 h-4 w-4 rounded-full"
-                style={{ backgroundColor: value }}
+                style={{ backgroundColor: previewColor }}
               />
               <Paintbrush className="mr-2 h-4 w-4" />
               {value}
