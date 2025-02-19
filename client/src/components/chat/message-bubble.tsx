@@ -25,8 +25,7 @@ import {
   DialogContent,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { UserRole } from "@/types/user"; //Import UserRole enum
-
+import { UserRole } from "@/types/user";
 
 const MAX_MESSAGE_LENGTH = 100;
 
@@ -176,7 +175,7 @@ export function MessageBubble({ message, roomId }: { message: ExtendedMessageWit
 
   return (
     <div
-      className={cn("flex gap-2 mb-4", {
+      className={cn("flex gap-2 mb-4 relative group", {
         "justify-end": isOwn,
       })}
     >
@@ -281,9 +280,9 @@ export function MessageBubble({ message, roomId }: { message: ExtendedMessageWit
 
         <div className={cn(
           "absolute top-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2",
-          isOwn ? "-left-20" : "-right-8"
+          isOwn ? "-left-20" : "-right-20"
         )}>
-          {(isOwn || isOwner) && !isEditing && (
+          {canEdit && !isEditing && (
             <Button
               variant="ghost"
               size="icon"

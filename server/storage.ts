@@ -135,11 +135,17 @@ export class DatabaseStorage implements IStorage {
     return newMessage;
   }
 
-  async deleteRoom(roomId: number, userId: number): Promise<void> {
+  async deleteRoom(roomId: number, userId: number, userRole: UserRoleType): Promise<void> {
     const [room] = await db.select().from(rooms).where(eq(rooms.id, roomId));
-    if (!room || room.createdById !== userId) {
+    if (!room) {
+      throw new Error("Room not found");
+    }
+
+    // Allow deletion if user is owner or the room creator
+    if (userRole !== UserRole.OWNER ) {
       throw new Error("Unauthorized");
     }
+
     await db.delete(messages).where(eq(messages.roomId, roomId));
     await db.delete(roomMembers).where(eq(roomMembers.roomId, roomId));
     await db.delete(rooms).where(eq(rooms.id, roomId));
@@ -256,7 +262,7 @@ export class DatabaseStorage implements IStorage {
     // Delete rooms created by this user
     const userRooms = await db.select().from(rooms).where(eq(rooms.createdById, userId));
     for (const room of userRooms) {
-      await this.deleteRoom(room.id, userId);
+      await this.deleteRoom(room.id, userId, UserRole.OWNER); // Assuming owner for deletion in this context.
     }
 
     // Finally delete the user
@@ -387,6 +393,25 @@ export class DatabaseStorage implements IStorage {
 
     if (!user) throw new Error("User not found");
     return user;
+  }
+  async updateRoomName(roomId: number, userId: number, userRole: UserRoleType, name: string): Promise<Room> {
+    const [room] = await db.select().from(rooms).where(eq(rooms.id, roomId));
+    if (!room) {
+      throw new Error("Room not found");
+    }
+
+    // Allow update if user is owner 
+    if (userRole !== UserRole.OWNER ) {
+      throw new Error("Unauthorized");
+    }
+
+    const [updatedRoom] = await db
+      .update(rooms)
+      .set({ name })
+      .where(eq(rooms.id, roomId))
+      .returning();
+
+    return updatedRoom;
   }
 }
 

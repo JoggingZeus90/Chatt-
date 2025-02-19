@@ -375,17 +375,17 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Delete room (only by creator)
+  // Delete room (only by creator or owner)
   app.delete("/api/rooms/:roomId", async (req, res) => {
     console.log(`DELETE request received for ${req.url}`);
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
-      await storage.deleteRoom(parseInt(req.params.roomId), req.user.id);
+      await storage.deleteRoom(parseInt(req.params.roomId), req.user.id, req.user.role as UserRoleType);
       res.sendStatus(200);
     } catch (error) {
       if (error instanceof Error && error.message === "Unauthorized") {
-        res.status(403).send("Only room creator can delete the room");
+        res.status(403).send("Only room creator or owner can delete the room");
       } else {
         res.status(500).send("Internal server error");
       }
@@ -782,7 +782,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Add room name update endpoint
+  // Update room name endpoint
   app.patch("/api/rooms/:roomId", async (req, res) => {
     console.log(`PATCH request received for ${req.url}`);
     if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -795,29 +795,15 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).send("Room name is required");
       }
 
-      const [room] = await db
-        .select()
-        .from(schema.rooms)
-        .where(eq(schema.rooms.id, roomId));
-
-      if (!room) {
-        return res.status(404).send("Room not found");
-      }
-
-      if (room.createdById !== req.user.id) {
-        return res.status(403).send("Only room creator can update the room name");
-      }
-
-      const [updatedRoom] = await db
-        .update(schema.rooms)
-        .set({ name })
-        .where(eq(schema.rooms.id, roomId))
-        .returning();
-
+      const updatedRoom = await storage.updateRoomName(roomId, req.user.id, req.user.role as UserRoleType, name);
       res.json(updatedRoom);
     } catch (error) {
-      console.error("Error updating room:", error);
-      res.status(500).send("Internal server error");
+      if (error instanceof Error && error.message === "Unauthorized") {
+        res.status(403).send("Only room creator or owner can update the room name");
+      } else {
+        console.error("Error updating room:", error);
+        res.status(500).send("Internal server error");
+      }
     }
   });
 
