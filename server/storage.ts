@@ -78,10 +78,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUserStatus(userId: number, isOnline: boolean): Promise<void> {
-    await db
-      .update(users)
-      .set({ isOnline, lastSeen: new Date() })
+    const [user] = await db
+      .select()
+      .from(users)
       .where(eq(users.id, userId));
+
+    // Only update online status if user is not in appear offline mode
+    if (user && !user.appearOffline) {
+      await db
+        .update(users)
+        .set({ isOnline, lastSeen: new Date() })
+        .where(eq(users.id, userId));
+    }
   }
 
   async getRooms(): Promise<Room[]> {
@@ -220,6 +228,7 @@ export class DatabaseStorage implements IStorage {
       updateData.appearOffline = updates.appearOffline;
       // Update isOnline based on appearOffline setting
       updateData.isOnline = !updates.appearOffline;
+      updateData.lastSeen = new Date();
     }
     if (updates.password) {
       const salt = randomBytes(16).toString("hex");

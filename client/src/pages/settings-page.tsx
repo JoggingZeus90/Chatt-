@@ -138,12 +138,33 @@ export default function SettingsPage() {
     },
   });
 
-  const handleAppearOfflineChange = (checked: boolean) => {
+  const handleAppearOfflineChange = async (checked: boolean) => {
     form.setValue("appearOffline", checked);
-    // Immediately submit the form when appearOffline changes
-    updateProfileMutation.mutate({
-      appearOffline: checked,
-    });
+
+    try {
+      // First update the profile
+      await updateProfileMutation.mutateAsync({
+        appearOffline: checked,
+      });
+
+      // Then explicitly update the online status
+      await apiRequest("POST", `/api/users/${user!.id}/status`, {
+        isOnline: !checked
+      });
+
+      // Update the user data in the cache to reflect new status
+      queryClient.setQueryData(["/api/user"], (oldData: any) => ({
+        ...oldData,
+        appearOffline: checked,
+        isOnline: !checked
+      }));
+    } catch (error) {
+      toast({
+        title: "Status update failed",
+        description: error instanceof Error ? error.message : "Failed to update status",
+        variant: "destructive",
+      });
+    }
   };
 
   const deleteAccountMutation = useMutation({
