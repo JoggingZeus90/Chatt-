@@ -312,8 +312,10 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
       queryClient.invalidateQueries({ queryKey: [`/api/rooms/${room.id}/messages`] });
       queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
       toast({
-        title: "Success",
-        description: "You have successfully joined the room.",
+        title: "Successfully joined room",
+        description: room.isPublic ? 
+          "You have joined the public room." : 
+          "Your invite code was correct and you've joined the private room.",
       });
     },
     onError: (error: Error) => {
@@ -323,14 +325,14 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
         // Try to parse the error message as JSON
         const parsedError = JSON.parse(error.message);
         if (parsedError.error) {
-          errorMessage = `${parsedError.error}. Expected code: ${parsedError.expected}`;
+          errorMessage = `${parsedError.error}. Expected code: ${parsedError.expected}, but you provided: ${parsedError.provided}`;
         }
       } catch (e) {
         // If parsing fails, use the original message
       }
       toast({
         title: "Failed to join room",
-        description: errorMessage,
+        description: `Error: ${errorMessage}`,
         variant: "destructive",
       });
     },
@@ -686,12 +688,20 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
           roomInviteCode: room.inviteCode,
           providedCode: inviteCode
         });
+        toast({
+          title: "Joining private room",
+          description: `Attempting to join with code: ${inviteCode}`,
+        });
         joinRoomMutation.mutate(inviteCode);
       }
     } else if (!room.participants?.some(p => p.id === user?.id)) {
       console.log('Joining public room:', {
         roomId: room.id,
         isPublic: room.isPublic
+      });
+      toast({
+        title: "Joining public room",
+        description: "Attempting to join...",
       });
       joinRoomMutation.mutate();
     }
@@ -884,7 +894,7 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
               .map(([userId]) => {
                 const typingUser = room.participants?.find(p => p.id.toString() === userId);
                 return typingUser && (
-                  <div key={userId} className="absolute -top-6 left-4 text-sm text-muted-foreground">
+                  <div key={userId} className="absolute -top-6 left-4 text-sm text-mutedforeground">
                     {typingUser.username} is typing...
                   </div>
                 );
