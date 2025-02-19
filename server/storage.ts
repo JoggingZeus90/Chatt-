@@ -218,6 +218,8 @@ export class DatabaseStorage implements IStorage {
     }
     if (updates.appearOffline !== undefined) {
       updateData.appearOffline = updates.appearOffline;
+      // Update isOnline based on appearOffline setting
+      updateData.isOnline = !updates.appearOffline;
     }
     if (updates.password) {
       const salt = randomBytes(16).toString("hex");

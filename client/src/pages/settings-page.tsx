@@ -123,11 +123,6 @@ export default function SettingsPage() {
         newPassword: "",
         appearOffline: updatedUser.appearOffline,
       });
-
-      // Update online status based on appearOffline setting
-      apiRequest("POST", `/api/users/${updatedUser.id}/status`, { 
-        isOnline: !updatedUser.appearOffline 
-      });
     },
     onError: (error: Error) => {
       toast({
