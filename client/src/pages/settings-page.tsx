@@ -142,14 +142,9 @@ export default function SettingsPage() {
     form.setValue("appearOffline", checked);
 
     try {
-      // First update the profile
-      await updateProfileMutation.mutateAsync({
-        appearOffline: checked,
-      });
-
-      // Then explicitly update the online status
-      await apiRequest("POST", `/api/users/${user!.id}/status`, {
-        isOnline: !checked
+      // Only send the appearOffline field to update
+      const updatedUser = await updateProfileMutation.mutateAsync({
+        appearOffline: checked
       });
 
       // Update the user data in the cache to reflect new status
@@ -159,6 +154,9 @@ export default function SettingsPage() {
         isOnline: !checked
       }));
     } catch (error) {
+      // Revert the form state if the update fails
+      form.setValue("appearOffline", !checked);
+
       toast({
         title: "Status update failed",
         description: error instanceof Error ? error.message : "Failed to update status",
