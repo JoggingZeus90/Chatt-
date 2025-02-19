@@ -111,13 +111,30 @@ export default function ChatPage() {
 
   const joinRoomMutation = useMutation({
     mutationFn: async (code: string) => {
-      const res = await apiRequest("POST", `/api/rooms/join/${code}`);
+      const res = await apiRequest("POST", `/api/rooms/${selectedRoom?.id}/join`, {
+        inviteCode: code
+      });
+      if (!res.ok) {
+        const error = await res.text();
+        throw new Error(error || 'Failed to join room');
+      }
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
       setIsJoinDialogOpen(false);
       setRoomCode("");
+      toast({
+        title: "Joined room successfully",
+        description: "You can now chat in this room",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to join room",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
