@@ -470,7 +470,7 @@ function ChatRoom({ room, onToggleSidebar, onLeave }: ChatRoomProps) {
     setShowCommands(false);
     if (!message.trim() && !mediaFile) return;
 
-    const mentions = message.match(/@(everyone|admin|mod|[^@\n]+?)(?:\s|$)/g)?.map(mention =>
+    const mentions = message.match(/@(everyone|admin|mod|[^@\s]+)(?:\s|$)/g)?.map(mention =>
       mention.slice(1).trim()
     ).filter(Boolean) || [];
 
@@ -570,13 +570,41 @@ function ChatRoom({ room, onToggleSidebar, onLeave }: ChatRoomProps) {
     }
 
     try {
-      await sendMessageMutation.mutateAsync({
+      const response = await sendMessageMutation.mutateAsync({
         content: messageContent,
         mediaUrl: uploadedMediaUrl,
         mediaType: uploadedMediaType,
         whisperTo,
-        mentions,
+        mentions: [...new Set(mentions)], // Ensure unique mentions
       });
+
+      // If message sent successfully and there are mentions
+      if (response && mentions.length > 0) {
+        // Handle special mentions
+        const specialMentions = mentions.filter(mention =>
+          ['everyone', 'admin', 'mod'].includes(mention.toLowerCase())
+        );
+        const userMentions = mentions.filter(mention =>
+          !['everyone', 'admin', 'mod'].includes(mention.toLowerCase())
+        );
+
+        try {
+          const mentionsPayload = {
+            mentions: userMentions,
+            specialMentions,
+            roomId: room.id,
+            messageId: response.id
+          };
+
+          const mentionRes = await apiRequest("POST", `/api/messages/${response.id}/mentions`, mentionsPayload);
+          if (!mentionRes.ok) {
+            const error = await mentionRes.text();
+            console.error('Failed to process mentions:', error);
+          }
+        } catch (error) {
+          console.error('Failed to process mentions:', error);
+        }
+      }
     } catch (error) {
       toast({
         title: "Failed to send message",

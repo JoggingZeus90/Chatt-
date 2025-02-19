@@ -47,7 +47,7 @@ export default function ChatPage() {
 
   const { data: unreadMentions, refetch: refetchUnreadMentions } = useQuery<{ roomId: number; count: number }[]>({
     queryKey: ["/api/mentions/unread"],
-    refetchInterval: 2000, // Re-enable refetch but with longer interval
+    refetchInterval: 2000,
     refetchOnWindowFocus: true,
     staleTime: 0,
     gcTime: 0,
@@ -68,14 +68,19 @@ export default function ChatPage() {
       }
     },
     onSuccess: ({ roomId }) => {
-      // Permanently clear mentions from cache
-      queryClient.setQueryData<{ roomId: number; count: number }[]>(
-        ["/api/mentions/unread"],
-        (old) => (old || []).filter(mention => mention.roomId !== roomId)
-      );
+      // Get current mentions from the cache
+      const currentMentions = queryClient.getQueryData<{ roomId: number; count: number }[]>(["/api/mentions/unread"]);
 
-      // Mark the query as stale to trigger a background refetch
-      queryClient.invalidateQueries({ queryKey: ["/api/mentions/unread"] });
+      if (currentMentions) {
+        // Remove mentions for the cleared room
+        const updatedMentions = currentMentions.filter(mention => mention.roomId !== roomId);
+
+        // Update the cache with the filtered mentions
+        queryClient.setQueryData(["/api/mentions/unread"], updatedMentions);
+
+        // Invalidate the query to trigger a background refetch
+        queryClient.invalidateQueries({ queryKey: ["/api/mentions/unread"] });
+      }
     },
     onError: (error: Error) => {
       toast({
@@ -88,9 +93,10 @@ export default function ChatPage() {
 
   const handleRoomSelect = async (room: Room) => {
     setSelectedRoom(room);
+
     // Check for unread mentions in this room
-    const hasUnreadMentions = unreadMentions?.some(m => m.roomId === room.id && m.count > 0);
-    if (hasUnreadMentions) {
+    const roomMentions = unreadMentions?.find(m => m.roomId === room.id);
+    if (roomMentions && roomMentions.count > 0) {
       try {
         await clearMentionsMutation.mutateAsync(room.id);
       } catch (error) {
