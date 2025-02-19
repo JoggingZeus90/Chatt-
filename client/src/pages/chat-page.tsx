@@ -23,6 +23,7 @@ import {
   AvatarFallback,
 } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ChatPage() {
   const { user, logoutMutation } = useAuth();
@@ -31,6 +32,7 @@ export default function ChatPage() {
   const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [roomCode, setRoomCode] = useState("");
+  const { toast } = useToast();
 
   const { data: rooms, isLoading } = useQuery<Room[]>({
     queryKey: ["/api/rooms"],
@@ -43,12 +45,51 @@ export default function ChatPage() {
     }
   });
 
-  const { data: unreadMentions } = useQuery<{ roomId: number; count: number }[]>({
+  const { data: unreadMentions, refetch: refetchUnreadMentions } = useQuery<{ roomId: number; count: number }[]>({
     queryKey: ["/api/mentions/unread"],
     refetchInterval: 1000,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true,
     staleTime: 0,
   });
+
+  const clearMentionsMutation = useMutation({
+    mutationFn: async (roomId: number) => {
+      const res = await apiRequest("POST", `/api/rooms/${roomId}/mentions/clear`);
+      if (!res.ok) {
+        const error = await res.text();
+        throw new Error(error || "Failed to clear mentions");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      // Force immediate refetch of unread mentions
+      queryClient.removeQueries({ queryKey: ["/api/mentions/unread"] });
+      queryClient.prefetchQuery({
+        queryKey: ["/api/mentions/unread"],
+        queryFn: () => apiRequest("GET", "/api/mentions/unread").then(res => res.json())
+      });
+      refetchUnreadMentions();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to clear mentions",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleRoomSelect = async (room: Room) => {
+    setSelectedRoom(room);
+    const hasUnreadMentions = unreadMentions?.some(m => m.roomId === room.id && m.count > 0);
+    if (hasUnreadMentions) {
+      try {
+        await clearMentionsMutation.mutateAsync(room.id);
+      } catch (error) {
+        console.error("Failed to clear mentions:", error);
+      }
+    }
+  };
 
   const createRoomMutation = useMutation({
     mutationFn: async (data: { name: string; isPublic: boolean }) => {
@@ -84,17 +125,6 @@ export default function ChatPage() {
     },
   });
 
-  const clearMentionsMutation = useMutation({
-    mutationFn: async (roomId: number) => {
-      const res = await apiRequest("POST", `/api/rooms/${roomId}/mentions/clear`);
-      if (!res.ok) {
-        throw new Error("Failed to clear mentions");
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/mentions/unread"] });
-    },
-  });
 
   const form = useForm({
     resolver: zodResolver(insertRoomSchema),
@@ -103,18 +133,6 @@ export default function ChatPage() {
       isPublic: true,
     },
   });
-
-  const handleRoomSelect = async (room: Room) => {
-    setSelectedRoom(room);
-    const hasUnreadMentions = unreadMentions?.some(m => m.roomId === room.id && m.count > 0);
-    if (hasUnreadMentions) {
-      try {
-        await clearMentionsMutation.mutateAsync(room.id);
-      } catch (error) {
-        console.error("Failed to clear mentions:", error);
-      }
-    }
-  };
 
   const handleLeaveRoom = async (roomId: number) => {
     await leaveRoomMutation.mutate(roomId);
