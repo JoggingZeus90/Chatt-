@@ -47,7 +47,7 @@ export default function ChatPage() {
 
   const { data: unreadMentions, refetch: refetchUnreadMentions } = useQuery<{ roomId: number; count: number }[]>({
     queryKey: ["/api/mentions/unread"],
-    refetchInterval: false, // Disable automatic refetching
+    refetchInterval: 2000, // Re-enable refetch but with longer interval
     refetchOnWindowFocus: true,
     staleTime: 0,
     gcTime: 0,
@@ -57,12 +57,10 @@ export default function ChatPage() {
     mutationFn: async (roomId: number) => {
       try {
         const res = await apiRequest("POST", `/api/rooms/${roomId}/mentions/clear`);
-
         if (!res.ok) {
           const error = await res.text();
           throw new Error(error || 'Failed to clear mentions');
         }
-
         return { roomId };
       } catch (error) {
         console.error('Clear mentions error:', error);
@@ -70,13 +68,14 @@ export default function ChatPage() {
       }
     },
     onSuccess: ({ roomId }) => {
-      // Stop all pending queries
-      queryClient.cancelQueries({ queryKey: ["/api/mentions/unread"] });
+      // Permanently clear mentions from cache
+      queryClient.setQueryData<{ roomId: number; count: number }[]>(
+        ["/api/mentions/unread"],
+        (old) => (old || []).filter(mention => mention.roomId !== roomId)
+      );
 
-      // Update cache directly
-      const currentMentions = queryClient.getQueryData<{ roomId: number; count: number }[]>(["/api/mentions/unread"]) || [];
-      const updatedMentions = currentMentions.filter(mention => mention.roomId !== roomId);
-      queryClient.setQueryData(["/api/mentions/unread"], updatedMentions);
+      // Mark the query as stale to trigger a background refetch
+      queryClient.invalidateQueries({ queryKey: ["/api/mentions/unread"] });
     },
     onError: (error: Error) => {
       toast({
@@ -89,6 +88,7 @@ export default function ChatPage() {
 
   const handleRoomSelect = async (room: Room) => {
     setSelectedRoom(room);
+    // Check for unread mentions in this room
     const hasUnreadMentions = unreadMentions?.some(m => m.roomId === room.id && m.count > 0);
     if (hasUnreadMentions) {
       try {
