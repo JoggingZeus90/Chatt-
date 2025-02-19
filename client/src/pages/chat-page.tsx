@@ -68,19 +68,20 @@ export default function ChatPage() {
       }
     },
     onSuccess: ({ roomId }) => {
-      // Immediately update the cache to remove mentions
+      // Stop any ongoing queries
+      queryClient.cancelQueries({ queryKey: ["/api/mentions/unread"] });
+
+      // Clear mentions from cache immediately
       queryClient.setQueryData<{ roomId: number; count: number }[]>(
         ["/api/mentions/unread"],
         (old) => (old || []).filter(mention => mention.roomId !== roomId)
       );
 
-      // Temporarily pause the query to prevent immediate refetch
-      queryClient.cancelQueries({ queryKey: ["/api/mentions/unread"] });
-
-      // Schedule a delayed refetch to ensure server state is consistent
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["/api/mentions/unread"] });
-      }, 2000);
+      // Don't trigger a refetch, let the regular interval handle it
+      queryClient.invalidateQueries({ 
+        queryKey: ["/api/mentions/unread"],
+        refetchType: "none"
+      });
     },
     onError: (error: Error) => {
       toast({
@@ -98,6 +99,7 @@ export default function ChatPage() {
     const roomMentions = unreadMentions?.find(m => m.roomId === room.id);
     if (roomMentions && roomMentions.count > 0) {
       try {
+        // Clear mentions immediately when entering the room
         await clearMentionsMutation.mutateAsync(room.id);
       } catch (error) {
         console.error("Failed to clear mentions:", error);
