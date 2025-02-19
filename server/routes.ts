@@ -7,7 +7,8 @@ import { scrypt, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import multer from "multer";
 import path from "path";
-import fs from "fs";
+import fs from 'fs/promises'; // Updated import for fs promises
+import fsSync from 'fs'; // Added import for synchronous fs functions
 import express from 'express';
 import { requireRole } from "./auth";
 import { drizzle } from 'drizzle-orm/neon-serverless';
@@ -15,6 +16,25 @@ import { eq } from 'drizzle-orm';
 import * as schema from "@shared/schema";
 import { pool } from './db';
 import passport from 'passport'; // Import passport
+
+// Add this function at the top of the file
+async function logMessageToFile(roomName: string, logEntry: string) {
+  try {
+    const sanitizedRoomName = roomName.replace(/[^a-zA-Z0-9]/g, '_');
+    const logDir = path.join(process.cwd(), 'Chat Logs');
+    const logFile = path.join(logDir, `${sanitizedRoomName}_chat.log`);
+
+    // Ensure logs directory exists
+    await fs.mkdir(logDir, { recursive: true });
+
+    // Append log entry with timestamp
+    const timestamp = new Date().toISOString();
+    const logLine = `[${timestamp}] ${logEntry}\n`;
+    await fs.appendFile(logFile, logLine);
+  } catch (error) {
+    console.error('Error writing to log file:', error);
+  }
+}
 
 // Move typingUsers outside of registerRoutes to prevent resetting on hot reload
 const typingUsers: { [roomId: string]: { [userId: string]: boolean } } = {};
@@ -35,9 +55,9 @@ const upload = multer({
       const uploadDir = path.join(process.cwd(), 'uploads');
       console.log('Upload directory:', uploadDir);
 
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-        fs.chmodSync(uploadDir, 0o755);
+      if (!fsSync.existsSync(uploadDir)) {
+        fsSync.mkdirSync(uploadDir, { recursive: true });
+        fsSync.chmodSync(uploadDir, 0o755);
       }
       cb(null, uploadDir);
     },
@@ -77,10 +97,10 @@ export function registerRoutes(app: Express): Server {
   const uploadDir = path.join(process.cwd(), 'uploads');
   console.log('Initializing upload directory:', uploadDir);
 
-  if (!fs.existsSync(uploadDir)) {
+  if (!fsSync.existsSync(uploadDir)) {
     console.log('Creating upload directory');
-    fs.mkdirSync(uploadDir, { recursive: true });
-    fs.chmodSync(uploadDir, 0o755);
+    fsSync.mkdirSync(uploadDir, { recursive: true });
+    fsSync.chmodSync(uploadDir, 0o755);
   }
 
   // Set CORS headers for all routes
@@ -129,14 +149,14 @@ export function registerRoutes(app: Express): Server {
     }
 
     try {
-      fs.chmodSync(req.file.path, 0o644);
+      fsSync.chmodSync(req.file.path, 0o644);
 
       console.log('File uploaded successfully:', {
         filename: req.file.filename,
         path: req.file.path,
         mimetype: req.file.mimetype,
         size: req.file.size,
-        permissions: fs.statSync(req.file.path).mode
+        permissions: fsSync.statSync(req.file.path).mode
       });
 
       const fileUrl = `/uploads/${req.file.filename}`;
@@ -239,7 +259,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   app.post("/api/rooms/:roomId/messages", async (req, res) => {
-    console.log(`POST request received for ${req.url}`); // Added request logging
+    console.log(`POST request received for ${req.url}`);
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const parsed = insertMessageSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -266,6 +286,20 @@ export function registerRoutes(app: Express): Server {
       if (!messageWithUser) {
         throw new Error('Message not found after creation');
       }
+
+      // Get room name for logging
+      const [room] = await db
+        .select()
+        .from(schema.rooms)
+        .where(eq(schema.rooms.id, parseInt(req.params.roomId)));
+
+      // Log the new message
+      await logMessageToFile(
+        room.name,
+        `NEW MESSAGE - User: ${messageWithUser.users.username}, Content: ${message.content}${
+          message.mediaUrl ? `, Media: ${message.mediaUrl}` : ''
+        }`
+      );
 
       const formattedMessage = {
         id: messageWithUser.messages.id,
@@ -309,7 +343,27 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).send("Content is required");
       }
 
+      // Get the original message before updating
+      const [originalMessage] = await db
+        .select()
+        .from(schema.messages)
+        .where(eq(schema.messages.id, messageId));
+
       const updatedMessage = await storage.updateMessage(messageId, req.user.id, content);
+
+      // Get room name for logging
+      const [room] = await db
+        .select()
+        .from(schema.rooms)
+        .where(eq(schema.rooms.id, updatedMessage.roomId));
+
+      // Log the edit
+      await logMessageToFile(
+        room.name,
+        `EDITED MESSAGE - User: ${req.user.username}, MessageID: ${messageId}, ` +
+        `Original: "${originalMessage.content}", New: "${content}"`
+      );
+
       res.json(updatedMessage);
     } catch (error) {
       if (error instanceof Error && error.message === "Unauthorized") {
@@ -323,7 +377,7 @@ export function registerRoutes(app: Express): Server {
 
   // Delete room (only by creator)
   app.delete("/api/rooms/:roomId", async (req, res) => {
-    console.log(`DELETE request received for ${req.url}`); // Added request logging
+    console.log(`DELETE request received for ${req.url}`);
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     try {
@@ -520,7 +574,7 @@ export function registerRoutes(app: Express): Server {
 
   // Online status
   app.post("/api/users/:userId/status", async (req, res) => {
-    console.log(`POST request received for ${req.url}`); // Added request logging
+    console.log(`POST request received for ${req.url}`);
     if (!req.isAuthenticated()) return res.sendStatus(401);
     await storage.updateUserStatus(parseInt(req.params.userId), req.body.isOnline);
     res.sendStatus(200);
@@ -579,7 +633,7 @@ export function registerRoutes(app: Express): Server {
 
   // Delete account
   app.delete("/api/user", async (req, res) => {
-    console.log(`DELETE request received for ${req.url}`); // Added request logging
+    console.log(`DELETE request received for ${req.url}`);
     if (!req.isAuthenticated()) return res.sendStatus(401);
 
     await storage.deleteUser(req.user.id);
@@ -695,7 +749,28 @@ export function registerRoutes(app: Express): Server {
 
     try {
       const messageId = parseInt(req.params.messageId);
+
+      // Get the message before deleting
+      const [message] = await db
+        .select()
+        .from(schema.messages)
+        .where(eq(schema.messages.id, messageId));
+
+      // Get room name for logging
+      const [room] = await db
+        .select()
+        .from(schema.rooms)
+        .where(eq(schema.rooms.id, message.roomId));
+
       await storage.deleteMessage(messageId, req.user.id, req.user.role as UserRoleType);
+
+      // Log the deletion
+      await logMessageToFile(
+        room.name,
+        `DELETED MESSAGE - User: ${req.user.username}, MessageID: ${messageId}, ` +
+        `Content: "${message.content}"`
+      );
+
       res.sendStatus(200);
     } catch (error) {
       if (error instanceof Error && error.message === "Unauthorized") {
