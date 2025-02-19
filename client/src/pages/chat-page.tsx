@@ -111,12 +111,18 @@ export default function ChatPage() {
 
   const joinRoomMutation = useMutation({
     mutationFn: async (code: string) => {
-      const rooms = await apiRequest("GET", "/api/rooms");
-      const roomsData = await rooms.json();
-      const room = roomsData.find((r: any) => r.inviteCode === code);
-      
-      if (!room) {
-        throw new Error("Invalid room code");
+      try {
+        const response = await apiRequest("POST", `/api/rooms/${roomId}/join`, {
+          inviteCode: code
+        });
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || "Failed to join room");
+        }
+        return response.json();
+      } catch (error) {
+        throw error;
+      }
       }
 
       const res = await apiRequest("POST", `/api/rooms/${room.id}/join`, {
