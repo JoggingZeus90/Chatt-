@@ -16,6 +16,7 @@ import { eq } from 'drizzle-orm';
 import * as schema from "@shared/schema";
 import { pool } from './db';
 import passport from 'passport'; // Import passport
+import { storeRoomCode, validateRoomCode } from './room-codes';
 
 // Add this function at the top of the file
 async function logMessageToFile(roomName: string, logEntry: string) {
@@ -224,6 +225,11 @@ export function registerRoutes(app: Express): Server {
         createdById: req.user.id,
         inviteCode
       });
+
+      // Store the invite code in the log file if it's a private room
+      if (!parsed.data.isPublic && inviteCode) {
+        await storeRoomCode(room.id, room.name, inviteCode);
+      }
 
       console.log('Room created:', room);
 
@@ -440,32 +446,38 @@ export function registerRoutes(app: Express): Server {
         return res.json(members);
       }
 
-      // For private rooms, verify the invite code properly
+      // For private rooms, verify access
       if (!room.isPublic) {
-        console.log('Private room join attempt:', {
-          roomId,
-          roomInviteCode: room.inviteCode,
-          providedCode
-        });
-
-        if (!providedCode) {
-          console.log('No invite code provided for private room');
-          return res.status(403).json({
-            error: "Invite code is required for private rooms"
+        // Owner can join any private room without a code
+        if (req.user.role !== UserRole.OWNER) {
+          console.log('Private room join attempt:', {
+            roomId,
+            roomInviteCode: room.inviteCode,
+            providedCode
           });
+
+          if (!providedCode) {
+            console.log('No invite code provided for private room');
+            return res.status(403).json({
+              error: "Invite code is required for private rooms"
+            });
+          }
+
+          // Validate code against the log file
+          const isValidCode = await validateRoomCode(roomId, providedCode);
+          if (!isValidCode) {
+            console.log('Invalid invite code:', {
+              provided: providedCode
+            });
+            return res.status(403).json({
+              error: "Invalid invite code"
+            });
+          }
+
+          console.log('Invite code validated successfully');
+        } else {
+          console.log('Owner bypassing invite code requirement');
         }
-
-        if (providedCode !== room.inviteCode) {
-          console.log('Invalid invite code:', {
-            provided: providedCode,
-            expected: room.inviteCode
-          });
-          return res.status(403).json({
-            error: "Invalid invite code"
-          });
-        }
-
-        console.log('Invite code validated successfully');
       }
 
       // Join room
@@ -831,7 +843,6 @@ export function registerRoutes(app: Express): Server {
       });
     })(req, res, next);
   });
-
 
   // Store typing users in a database table to prevent reset on hot reload
   app.post("/api/rooms/:roomId/typing", async (req, res) => {
