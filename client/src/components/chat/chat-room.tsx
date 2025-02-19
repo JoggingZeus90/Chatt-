@@ -299,14 +299,27 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
 
   const joinRoomMutation = useMutation({
     mutationFn: async (inviteCode?: string) => {
+      console.log('Attempting to join room:', { roomId: room.id, inviteCode });
       const res = await apiRequest("POST", `/api/rooms/${room.id}/join`, {
         inviteCode
       });
       if (!res.ok) {
-        const error = await res.text();
-        throw new Error(error);
+        const errorText = await res.text();
+        let error;
+        try {
+          error = JSON.parse(errorText);
+        } catch {
+          error = { error: errorText };
+        }
+        throw new Error(JSON.stringify(error));
       }
       return res.json();
+    },
+    onMutate: () => {
+      toast({
+        title: room.isPublic ? "Joining public room" : "Joining private room",
+        description: "Please wait...",
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/rooms/${room.id}/messages`] });
@@ -315,24 +328,23 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
         title: "Successfully joined room",
         description: room.isPublic ? 
           "You have joined the public room." : 
-          "Your invite code was correct and you've joined the private room.",
+          "Your invite code was accepted.",
       });
     },
     onError: (error: Error) => {
       console.error('Join room error:', error);
-      let errorMessage = error.message;
+      let errorMessage = "Failed to join room";
       try {
-        // Try to parse the error message as JSON
         const parsedError = JSON.parse(error.message);
         if (parsedError.error) {
           errorMessage = `${parsedError.error}. Expected code: ${parsedError.expected}, but you provided: ${parsedError.provided}`;
         }
       } catch (e) {
-        // If parsing fails, use the original message
+        errorMessage = error.message;
       }
       toast({
         title: "Failed to join room",
-        description: `Error: ${errorMessage}`,
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -688,10 +700,6 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
           roomInviteCode: room.inviteCode,
           providedCode: inviteCode
         });
-        toast({
-          title: "Joining private room",
-          description: `Attempting to join with code: ${inviteCode}`,
-        });
         joinRoomMutation.mutate(inviteCode);
       }
     } else if (!room.participants?.some(p => p.id === user?.id)) {
@@ -699,13 +707,9 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
         roomId: room.id,
         isPublic: room.isPublic
       });
-      toast({
-        title: "Joining public room",
-        description: "Attempting to join...",
-      });
       joinRoomMutation.mutate();
     }
-  }, [room.id, room.isPublic, user?.id]);
+  }, [room.id, room.isPublic, room.inviteCode, user?.id]);
 
   return (
     <div className="flex flex-col h-full">
@@ -894,7 +898,7 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
               .map(([userId]) => {
                 const typingUser = room.participants?.find(p => p.id.toString() === userId);
                 return typingUser && (
-                  <div key={userId} className="absolute -top-6 left-4 text-sm text-mutedforeground">
+                  <div key={userId} className="absolute -top-6 left-4 text-sm text-muted-foreground">
                     {typingUser.username} is typing...
                   </div>
                 );
