@@ -32,6 +32,7 @@ export default function ChatPage() {
   const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [roomCode, setRoomCode] = useState("");
+  const [clearedMentions, setClearedMentions] = useState<number[]>([]);
   const { toast } = useToast();
 
   const { data: rooms, isLoading } = useQuery<Room[]>({
@@ -68,25 +69,12 @@ export default function ChatPage() {
       }
     },
     onSuccess: ({ roomId }) => {
-      // Immediately update the cache to remove mentions for this room
+      setClearedMentions(prev => [...prev, roomId]);
       queryClient.setQueryData<{ roomId: number; count: number }[]>(
         ["/api/mentions/unread"],
         (old) => old?.filter(mention => mention.roomId !== roomId) ?? []
       );
-
-      // Temporarily disable refetching
-      const previousDefaults = queryClient.getDefaultOptions();
-      queryClient.setQueryDefaults(["/api/mentions/unread"], {
-        refetchInterval: false,
-        refetchOnWindowFocus: false,
-        staleTime: Infinity
-      });
-
-      // Re-enable refetching after a delay
-      setTimeout(() => {
-        queryClient.setQueryDefaults(["/api/mentions/unread"], previousDefaults);
-        queryClient.invalidateQueries({ queryKey: ["/api/mentions/unread"] });
-      }, 2000);
+      queryClient.invalidateQueries({ queryKey: ["/api/mentions/unread"] });
     },
     onError: (error: Error) => {
       toast({
@@ -99,12 +87,9 @@ export default function ChatPage() {
 
   const handleRoomSelect = async (room: Room) => {
     setSelectedRoom(room);
-
-    // Check for unread mentions in this room
     const roomMentions = unreadMentions?.find(m => m.roomId === room.id);
-    if (roomMentions && roomMentions.count > 0) {
+    if (roomMentions && roomMentions.count > 0 && !clearedMentions.includes(room.id)) {
       try {
-        // Clear mentions immediately when entering the room
         await clearMentionsMutation.mutateAsync(room.id);
       } catch (error) {
         console.error("Failed to clear mentions:", error);
@@ -145,7 +130,6 @@ export default function ChatPage() {
       setSelectedRoom(null);
     },
   });
-
 
   const form = useForm({
     resolver: zodResolver(insertRoomSchema),
@@ -240,7 +224,9 @@ export default function ChatPage() {
           <div className="space-y-2 flex-1 overflow-auto">
             {rooms?.map((room) => {
               const unreadMention = unreadMentions?.find(m => m.roomId === room.id);
-              const hasUnreadMentions = unreadMention && unreadMention.count > 0;
+              const hasUnreadMentions = unreadMention && 
+                unreadMention.count > 0 && 
+                !clearedMentions.includes(room.id);
               return (
                 <Button
                   key={room.id}
@@ -320,7 +306,6 @@ export default function ChatPage() {
         )}
       </div>
 
-      {/* Create Room Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -363,7 +348,6 @@ export default function ChatPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Join Room Dialog */}
       <Dialog open={isJoinDialogOpen} onOpenChange={setIsJoinDialogOpen}>
         <DialogContent>
           <DialogHeader>

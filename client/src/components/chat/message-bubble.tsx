@@ -257,11 +257,11 @@ export function MessageBubble({ message, roomId }: { message: ExtendedMessageWit
                   </div>
                 </div>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-[90vw] max-h-[90vh] bg-black/90 border-0 p-4 relative">
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute top-4 right-4 text-white hover:bg-white/20"
+                  className="absolute top-2 right-2 text-white hover:bg-white/20"
                   onClick={() => setShowImageModal(false)}
                 >
                   <X className="h-6 w-6" />
@@ -269,7 +269,7 @@ export function MessageBubble({ message, roomId }: { message: ExtendedMessageWit
                 <img
                   src={mediaUrl}
                   alt="Full size image"
-                  className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg"
+                  className="w-full h-full object-contain"
                 />
               </DialogContent>
             </Dialog>
