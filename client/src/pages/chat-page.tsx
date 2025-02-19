@@ -66,6 +66,17 @@ export default function ChatPage() {
       }
     },
     onSuccess: ({ roomId }) => {
+      // Optimistically update the UI
+      queryClient.setQueryData<{ roomId: number; count: number }[]>(
+        ["/api/mentions/unread"],
+        (old) => old?.map(mention => 
+          mention.roomId === roomId 
+            ? { ...mention, count: 0 }
+            : mention
+        ) ?? []
+      );
+
+      // Refetch to ensure consistency
       queryClient.invalidateQueries({ queryKey: ["/api/mentions/unread"] });
     },
     onError: (error: Error) => {
