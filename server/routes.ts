@@ -341,12 +341,28 @@ export function registerRoutes(app: Express): Server {
   // Update join room endpoint to handle invite codes properly
   app.post("/api/rooms/:roomId/join", async (req, res) => {
     console.log(`POST request received for ${req.url}`);
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+    console.log('Join room request:', {
+      body: req.body,
+      params: req.params,
+      auth: req.isAuthenticated(),
+      userId: req.user?.id
+    });
+
+    if (!req.isAuthenticated()) {
+      console.log('Unauthorized join attempt');
+      return res.sendStatus(401);
+    }
 
     try {
       const roomId = parseInt(req.params.roomId);
       const userId = req.user.id;
       const providedCode = req.body.inviteCode;
+
+      console.log('Processing join request:', {
+        roomId,
+        userId,
+        providedCode
+      });
 
       // Get room details
       const [room] = await db
@@ -356,7 +372,7 @@ export function registerRoutes(app: Express): Server {
 
       if (!room) {
         console.log('Room not found:', roomId);
-        return res.status(404).send("Room not found");
+        return res.status(404).json({ error: "Room not found" });
       }
 
       console.log('Found room:', room);
@@ -380,13 +396,17 @@ export function registerRoutes(app: Express): Server {
         });
 
         if (!providedCode) {
+          console.log('No invite code provided for private room');
           return res.status(403).json({
             error: "Invite code is required for private rooms"
           });
         }
 
         if (providedCode !== room.inviteCode) {
-          console.log('Invalid invite code provided');
+          console.log('Invalid invite code:', {
+            provided: providedCode,
+            expected: room.inviteCode
+          });
           return res.status(403).json({
             error: "Invalid invite code",
             provided: providedCode,
@@ -417,7 +437,7 @@ export function registerRoutes(app: Express): Server {
       res.json(safeMembers);
     } catch (error) {
       console.error('Error joining room:', error);
-      res.status(500).send('Failed to join room');
+      res.status(500).json({ error: 'Failed to join room' });
     }
   });
 

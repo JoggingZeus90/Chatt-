@@ -299,34 +299,46 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
 
   const joinRoomMutation = useMutation({
     mutationFn: async (inviteCode?: string) => {
-      console.log('Attempting to join room:', { roomId: room.id, inviteCode });
-      const res = await apiRequest("POST", `/api/rooms/${room.id}/join`, {
-        inviteCode
+      console.log('Starting join room mutation with:', { 
+        roomId: room.id, 
+        inviteCode,
+        isPublic: room.isPublic 
       });
-      if (!res.ok) {
-        const errorText = await res.text();
-        let error;
-        try {
-          error = JSON.parse(errorText);
-        } catch {
-          error = { error: errorText };
+
+      try {
+        const res = await apiRequest("POST", `/api/rooms/${room.id}/join`, {
+          inviteCode
+        });
+
+        const text = await res.text();
+        console.log('Server response:', { status: res.status, text });
+
+        if (!res.ok) {
+          try {
+            const error = JSON.parse(text);
+            throw new Error(JSON.stringify(error));
+          } catch {
+            throw new Error(text);
+          }
         }
-        console.error('Join room API error:', error);
-        throw new Error(JSON.stringify(error));
+
+        const data = JSON.parse(text);
+        console.log('Parsed response data:', data);
+        return data;
+      } catch (error) {
+        console.error('Error in join mutation:', error);
+        throw error;
       }
-      const data = await res.json();
-      console.log('Join room API response:', data);
-      return data;
     },
     onMutate: () => {
-      console.log('Starting join room mutation');
+      console.log('Join mutation starting...');
       toast({
         title: room.isPublic ? "Joining public room" : "Joining private room",
         description: "Please wait...",
       });
     },
     onSuccess: (data) => {
-      console.log('Join room mutation succeeded:', data);
+      console.log('Join mutation succeeded:', data);
       queryClient.invalidateQueries({ queryKey: [`/api/rooms/${room.id}/messages`] });
       queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
       toast({
@@ -337,13 +349,11 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
       });
     },
     onError: (error: Error) => {
-      console.error('Join room mutation error:', error);
+      console.error('Join mutation failed:', error);
       let errorMessage = "Failed to join room";
       try {
         const parsedError = JSON.parse(error.message);
-        if (parsedError.error) {
-          errorMessage = parsedError.error;
-        }
+        errorMessage = parsedError.error || error.message;
       } catch (e) {
         errorMessage = error.message;
       }
@@ -359,21 +369,35 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
   useEffect(() => {
     if (!room.isPublic && !room.participants?.some(p => p.id === user?.id)) {
       const inviteCode = prompt("Please enter the invite code to join this private room:");
+      console.log('Got invite code:', inviteCode);
+
       if (inviteCode) {
-        console.log('Joining private room:', {
+        console.log('Attempting to join private room:', {
           roomId: room.id,
           providedCode: inviteCode
         });
+
         joinRoomMutation.mutateAsync(inviteCode)
-          .catch(error => console.error('Failed to join room:', error));
+          .then(data => {
+            console.log('Successfully joined room:', data);
+          })
+          .catch(error => {
+            console.error('Failed to join room:', error);
+          });
       }
     } else if (!room.participants?.some(p => p.id === user?.id)) {
-      console.log('Joining public room:', {
+      console.log('Attempting to join public room:', {
         roomId: room.id,
         isPublic: room.isPublic
       });
+
       joinRoomMutation.mutateAsync()
-        .catch(error => console.error('Failed to join room:', error));
+        .then(data => {
+          console.log('Successfully joined public room:', data);
+        })
+        .catch(error => {
+          console.error('Failed to join public room:', error);
+        });
     }
   }, [room.id, room.isPublic, user?.id, room.participants]);
 
