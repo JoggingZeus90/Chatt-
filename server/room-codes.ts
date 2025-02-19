@@ -57,7 +57,9 @@ export async function validateRoomCode(roomId: number, providedCode: string): Pr
     const codes: RoomCode[] = JSON.parse(content);
 
     const roomCode = codes.find(code => code.roomId === roomId);
-    return roomCode?.inviteCode === providedCode;
+    const isValid = roomCode?.inviteCode === providedCode;
+    console.log('Validating code:', { roomId, providedCode, storedCode: roomCode?.inviteCode, isValid });
+    return isValid;
   } catch (error) {
     console.error('Error validating room code:', error);
     return false;
