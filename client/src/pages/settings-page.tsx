@@ -13,8 +13,8 @@ import {
   AvatarFallback,
 } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ArrowLeft, AlertTriangle, Upload } from "lucide-react";
 import { Link, useLocation } from "wouter";
@@ -41,6 +41,7 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const { theme, setTheme } = useTheme();
+  const queryClient = useQueryClient();
 
   const form = useForm({
     resolver: zodResolver(updateUserSchema),
@@ -61,7 +62,7 @@ export default function SettingsPage() {
         avatarUrl: user.avatarUrl || "",
         currentPassword: "",
         newPassword: "",
-        appearOffline: user.appearOffline || false,
+        appearOffline: user.appearOffline,
       });
     }
   }, [user, form]);
@@ -116,9 +117,11 @@ export default function SettingsPage() {
         title: "Profile updated",
         description: "Your profile has been updated successfully.",
       });
+
+      // Update form with new values
       form.reset({
         username: updatedUser.username,
-        avatarUrl: updatedUser.avatarUrl,
+        avatarUrl: updatedUser.avatarUrl || "",
         currentPassword: "",
         newPassword: "",
         appearOffline: updatedUser.appearOffline,
@@ -132,6 +135,15 @@ export default function SettingsPage() {
       });
     },
   });
+
+  const handleAppearOfflineChange = (checked: boolean) => {
+    form.setValue("appearOffline", checked);
+    // Immediately submit the form when appearOffline changes
+    updateProfileMutation.mutate({
+      ...form.getValues(),
+      appearOffline: checked,
+    });
+  };
 
   const deleteAccountMutation = useMutation({
     mutationFn: async () => {
@@ -153,6 +165,8 @@ export default function SettingsPage() {
       });
     },
   });
+
+  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-background p-8">
@@ -184,7 +198,7 @@ export default function SettingsPage() {
                       <Switch
                         id="appearOffline"
                         checked={form.watch("appearOffline")}
-                        onCheckedChange={(checked) => form.setValue("appearOffline", checked)}
+                        onCheckedChange={handleAppearOfflineChange}
                       />
                     </div>
                   )}
