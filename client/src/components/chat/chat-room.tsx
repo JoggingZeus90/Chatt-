@@ -902,7 +902,7 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
                 <MessageBubble key={message.id} message={message} roomId={room.id} />
               ))
             )}
-            <div ref={messagesEndRef} />
+            <div ref={messagesEndRef} /><div />
           </div>
           {showScrollButton && (
             <Button
@@ -913,7 +913,7 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
               <ArrowDown className="h-5 w-5" />
             </Button>
           )}
-          <form onSubmit={handleSubmit} className="border-t p-2 sm4 space-y-4">
+          <form onSubmit={handleSubmit} className="border-t p-2 sm:p-4 space-y-4 relative">
             {Object.entries(typingUsers)
               .filter(([userId, isTyping]) => isTyping && userId !== user?.id.toString())
               .map(([userId]) => {
@@ -931,13 +931,14 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
                     src={mediaPreviewUrl}
                     alt="Preview"
                     className="max-h-32 rounded-lg"
-                  />) : (
-                    <video
-                      src={mediaPreviewUrl}
-                      className="max-h-32 roundedlg"
-                      controls
-                    />
-                  )}
+                  />
+                ) : (
+                  <video
+                    src={mediaPreviewUrl}
+                    className="max-h-32 rounded-lg"
+                    controls
+                  />
+                )}
                 <button
                   type="button"
                   onClick={clearMediaPreview}
@@ -947,7 +948,7 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
                 </button>
               </div>
             )}
-            <div className="flex gap-2 relative">
+            <div className="flex gap-2 items-center relative">
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/gif,video/mp4,video/webm"
@@ -955,72 +956,78 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
                 ref={fileInputRef}
                 onChange={handleFileSelect}
               />
-              <Input
-                ref={inputRef}
-                value={message}
-                onChange={handleMessageChange}
-                placeholder="Type a message..."
-                maxLength={MAX_MESSAGE_LENGTH}
-                disabled={sendMessageMutation.isPending}
-              />
-              {showMentions && room.participants && (
-                <div className="absolute bottom-full left-0 mb-2 w-64 bg-popover text-popover-foreground shadow-lg rounded-lg border overflow-hidden z-50">
-                  <Command>
-                    <CommandInput 
-                      placeholder="Search users..." 
-                      value={mentionSearch} 
-                      onChange={(e) => setMentionSearch(e.target.value)}
-                    />
-                    <CommandList>
-                      <CommandEmpty>No users found</CommandEmpty>
-                      {/* Special mentions group */}
-                      <CommandGroup heading="Special Mentions">
-                        {SPECIAL_MENTIONS
-                          .filter(mention => mention.username.toLowerCase().includes(mentionSearch.toLowerCase()))
-                          .map(mention => (
-                            <CommandItem
-                              key={mention.id}
-                              value={mention.username}
-                              onSelect={handleMentionSelect}
-                              className="cursor-pointer"
-                            >
-                              <Users className="h-4 w-4 mr-2" />
-                              <div className="flex flex-col">
-                                <span>@{mention.username}</span>
-                                <span className="text-xs text-muted-foreground">{mention.description}</span>
-                              </div>
-                            </CommandItem>
-                          ))}
-                      </CommandGroup>
-                      {/* Users group */}
-                      <CommandGroup heading="Users">
-                        {room.participants
-                          .filter(participant =>
-                            participant.username.toLowerCase().includes(mentionSearch.toLowerCase())
-                          )
-                          .map(participant => (
-                            <CommandItem
-                              key={participant.id}
-                              value={participant.username}
-                              onSelect={handleMentionSelect}
-                              className="cursor-pointer"
-                            >
-                              <Avatar className="h-6 w-6 mr-2">
-                                <AvatarImage src={participant.avatarUrl ?? undefined} />
-                                <AvatarFallback>{participant.username[0].toUpperCase()}</AvatarFallback>
-                              </Avatar>
-                              {participant.username}
-                            </CommandItem>
-                          ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </div>
-              )}
+              <div className="flex-1 relative">
+                <Input
+                  ref={inputRef}
+                  value={message}
+                  onChange={handleMessageChange}
+                  placeholder="Type a message... Use @ to mention people"
+                  maxLength={MAX_MESSAGE_LENGTH}
+                  disabled={sendMessageMutation.isPending}
+                  className="pr-12"
+                />
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                  {message.length}/{MAX_MESSAGE_LENGTH}
+                </span>
+                {showMentions && (
+                  <div className="absolute bottom-full left-0 mb-2 w-64 bg-popover text-popover-foreground shadow-lg rounded-lg border overflow-hidden z-50">
+                    <Command>
+                      <CommandInput
+                        placeholder="Search users..."
+                        value={mentionSearch}
+                        onValueChange={setMentionSearch}
+                      />
+                      <CommandList>
+                        <CommandEmpty>No users found</CommandEmpty>
+                        {/* Special mentions group */}
+                        <CommandGroup heading="Special Mentions">
+                          {SPECIAL_MENTIONS
+                            .filter(mention => mention.username.toLowerCase().includes(mentionSearch.toLowerCase()))
+                            .map(mention => (
+                              <CommandItem
+                                key={mention.id}
+                                value={mention.username}
+                                onSelect={handleMentionSelect}
+                                className="cursor-pointer"
+                              >
+                                <Users className="h-4 w-4 mr-2" />
+                                <div className="flex flex-col">
+                                  <span>@{mention.username}</span>
+                                  <span className="text-xs text-muted-foreground">{mention.description}</span>
+                                </div>
+                              </CommandItem>
+                            ))}
+                        </CommandGroup>
+                        {/* Users group */}
+                        <CommandGroup heading="Users">
+                          {room.participants
+                            ?.filter(participant =>
+                              participant.username.toLowerCase().includes(mentionSearch.toLowerCase())
+                            )
+                            .map(participant => (
+                              <CommandItem
+                                key={participant.id}
+                                value={participant.username}
+                                onSelect={handleMentionSelect}
+                                className="cursor-pointer"
+                              >
+                                <Avatar className="h-6 w-6 mr-2">
+                                  <AvatarImage src={participant.avatarUrl ?? undefined} />
+                                  <AvatarFallback>{participant.username[0].toUpperCase()}</AvatarFallback>
+                                </Avatar>
+                                {participant.username}
+                              </CommandItem>
+                            ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </div>
+                )}
+              </div>
               <Button
                 type="button"
-                size="icon"
                 variant="outline"
+                size="icon"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={sendMessageMutation.isPending}
               >
