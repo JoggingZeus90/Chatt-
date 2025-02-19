@@ -80,7 +80,7 @@ export function MessageBubble({ message, roomId }: { message: ExtendedMessageWit
   const isOwner = user?.role === UserRole.OWNER;
   const isWhisper = message.whisperTo !== undefined;
   const canSeeWhisper = !isWhisper || isOwn || message.whisperTo === user?.username;
-  const canDelete = isOwn || 
+  const canDelete = isOwn ||
     (isOwner || (user?.role === 'admin' || user?.role === 'moderator')) && message.user.role !== UserRole.OWNER;
   const canEdit = isOwn || isOwner;
   const [imageError, setImageError] = useState(false);
@@ -301,7 +301,7 @@ export function MessageBubble({ message, roomId }: { message: ExtendedMessageWit
 
         <div className={cn(
           "absolute top-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2",
-          isOwn ? "-left-[4rem]" : "left-[100%] ml-2"
+          isOwn ? "-left-[6rem]" : "left-[100%] ml-2"
         )}>
           {canEdit && !isEditing && (
             <Button
