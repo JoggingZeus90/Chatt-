@@ -331,7 +331,7 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
       queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
       toast({
         title: "Successfully joined room",
-        description: room.isPublic ?
+        description: room.isPublic ? 
           "You have joined the public room." :
           "Your invite code was accepted.",
       });
@@ -342,7 +342,7 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
       try {
         const parsedError = JSON.parse(error.message);
         if (parsedError.error) {
-          errorMessage = `${parsedError.error}. Expected code: ${parsedError.expected}, but you provided: ${parsedError.provided}`;
+          errorMessage = parsedError.error;
         }
       } catch (e) {
         errorMessage = error.message;
@@ -362,19 +362,20 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
       if (inviteCode) {
         console.log('Joining private room:', {
           roomId: room.id,
-          roomInviteCode: room.inviteCode,
           providedCode: inviteCode
         });
-        joinRoomMutation.mutateAsync(inviteCode);
+        joinRoomMutation.mutateAsync(inviteCode)
+          .catch(error => console.error('Failed to join room:', error));
       }
     } else if (!room.participants?.some(p => p.id === user?.id)) {
       console.log('Joining public room:', {
         roomId: room.id,
         isPublic: room.isPublic
       });
-      joinRoomMutation.mutateAsync();
+      joinRoomMutation.mutateAsync()
+        .catch(error => console.error('Failed to join room:', error));
     }
-  }, [room.id, room.isPublic, room.inviteCode, user?.id, room.participants]);
+  }, [room.id, room.isPublic, user?.id, room.participants]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

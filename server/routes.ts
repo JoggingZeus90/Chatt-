@@ -338,8 +338,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Join room (check visibility and handle accordingly)
-  // Add more detailed logging to join room endpoint
+  // Update join room endpoint to handle invite codes properly
   app.post("/api/rooms/:roomId/join", async (req, res) => {
     console.log(`POST request received for ${req.url}`);
     if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -347,6 +346,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const roomId = parseInt(req.params.roomId);
       const userId = req.user.id;
+      const providedCode = req.body.inviteCode;
 
       // Get room details
       const [room] = await db
@@ -359,6 +359,8 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).send("Room not found");
       }
 
+      console.log('Found room:', room);
+
       // Check if user is already a member
       const isMember = await storage.isRoomMember(roomId, userId);
       console.log('User membership status:', { userId, roomId, isMember });
@@ -369,16 +371,21 @@ export function registerRoutes(app: Express): Server {
         return res.json(members);
       }
 
-      // For private rooms, verify the invite code matches
+      // For private rooms, verify the invite code
       if (!room.isPublic) {
-        const providedCode = req.body.inviteCode;
         console.log('Private room join attempt:', {
           roomId,
           roomInviteCode: room.inviteCode,
           providedCode
         });
 
-        if (!providedCode || providedCode !== room.inviteCode) {
+        if (!providedCode) {
+          return res.status(403).json({
+            error: "Invite code is required for private rooms"
+          });
+        }
+
+        if (providedCode !== room.inviteCode) {
           console.log('Invalid invite code provided');
           return res.status(403).json({
             error: "Invalid invite code",
@@ -386,6 +393,7 @@ export function registerRoutes(app: Express): Server {
             expected: room.inviteCode
           });
         }
+
         console.log('Invite code validated successfully');
       }
 
