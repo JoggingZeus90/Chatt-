@@ -311,29 +311,33 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
         } catch {
           error = { error: errorText };
         }
+        console.error('Join room API error:', error);
         throw new Error(JSON.stringify(error));
       }
       const data = await res.json();
+      console.log('Join room API response:', data);
       return data;
     },
     onMutate: () => {
+      console.log('Starting join room mutation');
       toast({
         title: room.isPublic ? "Joining public room" : "Joining private room",
         description: "Please wait...",
       });
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Join room mutation succeeded:', data);
       queryClient.invalidateQueries({ queryKey: [`/api/rooms/${room.id}/messages`] });
       queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
       toast({
         title: "Successfully joined room",
-        description: room.isPublic ? 
-          "You have joined the public room." : 
+        description: room.isPublic ?
+          "You have joined the public room." :
           "Your invite code was accepted.",
       });
     },
     onError: (error: Error) => {
-      console.error('Join room error:', error);
+      console.error('Join room mutation error:', error);
       let errorMessage = "Failed to join room";
       try {
         const parsedError = JSON.parse(error.message);
@@ -361,14 +365,14 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
           roomInviteCode: room.inviteCode,
           providedCode: inviteCode
         });
-        joinRoomMutation.mutate(inviteCode);
+        joinRoomMutation.mutateAsync(inviteCode);
       }
     } else if (!room.participants?.some(p => p.id === user?.id)) {
       console.log('Joining public room:', {
         roomId: room.id,
         isPublic: room.isPublic
       });
-      joinRoomMutation.mutate();
+      joinRoomMutation.mutateAsync();
     }
   }, [room.id, room.isPublic, room.inviteCode, user?.id, room.participants]);
 

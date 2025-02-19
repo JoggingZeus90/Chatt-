@@ -339,6 +339,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Join room (check visibility and handle accordingly)
+  // Add more detailed logging to join room endpoint
   app.post("/api/rooms/:roomId/join", async (req, res) => {
     console.log(`POST request received for ${req.url}`);
     if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -354,32 +355,38 @@ export function registerRoutes(app: Express): Server {
         .where(eq(schema.rooms.id, roomId));
 
       if (!room) {
+        console.log('Room not found:', roomId);
         return res.status(404).send("Room not found");
       }
 
       // Check if user is already a member
       const isMember = await storage.isRoomMember(roomId, userId);
+      console.log('User membership status:', { userId, roomId, isMember });
+
       if (isMember) {
         const members = await storage.getRoomMembers(roomId);
+        console.log('User is already a member, returning member list');
         return res.json(members);
       }
 
       // For private rooms, verify the invite code matches
       if (!room.isPublic) {
         const providedCode = req.body.inviteCode;
-        console.log('Joining private room:', {
+        console.log('Private room join attempt:', {
           roomId,
           roomInviteCode: room.inviteCode,
           providedCode
         });
 
         if (!providedCode || providedCode !== room.inviteCode) {
+          console.log('Invalid invite code provided');
           return res.status(403).json({
             error: "Invalid invite code",
             provided: providedCode,
             expected: room.inviteCode
           });
         }
+        console.log('Invite code validated successfully');
       }
 
       // Join room
@@ -398,6 +405,7 @@ export function registerRoutes(app: Express): Server {
         suspended: member.suspended
       }));
 
+      console.log('Returning updated member list:', safeMembers);
       res.json(safeMembers);
     } catch (error) {
       console.error('Error joining room:', error);
