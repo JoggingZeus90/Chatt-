@@ -338,17 +338,21 @@ export function registerRoutes(app: Express): Server {
       console.log('Processing join request:', { roomId, userId, providedCode });
 
       // Get all rooms to verify invite code
-      const rooms = await db.select().from(schema.rooms);
-      const room = rooms.find(r => r.id === roomId);
+      const [room] = await db
+        .select()
+        .from(schema.rooms)
+        .where(eq(schema.rooms.id, roomId));
       
       if (!room) {
         console.log('Room not found:', roomId);
         return res.status(404).json({ error: "Room not found" });
       }
 
-      if (room.inviteCode && room.inviteCode !== providedCode) {
-        console.log('Invalid invite code:', { provided: providedCode, expected: room.inviteCode });
-        return res.status(403).json({ error: "Invalid invite code" });
+      if (!room.isPublic) {
+        if (providedCode !== room.inviteCode) {
+          console.log('Invalid invite code:', { provided: providedCode, expected: room.inviteCode });
+          return res.status(403).json({ error: "Invalid invite code" });
+        }
       }
       console.log('Found room:', room);
       const isMember = await storage.isRoomMember(roomId, userId);
