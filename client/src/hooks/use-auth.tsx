@@ -189,11 +189,13 @@ export function useAuth() {
   }
 
   // Add role checking helpers
-  const isAdmin = context.user?.role === UserRole.ADMIN;
+  const isOwner = context.user?.role === UserRole.OWNER;
+  const isAdmin = context.user?.role === UserRole.ADMIN || isOwner;
   const isModerator = context.user?.role === UserRole.MODERATOR || isAdmin;
 
   return {
     ...context,
+    isOwner,
     isAdmin,
     isModerator,
   };

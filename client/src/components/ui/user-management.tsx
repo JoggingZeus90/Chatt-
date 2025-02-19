@@ -26,16 +26,13 @@ import { format } from "date-fns";
 import { Loader2, ShieldAlert } from "lucide-react";
 
 export function UserManagement() {
-  const { user: currentUser, isAdmin } = useAuth();
+  const { user: currentUser, isAdmin, isOwner } = useAuth();
   const { toast } = useToast();
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [muteReason, setMuteReason] = useState("");
-  const [muteDuration, setMuteDuration] = useState("60"); // Default 60 minutes
-  const [suspensionReason, setSuspensionReason] = useState("");
 
   const { data: users, isLoading } = useQuery<User[]>({
     queryKey: ["/api/users"],
-    enabled: isAdmin,
+    enabled: isAdmin || isOwner,
   });
 
   // Separate users by role and status
@@ -85,7 +82,6 @@ export function UserManagement() {
         description: "User suspended successfully",
       });
       setSelectedUser(null);
-      setSuspensionReason("");
     },
     onError: (error: Error) => {
       toast({
@@ -108,8 +104,6 @@ export function UserManagement() {
         title: "Success",
         description: "User muted successfully",
       });
-      setMuteReason("");
-      setMuteDuration("60");
     },
     onError: (error: Error) => {
       toast({
@@ -164,41 +158,8 @@ export function UserManagement() {
     },
   });
 
-  const handleMuteSubmit = (userId: number) => {
-    if (!muteReason.trim() || parseInt(muteDuration) <= 0) {
-      toast({
-        title: "Missing information",
-        description: "Please provide both duration and reason for muting.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    muteUserMutation.mutate({
-      userId,
-      duration: parseInt(muteDuration),
-      reason: muteReason,
-    });
-  };
-
-  const handleSuspendSubmit = (userId: number) => {
-    if (!suspensionReason.trim()) {
-      toast({
-        title: "Missing information",
-        description: "Please provide a reason for suspension.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    suspendUserMutation.mutate({
-      userId,
-      reason: suspensionReason,
-    });
-  };
-
   const UserCard = ({ user, showRoleSelect = true }: { user: User; showRoleSelect?: boolean }) => {
-    const isOwner = user.role === UserRole.OWNER;
+    const isUserOwner = user.role === UserRole.OWNER;
     const [selectedRole, setSelectedRole] = useState(user.role);
     const [isChangingRole, setIsChangingRole] = useState(false);
     const [isMuteDialogOpen, setIsMuteDialogOpen] = useState(false);
@@ -222,19 +183,19 @@ export function UserManagement() {
       setIsChangingRole(false);
     };
 
-    const handleMuteClick = (e: React.MouseEvent) => {
+    const handleMuteClick = (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
       e.stopPropagation();
       setIsMuteDialogOpen(true);
     };
 
-    const handleSuspendClick = (e: React.MouseEvent) => {
+    const handleSuspendClick = (e: React.MouseEvent<HTMLButtonElement>) => {
       e.preventDefault();
       e.stopPropagation();
       setIsSuspendDialogOpen(true);
     };
 
-    const handleMuteSubmit = () => {
+    const handleMuteSubmitDialog = () => {
       if (!localMuteReason.trim() || parseInt(localMuteDuration) <= 0) {
         toast({
           title: "Missing information",
@@ -252,7 +213,7 @@ export function UserManagement() {
       setIsMuteDialogOpen(false);
     };
 
-    const handleSuspendSubmit = () => {
+    const handleSuspendSubmitDialog = () => {
       if (!localSuspendReason.trim()) {
         toast({
           title: "Missing information",
@@ -269,7 +230,8 @@ export function UserManagement() {
       setIsSuspendDialogOpen(false);
     };
 
-    if (isOwner) {
+    // Show special card for owners
+    if (isUserOwner && user.id !== currentUser?.id) {
       return (
         <div className="flex items-center justify-between p-4 border-2 border-primary rounded-lg bg-primary/5">
           <div className="space-y-1">
@@ -281,13 +243,34 @@ export function UserManagement() {
               Role: Owner
             </p>
             <p className="text-sm text-primary/80">
-              This user is the owner of the application and cannot be modified by other administrators
+              This user is an owner of the application
             </p>
           </div>
         </div>
       );
     }
 
+    // Show current user's owner card
+    if (isUserOwner && user.id === currentUser?.id) {
+      return (
+        <div className="flex items-center justify-between p-4 border-2 border-primary rounded-lg bg-primary/5">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="w-5 h-5 text-primary" />
+              <p className="font-medium">{user.username}</p>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Role: Owner
+            </p>
+            <p className="text-sm text-primary/80">
+              You are the owner of this application
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    // For non-owner users, show regular card with actions
     return (
       <div className="flex items-center justify-between p-4 border rounded-lg">
         <div>
@@ -303,9 +286,12 @@ export function UserManagement() {
             </p>
           )}
         </div>
-        {isAdmin && showRoleSelect && user.id !== currentUser?.id && (
+        {(isAdmin || isOwner) && showRoleSelect && user.id !== currentUser?.id && (
           <div className="flex items-center gap-2">
-            <Select value={selectedRole} onValueChange={handleRoleChange}>
+            <Select
+              value={selectedRole}
+              onValueChange={handleRoleChange}
+            >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Select role" />
               </SelectTrigger>
@@ -369,8 +355,7 @@ export function UserManagement() {
                   <DialogFooter>
                     <Button
                       type="button"
-                      variant="default"
-                      onClick={handleMuteSubmit}
+                      onClick={handleMuteSubmitDialog}
                       disabled={muteUserMutation.isPending || !localMuteReason.trim() || parseInt(localMuteDuration) <= 0}
                     >
                       {muteUserMutation.isPending ? (
@@ -415,7 +400,7 @@ export function UserManagement() {
                 <DialogFooter>
                   <Button
                     variant="destructive"
-                    onClick={handleSuspendSubmit}
+                    onClick={handleSuspendSubmitDialog}
                     disabled={suspendUserMutation.isPending || !localSuspendReason.trim()}
                   >
                     {suspendUserMutation.isPending ? (
@@ -432,7 +417,7 @@ export function UserManagement() {
     );
   };
 
-  if (!isAdmin) {
+  if (!isAdmin && !isOwner) {
     return null;
   }
 
@@ -457,7 +442,7 @@ export function UserManagement() {
         <h3 className="text-lg font-semibold text-primary">Administrators</h3>
         <div className="space-y-4">
           {admins.map((user) => (
-            <UserCard key={user.id} user={user} showRoleSelect={true} />
+            <UserCard key={user.id} user={user} />
           ))}
           {admins.length === 0 && (
             <p className="text-sm text-muted-foreground">No administrators found</p>
@@ -512,7 +497,7 @@ export function UserManagement() {
                   Reason: {user.suspendedReason}
                 </p>
               </div>
-              {isAdmin && (
+              {(isAdmin || isOwner) && (
                 <Button
                   variant="outline"
                   onClick={() => unsuspendUserMutation.mutate(user.id)}

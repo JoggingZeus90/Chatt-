@@ -42,6 +42,11 @@ export function requireRole(role: UserRoleType) {
 
     const userRole = req.user.role;
 
+    // Owner has access to everything
+    if (userRole === UserRole.OWNER) {
+      return next();
+    }
+
     if (role === UserRole.ADMIN && userRole !== UserRole.ADMIN) {
       return res.status(403).json({ message: "Admin access required" });
     }
