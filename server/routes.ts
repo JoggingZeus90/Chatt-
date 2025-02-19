@@ -364,7 +364,7 @@ export function registerRoutes(app: Express): Server {
         return res.json(members);
       }
 
-      // For private rooms, verify the invite code matches the room ID
+      // For private rooms, verify the invite code matches
       if (!room.isPublic) {
         const providedCode = req.body.inviteCode;
         console.log('Joining private room:', {

@@ -313,7 +313,8 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
         }
         throw new Error(JSON.stringify(error));
       }
-      return res.json();
+      const data = await res.json();
+      return data;
     },
     onMutate: () => {
       toast({
@@ -709,7 +710,7 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
       });
       joinRoomMutation.mutate();
     }
-  }, [room.id, room.isPublic, room.inviteCode, user?.id]);
+  }, [room.id, room.isPublic, room.inviteCode, user?.id, room.participants]);
 
   return (
     <div className="flex flex-col h-full">
@@ -896,7 +897,7 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
             {Object.entries(typingUsers)
               .filter(([userId, isTyping]) => isTyping && userId !== user?.id.toString())
               .map(([userId]) => {
-                const typingUser = room.participants?.find(p => p.id.toString=== userId);
+                const typingUser = room.participants?.find(p => p.id.toString() === userId);
                 return typingUser && (
                   <div key={userId} className="absolute -top-6 left-4 text-sm text-muted-foreground">
                     {typingUser.username} is typing...
