@@ -74,10 +74,19 @@ export default function ChatPage() {
         (old) => old?.filter(mention => mention.roomId !== roomId) ?? []
       );
 
-      // Force a fresh fetch after a short delay
+      // Temporarily disable refetching
+      const previousDefaults = queryClient.getDefaultOptions();
+      queryClient.setQueryDefaults(["/api/mentions/unread"], {
+        refetchInterval: false,
+        refetchOnWindowFocus: false,
+        staleTime: Infinity
+      });
+
+      // Re-enable refetching after a delay
       setTimeout(() => {
+        queryClient.setQueryDefaults(["/api/mentions/unread"], previousDefaults);
         queryClient.invalidateQueries({ queryKey: ["/api/mentions/unread"] });
-      }, 100);
+      }, 2000);
     },
     onError: (error: Error) => {
       toast({
