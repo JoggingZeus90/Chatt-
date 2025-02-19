@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { MessageBubble } from "./message-bubble";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Room, MessageWithUser, User } from "@shared/schema";
+import { Room, MessageWithUser, User, UserRole } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Send, Loader2, Image, X, ArrowDown, Pencil, Check, Trash2, LogOut, Users, PanelLeftClose, PanelLeft, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -860,7 +860,7 @@ function ChatRoom({ room, onToggleSidebar, onLeave }: ChatRoomProps) {
                   </span>
                 </div>
               </div>
-              {(isOwner || user?.role === "admin") && (
+              {(isOwner || user?.role === UserRole.OWNER) && (
                 <>
                   <Button
                     size="icon"
@@ -908,7 +908,7 @@ function ChatRoom({ room, onToggleSidebar, onLeave }: ChatRoomProps) {
                   </AlertDialog>
                 </>
               )}
-              {!isOwner && (
+              {!isOwner && user?.id !== room.createdById && (
                 <AlertDialog
                   open={isLeaveDialogOpen}
                   onOpenChange={setIsLeaveDialogOpen}

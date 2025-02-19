@@ -141,8 +141,8 @@ export class DatabaseStorage implements IStorage {
       throw new Error("Room not found");
     }
 
-    // Allow deletion if user is owner or the room creator
-    if (userRole !== UserRole.OWNER ) {
+    // Allow deletion only if user is application owner or the room creator
+    if (userRole !== UserRole.OWNER && room.createdById !== userId) {
       throw new Error("Unauthorized");
     }
 
@@ -400,8 +400,8 @@ export class DatabaseStorage implements IStorage {
       throw new Error("Room not found");
     }
 
-    // Allow update if user is owner 
-    if (userRole !== UserRole.OWNER ) {
+    // Allow update if user is owner or room creator
+    if (userRole !== UserRole.OWNER && room.createdById !== userId) {
       throw new Error("Unauthorized");
     }
 
