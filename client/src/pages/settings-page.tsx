@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useTheme } from "@/hooks/use-theme";
+import React from 'react';
 
 export default function SettingsPage() {
   const { user, logoutMutation, isAdmin, isModerator } = useAuth();
@@ -51,6 +52,19 @@ export default function SettingsPage() {
       appearOffline: user?.appearOffline || false,
     },
   });
+
+  // Reset form when user data changes
+  React.useEffect(() => {
+    if (user) {
+      form.reset({
+        username: user.username,
+        avatarUrl: user.avatarUrl || "",
+        currentPassword: "",
+        newPassword: "",
+        appearOffline: user.appearOffline || false,
+      });
+    }
+  }, [user, form]);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -108,6 +122,11 @@ export default function SettingsPage() {
         currentPassword: "",
         newPassword: "",
         appearOffline: updatedUser.appearOffline,
+      });
+
+      // Update online status based on appearOffline setting
+      apiRequest("POST", `/api/users/${updatedUser.id}/status`, { 
+        isOnline: !updatedUser.appearOffline 
       });
     },
     onError: (error: Error) => {
