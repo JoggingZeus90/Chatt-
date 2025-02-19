@@ -158,7 +158,10 @@ export class DatabaseStorage implements IStorage {
 
   async getRoomMembers(roomId: number): Promise<User[]> {
     const members = await db
-      .select()
+      .select({
+        users: users,
+        roomMembers: roomMembers
+      })
       .from(users)
       .innerJoin(roomMembers, eq(users.id, roomMembers.userId))
       .where(eq(roomMembers.roomId, roomId));
@@ -167,7 +170,8 @@ export class DatabaseStorage implements IStorage {
       id: member.users.id,
       username: member.users.username,
       password: member.users.password,
-      isOnline: member.users.isOnline,
+      isOnline: member.users.appearOffline ? false : member.users.isOnline,
+      appearOffline: member.users.appearOffline,
       lastSeen: member.users.lastSeen,
       avatarUrl: member.users.avatarUrl,
       role: member.users.role,
