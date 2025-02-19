@@ -297,26 +297,6 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
   });
 
 
-  useEffect(() => {
-    if (!room.isPublic && !room.participants?.some(p => p.id === user?.id)) {
-      const inviteCode = prompt("Please enter the invite code to join this private room:");
-      if (inviteCode) {
-        console.log('Joining private room:', {
-          roomId: room.id,
-          roomInviteCode: room.inviteCode,
-          providedCode: inviteCode
-        });
-        joinRoomMutation.mutate(inviteCode);
-      }
-    } else if (!room.participants?.some(p => p.id === user?.id)) {
-      console.log('Joining public room:', {
-        roomId: room.id,
-        isPublic: room.isPublic
-      });
-      joinRoomMutation.mutate();
-    }
-  }, [room.id, room.isPublic, room.inviteCode, user?.id, room.participants]);
-
   const joinRoomMutation = useMutation({
     mutationFn: async (inviteCode?: string) => {
       console.log('Attempting to join room:', { roomId: room.id, inviteCode });
@@ -370,6 +350,27 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
       });
     },
   });
+
+  // Attempt to join room if not already a member
+  useEffect(() => {
+    if (!room.isPublic && !room.participants?.some(p => p.id === user?.id)) {
+      const inviteCode = prompt("Please enter the invite code to join this private room:");
+      if (inviteCode) {
+        console.log('Joining private room:', {
+          roomId: room.id,
+          roomInviteCode: room.inviteCode,
+          providedCode: inviteCode
+        });
+        joinRoomMutation.mutate(inviteCode);
+      }
+    } else if (!room.participants?.some(p => p.id === user?.id)) {
+      console.log('Joining public room:', {
+        roomId: room.id,
+        isPublic: room.isPublic
+      });
+      joinRoomMutation.mutate();
+    }
+  }, [room.id, room.isPublic, room.inviteCode, user?.id, room.participants]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
