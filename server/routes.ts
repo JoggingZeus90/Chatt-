@@ -895,6 +895,68 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Add endpoint to check for mentions
+  app.post("/api/messages/:messageId/mentions", async (req, res) => {
+    console.log(`POST request received for ${req.url}`);
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const messageId = parseInt(req.params.messageId);
+      const mentions = req.body.mentions || [];
+      const roomId = req.body.roomId;
+
+      // Create unread mention records for each mentioned user
+      for (const username of mentions) {
+        const mentionedUser = await storage.getUserByUsername(username);
+        if (mentionedUser && mentionedUser.id !== req.user.id) {
+          await db.insert(schema.unreadMentions).values({
+            userId: mentionedUser.id,
+            messageId,
+            roomId,
+            createdAt: new Date(),
+          });
+        }
+      }
+
+      res.sendStatus(200);
+    } catch (error) {
+      console.error('Error creating mention:', error);
+      res.status(500).send('Failed to create mention');
+    }
+  });
+
+  // Add endpoint to get unread mentions count
+  app.get("/api/mentions/unread", async (req, res) => {
+    console.log(`GET request received for ${req.url}`);
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    try {
+      const mentions = await db.query.unreadMentions.findMany({
+        where: eq(schema.unreadMentions.userId, req.user.id),
+        columns: {
+          roomId: true,
+          messageId: true,
+        },
+      });
+
+      // Group mentions by room and count them
+      const mentionsByRoom = mentions.reduce((acc, mention) => {
+        acc[mention.roomId] = (acc[mention.roomId] || 0) + 1;
+        return acc;
+      }, {} as Record<number, number>);
+
+      const result = Object.entries(mentionsByRoom).map(([roomId, count]) => ({
+        roomId: parseInt(roomId),
+        count,
+      }));
+
+      res.json(result);
+    } catch (error) {
+      console.error('Error fetching unread mentions:', error);
+      res.status(500).send('Failed to fetch unread mentions');
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

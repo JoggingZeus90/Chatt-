@@ -12,7 +12,6 @@ import { useDebouncedCallback } from "use-debounce";
 import { format } from "date-fns";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -29,13 +28,11 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-
-const SPECIAL_MENTIONS = [
-  { id: 'everyone', username: 'everyone', description: 'Mention all users in the room' },
-  { id: 'admin', username: 'admin', description: 'Mention all administrators' },
-  { id: 'mod', username: 'mod', description: 'Mention all moderators' }
-] as const;
+import {
+  Avatar,
+  AvatarImage,
+  AvatarFallback,
+} from "@/components/ui/avatar";
 
 // Define inappropriate words to filter
 const INAPPROPRIATE_WORDS = [
@@ -97,6 +94,12 @@ function filterInappropriateWords(text: string): string {
     .join('');
 }
 
+const SPECIAL_MENTIONS = [
+  { id: 'everyone', username: 'everyone', description: 'Mention all users in the room' },
+  { id: 'admin', username: 'admin', description: 'Mention all administrators' },
+  { id: 'mod', username: 'mod', description: 'Mention all moderators' }
+] as const;
+
 const MAX_MESSAGE_LENGTH = 100;
 const ALLOWED_FILE_TYPES = {
   "image/jpeg": "image",
@@ -151,7 +154,13 @@ const commands = [
   },
 ];
 
-export const ChatRoom = ({ room, onToggleSidebar, onLeave }: { room: Room; onToggleSidebar: () => void; onLeave: (roomId: number) => void }) => {
+interface ChatRoomProps {
+  room: Room;
+  onToggleSidebar: () => void;
+  onLeave: (roomId: number) => void;
+}
+
+function ChatRoom({ room, onToggleSidebar, onLeave }: ChatRoomProps) {
   const { user } = useAuth();
   const [message, setMessage] = useState("");
   const [mediaFile, setMediaFile] = useState<File | null>(null);
@@ -198,11 +207,27 @@ export const ChatRoom = ({ room, onToggleSidebar, onLeave }: { room: Room; onTog
         const error = await res.text();
         throw new Error(error);
       }
-      return res.json();
+      const message = await res.json();
+
+      if (mentions && mentions.length > 0) {
+        const mentionRes = await apiRequest("POST", `/api/messages/${message.id}/mentions`, {
+          mentions,
+          roomId: room.id,
+        });
+        if (!mentionRes.ok) {
+          const error = await mentionRes.text();
+          throw new Error(error);
+        }
+      }
+
+      return message;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: [`/api/rooms/${room.id}/messages`],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/mentions/unread"],
       });
       setMessage("");
       setMediaFile(null);
@@ -211,7 +236,6 @@ export const ChatRoom = ({ room, onToggleSidebar, onLeave }: { room: Room; onTog
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
-      // Play the message sent sound
       if (messageSoundRef.current) {
         messageSoundRef.current.volume = 0.5;
         messageSoundRef.current.currentTime = 0;
@@ -264,7 +288,7 @@ export const ChatRoom = ({ room, onToggleSidebar, onLeave }: { room: Room; onTog
       }
     },
     onSuccess: () => {
-      setIsDeleteDialogOpen(false); // Close the dialog first
+      setIsDeleteDialogOpen(false);
       queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
       toast({
         title: "Room deleted",
@@ -289,13 +313,13 @@ export const ChatRoom = ({ room, onToggleSidebar, onLeave }: { room: Room; onTog
       }
     },
     onSuccess: () => {
-      setIsLeaveDialogOpen(false); // Close the dialog first
+      setIsLeaveDialogOpen(false);
       queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
       toast({
         title: "Left room",
         description: "You have successfully left the room.",
       });
-      onLeave(room.id); // Call the onLeave prop after closing dialog
+      onLeave(room.id);
     },
     onError: (error: Error) => {
       toast({
@@ -435,7 +459,6 @@ export const ChatRoom = ({ room, onToggleSidebar, onLeave }: { room: Room; onTog
     setShowCommands(false);
     if (!message.trim() && !mediaFile) return;
 
-    // Updated mention extraction regex to handle spaces and special groups
     const mentions = message.match(/@(everyone|admin|mod|[^@\n]+?)(?:\s|$)/g)?.map(mention =>
       mention.slice(1).trim()
     ).filter(Boolean) || [];
@@ -457,7 +480,6 @@ export const ChatRoom = ({ room, onToggleSidebar, onLeave }: { room: Room; onTog
     let whisperTo: string | undefined;
     let messageContent = message.trim();
 
-    // Check for inappropriate content before processing commands
     if (containsInappropriateWord(messageContent)) {
       messageContent = filterInappropriateWords(messageContent);
     }
@@ -558,7 +580,6 @@ export const ChatRoom = ({ room, onToggleSidebar, onLeave }: { room: Room; onTog
     if (newValue.length <= MAX_MESSAGE_LENGTH) {
       setMessage(newValue);
 
-      // Check for @ mentions
       const cursorPosition = e.target.selectionStart || 0;
       const beforeCursor = newValue.slice(0, cursorPosition);
       const match = beforeCursor.match(/@([^@\s]*)$/);
@@ -641,7 +662,6 @@ export const ChatRoom = ({ room, onToggleSidebar, onLeave }: { room: Room; onTog
   const handleMentionSelect = (username: string) => {
     if (mentionMatchRef.current) {
       const { start, end } = mentionMatchRef.current;
-      // Add a space after the mention to separate it from the next word
       const newMessage = message.slice(0, start) + '@' + username + ' ' + message.slice(end);
       setMessage(newMessage);
       setShowMentions(false);
@@ -676,12 +696,10 @@ export const ChatRoom = ({ room, onToggleSidebar, onLeave }: { room: Room; onTog
     };
   }, [room.id, isTyping]);
 
-  // Update the useQuery for users to use room-specific endpoint
   const { data: allUsers } = useQuery<User[]>({
     queryKey: [`/api/rooms/${room.id}/users`],
-    refetchInterval: 1000, // Poll to keep online status updated
+    refetchInterval: 1000, 
     select: (users) => {
-      // Create a map to store the latest user data for each unique ID
       const uniqueUsers = new Map();
       users?.forEach(user => {
         uniqueUsers.set(user.id, user);
@@ -690,11 +708,9 @@ export const ChatRoom = ({ room, onToggleSidebar, onLeave }: { room: Room; onTog
     }
   });
 
-  // Updated formatMessageContent function to handle both mentions and URLs
   function formatMessageContent(content: string | null) {
     if (!content) return "";
 
-    // Split content into parts based on mentions and URLs
     return content
       .split(/(@[^@\s]+(?:\s+[^@\s]+)*\s|\b(?:https?:\/\/|www\.)[^\s]+\b)/g)
       .map((part, index) => {
@@ -711,7 +727,6 @@ export const ChatRoom = ({ room, onToggleSidebar, onLeave }: { room: Room; onTog
             </span>
           );
         } else if (/^(?:https?:\/\/|www\.)[^\s]+$/.test(part)) {
-          // Convert www. links to include https://
           const href = part.startsWith('www.') ? `https://${part}` : part;
           return (
             <a
@@ -746,7 +761,9 @@ export const ChatRoom = ({ room, onToggleSidebar, onLeave }: { room: Room; onTog
             className="flex-shrink-0"
             title={isSidebarCollapsed ? "Show sidebar" : "Hide sidebar"}
           >
-            <PanelLeftClose className={`h-4 w-4 transition-transform duration-200 ${isSidebarCollapsed ? "rotate-180" : ""}`} />
+            <PanelLeftClose
+              className={`h-4 w-4 transition-transform duration-200 ${isSidebarCollapsed ? "rotate-180" : ""}`}
+            />
           </Button>
           {isEditingName ? (
             <div className="flex items-center gap-2 flex-1">
@@ -799,11 +816,12 @@ export const ChatRoom = ({ room, onToggleSidebar, onLeave }: { room: Room; onTog
                   )}
                   <Users className="h-3 w-3 flex-shrink-0" />
                   <span className="truncate">
-                    {room.participants?.filter(p => p.isOnline).length ?? 0} online · {room.participants?.length ?? 0} total
+                    {room.participants?.filter((p) => p.isOnline).length ?? 0}{" "}
+                    online · {room.participants?.length ?? 0} total
                   </span>
                 </div>
               </div>
-              {(isOwner || user?.role === 'admin') && (
+              {(isOwner || user?.role === "admin") && (
                 <>
                   <Button
                     size="icon"
@@ -813,7 +831,10 @@ export const ChatRoom = ({ room, onToggleSidebar, onLeave }: { room: Room; onTog
                   >
                     <Pencil className="h-4 w-4" />
                   </Button>
-                  <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                  <AlertDialog
+                    open={isDeleteDialogOpen}
+                    onOpenChange={setIsDeleteDialogOpen}
+                  >
                     <AlertDialogTrigger asChild>
                       <Button
                         size="icon"
@@ -849,7 +870,10 @@ export const ChatRoom = ({ room, onToggleSidebar, onLeave }: { room: Room; onTog
                 </>
               )}
               {!isOwner && (
-                <AlertDialog open={isLeaveDialogOpen} onOpenChange={setIsLeaveDialogOpen}>
+                <AlertDialog
+                  open={isLeaveDialogOpen}
+                  onOpenChange={setIsLeaveDialogOpen}
+                >
                   <AlertDialogTrigger asChild>
                     <Button
                       size="icon"
@@ -899,7 +923,10 @@ export const ChatRoom = ({ room, onToggleSidebar, onLeave }: { room: Room; onTog
               </div>
             ) : (
               messages?.map((message) => (
-                <MessageBubble key={message.id} message={message} roomId={room.id} />
+                <MessageBubble
+                  key={message.id}
+                  message={message}                  roomId={room.id}
+                />
               ))
             )}
             <div ref={messagesEndRef} />
@@ -1095,6 +1122,6 @@ export const ChatRoom = ({ room, onToggleSidebar, onLeave }: { room: Room; onTog
       <audio ref={messageSoundRef} src={GOOGLE_MESSAGE_SOUND_URL} />
     </div>
   );
-};
+}
 
 export default ChatRoom;
