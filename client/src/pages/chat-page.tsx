@@ -47,10 +47,10 @@ export default function ChatPage() {
 
   const { data: unreadMentions, refetch: refetchUnreadMentions } = useQuery<{ roomId: number; count: number }[]>({
     queryKey: ["/api/mentions/unread"],
-    refetchInterval: 1000,
+    refetchInterval: false, // Disable automatic refetching
     refetchOnWindowFocus: true,
     staleTime: 0,
-    gcTime: 0, // Use gcTime instead of cacheTime in v5
+    gcTime: 0,
   });
 
   const clearMentionsMutation = useMutation({
@@ -63,7 +63,6 @@ export default function ChatPage() {
           throw new Error(error || 'Failed to clear mentions');
         }
 
-        // We don't need to parse the response, just return success info
         return { roomId };
       } catch (error) {
         console.error('Clear mentions error:', error);
@@ -71,18 +70,13 @@ export default function ChatPage() {
       }
     },
     onSuccess: ({ roomId }) => {
-      // Stop refetching temporarily
+      // Stop all pending queries
       queryClient.cancelQueries({ queryKey: ["/api/mentions/unread"] });
 
       // Update cache directly
       const currentMentions = queryClient.getQueryData<{ roomId: number; count: number }[]>(["/api/mentions/unread"]) || [];
       const updatedMentions = currentMentions.filter(mention => mention.roomId !== roomId);
       queryClient.setQueryData(["/api/mentions/unread"], updatedMentions);
-
-      // Schedule a refetch after a delay to ensure server state is synced
-      setTimeout(() => {
-        refetchUnreadMentions();
-      }, 500);
     },
     onError: (error: Error) => {
       toast({
