@@ -209,6 +209,17 @@ export function MessageBubble({ message, roomId }: { message: ExtendedMessageWit
                     alt="Owner"
                     title="Owner"
                     className="ml-1 w-4 h-4 inline-block"
+                    onError={(e) => {
+                      // If image fails to load, replace with crown emoji
+                      const target = e.target as HTMLImageElement;
+                      target.onerror = null; // Prevent infinite loop
+                      target.style.display = 'none';
+                      const span = document.createElement('span');
+                      span.innerHTML = '👑';
+                      span.className = 'ml-1';
+                      span.title = 'Owner';
+                      target.parentNode?.appendChild(span);
+                    }}
                   />
                 )}
               </span>
