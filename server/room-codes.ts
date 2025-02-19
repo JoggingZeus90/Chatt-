@@ -54,12 +54,13 @@ export async function validateRoomCode(roomId: number, providedCode: string): Pr
     const codeFile = path.join(logDir, 'private_room_codes.log');
 
     const content = await fs.readFile(codeFile, 'utf-8');
-    const codes: RoomCode[] = JSON.parse(content);
+    const codes: RoomCode[] = JSON.parse(content.trim());
 
-    const roomCode = codes.find(code => code.roomId === roomId);
-    const isValid = roomCode?.inviteCode === providedCode;
-    console.log('Validating code:', { roomId, providedCode, storedCode: roomCode?.inviteCode, isValid });
-    return isValid;
+    // Find any room that matches the provided code
+    const roomWithCode = codes.find(code => code.inviteCode === providedCode);
+    console.log('Validation:', { providedCode, foundRoom: roomWithCode?.roomId, expectedRoom: roomId });
+
+    return roomWithCode?.roomId === roomId;
   } catch (error) {
     console.error('Error validating room code:', error);
     return false;
