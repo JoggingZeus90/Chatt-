@@ -121,12 +121,13 @@ export const updateUserSchema = z.object({
   avatarUrl: z.string().url().optional(),
   appearOffline: z.boolean().optional(),
 }).refine((data) => {
-  if (data.newPassword && !data.currentPassword) {
+  // Only require current password when changing password or username
+  if ((data.newPassword || (data.username && !data.appearOffline)) && !data.currentPassword) {
     return false;
   }
   return true;
 }, {
-  message: "Current password is required when setting a new password",
+  message: "Current password is required when changing password or username",
   path: ["currentPassword"],
 });
 
