@@ -561,13 +561,12 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
       // Check for @ mentions
       const cursorPosition = e.target.selectionStart || 0;
       const beforeCursor = newValue.slice(0, cursorPosition);
-      // Updated regex to handle spaces properly and special mentions
-      const match = beforeCursor.match(/@(everyone|admin|mod|[^@\n]+?)(?:\s|$)$/);
+      const match = beforeCursor.match(/@([^@\s]*)$/);
 
       if (match) {
         const matchStart = match.index!;
         setShowMentions(true);
-        setMentionSearch(match[1].trim());
+        setMentionSearch(match[1]);
         mentionMatchRef.current = { start: matchStart, end: cursorPosition };
       } else {
         setShowMentions(false);
@@ -646,6 +645,7 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
       const newMessage = message.slice(0, start) + '@' + username + ' ' + message.slice(end);
       setMessage(newMessage);
       setShowMentions(false);
+      setMentionSearch('');
       inputRef.current?.focus();
     }
   };
@@ -897,7 +897,7 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
               <div className="flex justify-center">
                 <Loader2 className="h-6 w-6 animate-spin" />
               </div>
-            ) : (
+            ): (
               messages?.map((message) => (
                 <MessageBubble key={message.id} message={message} roomId={room.id} />
               ))
@@ -982,12 +982,14 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
                         {/* Special mentions group */}
                         <CommandGroup heading="Special Mentions">
                           {SPECIAL_MENTIONS
-                            .filter(mention => mention.username.toLowerCase().includes(mentionSearch.toLowerCase()))
+                            .filter(mention =>
+                              mention.username.toLowerCase().includes(mentionSearch.toLowerCase())
+                            )
                             .map(mention => (
                               <CommandItem
                                 key={mention.id}
                                 value={mention.username}
-                                onSelect={handleMentionSelect}
+                                onSelect={() => handleMentionSelect(mention.username)}
                                 className="cursor-pointer"
                               >
                                 <Users className="h-4 w-4 mr-2" />
@@ -1008,7 +1010,7 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
                               <CommandItem
                                 key={participant.id}
                                 value={participant.username}
-                                onSelect={handleMentionSelect}
+                                onSelect={() => handleMentionSelect(participant.username)}
                                 className="cursor-pointer"
                               >
                                 <Avatar className="h-6 w-6 mr-2">
