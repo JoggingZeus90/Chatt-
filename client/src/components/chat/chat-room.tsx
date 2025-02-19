@@ -312,14 +312,25 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
       queryClient.invalidateQueries({ queryKey: [`/api/rooms/${room.id}/messages`] });
       queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
       toast({
-        title: "Joined room",
+        title: "Success",
         description: "You have successfully joined the room.",
       });
     },
     onError: (error: Error) => {
+      console.error('Join room error:', error);
+      let errorMessage = error.message;
+      try {
+        // Try to parse the error message as JSON
+        const parsedError = JSON.parse(error.message);
+        if (parsedError.error) {
+          errorMessage = `${parsedError.error}. Expected code: ${parsedError.expected}`;
+        }
+      } catch (e) {
+        // If parsing fails, use the original message
+      }
       toast({
         title: "Failed to join room",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -670,15 +681,15 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
     if (!room.isPublic && !room.participants?.some(p => p.id === user?.id)) {
       const inviteCode = prompt("Please enter the invite code to join this private room:");
       if (inviteCode) {
-        console.log('Attempting to join private room:', {
+        console.log('Joining private room:', {
           roomId: room.id,
-          inviteCode: inviteCode,
-          isPublic: room.isPublic
+          roomInviteCode: room.inviteCode,
+          providedCode: inviteCode
         });
         joinRoomMutation.mutate(inviteCode);
       }
     } else if (!room.participants?.some(p => p.id === user?.id)) {
-      console.log('Attempting to join public room:', {
+      console.log('Joining public room:', {
         roomId: room.id,
         isPublic: room.isPublic
       });
@@ -885,17 +896,16 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
                     src={mediaPreviewUrl}
                     alt="Preview"
                     className="max-h-32 rounded-lg"
-                  />
-                ) : (
-                  <video
-                    src={mediaPreviewUrl}
-                    className="max-h-32 rounded-lg"
-                    controls
-                  />
-                )}
+                  />) : (
+                    <video
+                      src={mediaPreviewUrl}
+                      className="max-h-32 roundedlg"
+                      controls
+                    />
+                  )}
                 <button
                   type="button"
-                                    onClick={clearMediaPreview}
+                  onClick={clearMediaPreview}
                   className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-1 hover:bg-destructive/90"
                 >
                   <X className="h-4 w-4" />
