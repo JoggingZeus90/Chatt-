@@ -302,7 +302,7 @@ export function MessageBubble({ message, roomId }: { message: ExtendedMessageWit
 
         <div className={cn(
           "absolute top-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2",
-          isOwn ? "-left-[4.5rem]" : "left-[100%] ml-2"
+          isOwn ? "-left-[5.5rem]" : "left-[100%] ml-2"
         )}>
           {canEdit && !isEditing && (
             <Button
