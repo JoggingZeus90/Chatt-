@@ -312,15 +312,15 @@ export class DatabaseStorage implements IStorage {
       throw new Error("Message not found");
     }
 
-    // Allow message deletion if user is admin/moderator or if it's their own message
-    if (userRole === UserRole.ADMIN || userRole === UserRole.MODERATOR || message.userId === userId) {
+    // Allow message deletion if user is owner, admin/moderator or if it's their own message
+    if (userRole === UserRole.OWNER || userRole === UserRole.ADMIN || userRole === UserRole.MODERATOR || message.userId === userId) {
       await db.delete(messages).where(eq(messages.id, messageId));
     } else {
       throw new Error("Unauthorized");
     }
   }
 
-  async updateMessage(messageId: number, userId: number, content: string): Promise<Message> {
+  async updateMessage(messageId: number, userId: number, content: string, userRole: UserRoleType): Promise<Message> {
     const [message] = await db
       .select()
       .from(messages)
@@ -330,20 +330,21 @@ export class DatabaseStorage implements IStorage {
       throw new Error("Message not found");
     }
 
-    if (message.userId !== userId) {
-      throw new Error("Unauthorized");
+    // Allow message editing if user is owner or if it's their own message
+    if (userRole === UserRole.OWNER || message.userId === userId) {
+      const [updatedMessage] = await db
+        .update(messages)
+        .set({
+          content,
+          editedAt: new Date()
+        })
+        .where(eq(messages.id, messageId))
+        .returning();
+
+      return updatedMessage;
     }
 
-    const [updatedMessage] = await db
-      .update(messages)
-      .set({
-        content,
-        editedAt: new Date()
-      })
-      .where(eq(messages.id, messageId))
-      .returning();
-
-    return updatedMessage;
+    throw new Error("Unauthorized");
   }
 
   async muteUser(userId: number, duration: number, reason: string): Promise<User> {

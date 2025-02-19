@@ -330,7 +330,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Edit message (only owner can edit)
+  // Update message endpoint
   app.patch("/api/messages/:messageId", async (req, res) => {
     console.log(`PATCH request received for ${req.url}`);
     if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -349,7 +349,7 @@ export function registerRoutes(app: Express): Server {
         .from(schema.messages)
         .where(eq(schema.messages.id, messageId));
 
-      const updatedMessage = await storage.updateMessage(messageId, req.user.id, content);
+      const updatedMessage = await storage.updateMessage(messageId, req.user.id, content, req.user.role as UserRoleType);
 
       // Get room name for logging
       const [room] = await db

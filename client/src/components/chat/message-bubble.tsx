@@ -25,6 +25,8 @@ import {
   DialogContent,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { UserRole } from "@/types/user"; //Import UserRole enum
+
 
 const MAX_MESSAGE_LENGTH = 100;
 
@@ -76,9 +78,11 @@ function formatMessageContent(content: string | null) {
 export function MessageBubble({ message, roomId }: { message: ExtendedMessageWithUser; roomId: number }) {
   const { user } = useAuth();
   const isOwn = message.userId === user?.id;
+  const isOwner = user?.role === UserRole.OWNER;
   const isWhisper = message.whisperTo !== undefined;
   const canSeeWhisper = !isWhisper || isOwn || message.whisperTo === user?.username;
-  const canDelete = isOwn || user?.role === 'admin' || user?.role === 'moderator';
+  const canDelete = isOwn || isOwner || user?.role === 'admin' || user?.role === 'moderator';
+  const canEdit = isOwn || isOwner;
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -279,7 +283,7 @@ export function MessageBubble({ message, roomId }: { message: ExtendedMessageWit
           "absolute top-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2",
           isOwn ? "-left-20" : "-right-8"
         )}>
-          {isOwn && !isEditing && (
+          {(isOwn || isOwner) && !isEditing && (
             <Button
               variant="ghost"
               size="icon"
