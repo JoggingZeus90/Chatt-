@@ -36,7 +36,6 @@ export default function ChatPage() {
     queryKey: ["/api/rooms"],
     refetchInterval: 5000,
     select: (rooms) => {
-      console.log("Raw rooms data:", rooms);
       return rooms.map(room => ({
         ...room,
         participants: room.participants || []
@@ -47,7 +46,6 @@ export default function ChatPage() {
   const { data: unreadMentions } = useQuery<{ roomId: number; count: number }[]>({
     queryKey: ["/api/mentions/unread"],
     refetchInterval: 1000,
-    // Don't show loading state during refetches
     refetchOnWindowFocus: false,
     staleTime: 0,
   });
@@ -86,6 +84,15 @@ export default function ChatPage() {
     },
   });
 
+  const clearMentionsMutation = useMutation({
+    mutationFn: async (roomId: number) => {
+      const res = await apiRequest("POST", `/api/rooms/${roomId}/mentions/clear`);
+      if (!res.ok) {
+        throw new Error("Failed to clear mentions");
+      }
+    },
+  });
+
   const form = useForm({
     resolver: zodResolver(insertRoomSchema),
     defaultValues: {
@@ -96,12 +103,10 @@ export default function ChatPage() {
 
   const handleRoomSelect = async (room: Room) => {
     setSelectedRoom(room);
-    // Clear unread mentions when selecting a room
     const hasUnreadMentions = unreadMentions?.some(m => m.roomId === room.id && m.count > 0);
     if (hasUnreadMentions) {
       try {
-        // Add proper await here to ensure it completes
-        await apiRequest("POST", `/api/rooms/${room.id}/mentions/clear`);
+        await clearMentionsMutation.mutateAsync(room.id);
         await queryClient.invalidateQueries({ queryKey: ["/api/mentions/unread"] });
       } catch (error) {
         console.error("Failed to clear mentions:", error);

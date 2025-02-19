@@ -209,11 +209,22 @@ function ChatRoom({ room, onToggleSidebar, onLeave }: ChatRoomProps) {
       }
       const message = await res.json();
 
+      // Handle mentions including special mentions
       if (mentions && mentions.length > 0) {
-        const mentionRes = await apiRequest("POST", `/api/messages/${message.id}/mentions`, {
-          mentions,
-          roomId: room.id,
-        });
+        const specialMentions = mentions.filter(mention =>
+          ['everyone', 'admin', 'mod'].includes(mention.toLowerCase())
+        );
+        const userMentions = mentions.filter(mention =>
+          !['everyone', 'admin', 'mod'].includes(mention.toLowerCase())
+        );
+
+        const mentionsPayload = {
+          mentions: userMentions,
+          specialMentions,
+          roomId: room.id
+        };
+
+        const mentionRes = await apiRequest("POST", `/api/messages/${message.id}/mentions`, mentionsPayload);
         if (!mentionRes.ok) {
           const error = await mentionRes.text();
           throw new Error(error);
@@ -698,7 +709,7 @@ function ChatRoom({ room, onToggleSidebar, onLeave }: ChatRoomProps) {
 
   const { data: allUsers } = useQuery<User[]>({
     queryKey: [`/api/rooms/${room.id}/users`],
-    refetchInterval: 1000, 
+    refetchInterval: 1000,
     select: (users) => {
       const uniqueUsers = new Map();
       users?.forEach(user => {
@@ -914,8 +925,7 @@ function ChatRoom({ room, onToggleSidebar, onLeave }: ChatRoomProps) {
       <div className="flex flex-1 overflow-hidden">
         <div className="flex-1 flex flex-col overflow-hidden">
           <div
-            className="flex-1 overflow-auto p-2 sm:p-4 relative"
-            ref={messagesContainerRef}
+            className="flex-1 overflow-auto p-2 sm:p-4 relative"            ref={messagesContainerRef}
           >
             {isLoading ? (
               <div className="flex justify-center">
