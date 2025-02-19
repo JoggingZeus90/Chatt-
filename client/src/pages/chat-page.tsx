@@ -32,6 +32,7 @@ export default function ChatPage() {
   const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [roomCode, setRoomCode] = useState("");
+  const [clearedMentions, setClearedMentions] = useState<number[]>([]);
   const { toast } = useToast();
 
   const { data: rooms, isLoading } = useQuery<Room[]>({
@@ -45,10 +46,12 @@ export default function ChatPage() {
     }
   });
 
-  const { data: unreadMentions } = useQuery<{ roomId: number; count: number }[]>({
+  const { data: unreadMentions, refetch: refetchUnreadMentions } = useQuery<{ roomId: number; count: number }[]>({
     queryKey: ["/api/mentions/unread"],
     refetchInterval: 2000,
     refetchOnWindowFocus: true,
+    staleTime: 0,
+    gcTime: 0,
   });
 
   const clearMentionsMutation = useMutation({
@@ -66,17 +69,11 @@ export default function ChatPage() {
       }
     },
     onSuccess: ({ roomId }) => {
-      // Optimistically update the UI
+      setClearedMentions(prev => [...prev, roomId]);
       queryClient.setQueryData<{ roomId: number; count: number }[]>(
         ["/api/mentions/unread"],
-        (old) => old?.map(mention => 
-          mention.roomId === roomId 
-            ? { ...mention, count: 0 }
-            : mention
-        ) ?? []
+        (old) => old?.filter(mention => mention.roomId !== roomId) ?? []
       );
-
-      // Refetch to ensure consistency
       queryClient.invalidateQueries({ queryKey: ["/api/mentions/unread"] });
     },
     onError: (error: Error) => {
@@ -91,7 +88,7 @@ export default function ChatPage() {
   const handleRoomSelect = async (room: Room) => {
     setSelectedRoom(room);
     const roomMentions = unreadMentions?.find(m => m.roomId === room.id);
-    if (roomMentions && roomMentions.count > 0) {
+    if (roomMentions && roomMentions.count > 0 && !clearedMentions.includes(room.id)) {
       try {
         await clearMentionsMutation.mutateAsync(room.id);
       } catch (error) {
@@ -227,7 +224,9 @@ export default function ChatPage() {
           <div className="space-y-2 flex-1 overflow-auto">
             {rooms?.map((room) => {
               const unreadMention = unreadMentions?.find(m => m.roomId === room.id);
-              const hasUnreadMentions = unreadMention && unreadMention.count > 0;
+              const hasUnreadMentions = unreadMention && 
+                unreadMention.count > 0 && 
+                !clearedMentions.includes(room.id);
               return (
                 <Button
                   key={room.id}
