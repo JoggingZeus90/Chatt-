@@ -297,6 +297,26 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
   });
 
 
+  useEffect(() => {
+    if (!room.isPublic && !room.participants?.some(p => p.id === user?.id)) {
+      const inviteCode = prompt("Please enter the invite code to join this private room:");
+      if (inviteCode) {
+        console.log('Joining private room:', {
+          roomId: room.id,
+          roomInviteCode: room.inviteCode,
+          providedCode: inviteCode
+        });
+        joinRoomMutation.mutate(inviteCode);
+      }
+    } else if (!room.participants?.some(p => p.id === user?.id)) {
+      console.log('Joining public room:', {
+        roomId: room.id,
+        isPublic: room.isPublic
+      });
+      joinRoomMutation.mutate();
+    }
+  }, [room.id, room.isPublic, room.inviteCode, user?.id, room.participants]);
+
   const joinRoomMutation = useMutation({
     mutationFn: async (inviteCode?: string) => {
       console.log('Attempting to join room:', { roomId: room.id, inviteCode });
@@ -327,8 +347,8 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
       queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
       toast({
         title: "Successfully joined room",
-        description: room.isPublic ?
-          "You have joined the public room." :
+        description: room.isPublic ? 
+          "You have joined the public room." : 
           "Your invite code was accepted.",
       });
     },
@@ -691,26 +711,6 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
         return <span key={index}>{part}</span>;
       });
   }
-
-  useEffect(() => {
-    if (!room.isPublic && !room.participants?.some(p => p.id === user?.id)) {
-      const inviteCode = prompt("Please enter the invite code to join this private room:");
-      if (inviteCode) {
-        console.log('Joining private room:', {
-          roomId: room.id,
-          roomInviteCode: room.inviteCode,
-          providedCode: inviteCode
-        });
-        joinRoomMutation.mutate(inviteCode);
-      }
-    } else if (!room.participants?.some(p => p.id === user?.id)) {
-      console.log('Joining public room:', {
-        roomId: room.id,
-        isPublic: room.isPublic
-      });
-      joinRoomMutation.mutate();
-    }
-  }, [room.id, room.isPublic, room.inviteCode, user?.id, room.participants]);
 
   return (
     <div className="flex flex-col h-full">
