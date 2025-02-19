@@ -188,9 +188,12 @@ export function registerRoutes(app: Express): Server {
       );
       console.log('Rooms with members:', roomsWithMembers);
 
-      // Filter rooms to only show public ones and private ones where user is a member
+      // Filter rooms to show public ones, private ones where user is a member,
+      // and all private rooms if user is an owner
       const accessibleRooms = roomsWithMembers.filter(room =>
-        room.isPublic || room.participants.some(p => p.id === req.user.id)
+        room.isPublic ||
+        room.participants.some(p => p.id === req.user.id) ||
+        req.user.role === UserRole.OWNER
       );
       console.log('Accessible rooms:', accessibleRooms);
 
