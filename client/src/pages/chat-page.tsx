@@ -192,29 +192,30 @@ export default function ChatPage() {
           </div>
           <div className="space-y-2 flex-1 overflow-auto">
             {rooms?.map((room) => {
-              const hasUnreadMentions = unreadMentions?.some(m => m.roomId === room.id && m.count > 0);
-              return (
-                <Button
-                  key={room.id}
-                  variant={selectedRoom?.id === room.id ? "secondary" : "ghost"}
-                  className="w-full justify-start relative gap-2"
-                  onClick={() => handleRoomSelect(room)}
-                >
-                  {!room.isPublic && <Lock className="h-4 w-4 flex-shrink-0" />}
-                  <span className="truncate">
-                    {room.name}
-                    {!room.isPublic && room.inviteCode && (
-                      <span className="ml-2 text-xs text-muted-foreground">
-                        ({room.inviteCode})
+                  const unreadMention = unreadMentions?.find(m => m.roomId === room.id);
+                  const hasUnreadMentions = unreadMention && unreadMention.count > 0;
+                  return (
+                    <Button
+                      key={room.id}
+                      variant={selectedRoom?.id === room.id ? "secondary" : "ghost"}
+                      className="w-full justify-start relative gap-2"
+                      onClick={() => handleRoomSelect(room)}
+                    >
+                      {!room.isPublic && <Lock className="h-4 w-4 flex-shrink-0" />}
+                      <span className="truncate">
+                        {room.name}
+                        {!room.isPublic && room.inviteCode && (
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            ({room.inviteCode})
+                          </span>
+                        )}
                       </span>
-                    )}
-                  </span>
-                  {hasUnreadMentions && (
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-blue-500 animate-pulse shadow-lg" />
-                  )}
-                </Button>
-              );
-            })}
+                      {hasUnreadMentions && (
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-blue-500 animate-pulse shadow-lg" />
+                      )}
+                    </Button>
+                  );
+                })}
           </div>
         </div>
 

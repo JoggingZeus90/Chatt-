@@ -971,7 +971,7 @@ export const ChatRoom = ({ room, onToggleSidebar, onLeave }: { room: Room; onTog
                   {message.length}/{MAX_MESSAGE_LENGTH}
                 </span>
                 {showMentions && (
-                  <div className="absolute bottom-full left-0 mb-2 w-64 bg-popover text-popover-foreground shadow-lg rounded-lg border overflow-hidden z-50">
+                  <div className="absolute bottom-full left-0 w-80 bg-popover border rounded-lg shadow-lg mb-2 overflow-hidden">
                     <Command>
                       <CommandInput
                         placeholder="Search users..."
@@ -980,17 +980,24 @@ export const ChatRoom = ({ room, onToggleSidebar, onLeave }: { room: Room; onTog
                       />
                       <CommandList>
                         <CommandEmpty>No users found</CommandEmpty>
-                        <CommandGroup>
-                          {SPECIAL_MENTIONS.map((mention) => (
-                            <CommandItem
-                              key={mention.id}
-                              value={mention.username}
-                              onSelect={() => handleMentionSelect(mention.username)}
-                            >
-                              <span className="font-medium">@{mention.username}</span>
-                              <span className="ml-2 text-muted-foreground text-sm">{mention.description}</span>
-                            </CommandItem>
-                          ))}
+                        <CommandGroup heading="Special Mentions">
+                          {SPECIAL_MENTIONS
+                            .filter(mention =>
+                              mention.username.toLowerCase().includes(mentionSearch.toLowerCase())
+                            )
+                            .map(mention => (
+                              <CommandItem
+                                key={mention.id}
+                                value={mention.username}
+                                onSelect={() => handleMentionSelect(mention.username)}
+                              >
+                                <Users className="h-4 w-4 mr-2" />
+                                <span className="font-medium">@{mention.username}</span>
+                                <span className="ml-2 text-muted-foreground text-sm">{mention.description}</span>
+                              </CommandItem>
+                            ))}
+                        </CommandGroup>
+                        <CommandGroup heading="Room Members">
                           {room.participants
                             ?.filter(participant =>
                               participant.username.toLowerCase().includes(mentionSearch.toLowerCase()) &&
@@ -1088,6 +1095,6 @@ export const ChatRoom = ({ room, onToggleSidebar, onLeave }: { room: Room; onTog
       <audio ref={messageSoundRef} src={GOOGLE_MESSAGE_SOUND_URL} />
     </div>
   );
-}
+};
 
 export default ChatRoom;
