@@ -50,14 +50,11 @@ const ColorPicker = React.forwardRef<HTMLDivElement, ColorPickerProps>(
       const centerX = rect.width / 2;
       const centerY = rect.height / 2;
 
-      // Calculate relative position from center
       const x = e.clientX - rect.left - centerX;
       const y = e.clientY - rect.top - centerY;
 
-      // Calculate angle and distance from center
       let hue = Math.atan2(-x, y) * (180 / Math.PI) + 180;
 
-      // Calculate distance for saturation (0-100%)
       const radius = rect.width / 2;
       const distance = Math.sqrt(x * x + y * y);
       const saturation = Math.min(distance / radius * 100, 100);
@@ -91,13 +88,17 @@ const ColorPicker = React.forwardRef<HTMLDivElement, ColorPickerProps>(
       }
     }, [isDragging]);
 
+    function getAdjustedLightness(baseL: number) {
+      return Math.min(Math.max((baseL * contrast) / 100, 0), 100);
+    }
+
     // Calculate position for the selector dot and apply contrast
     const selectorStyle = React.useMemo(() => {
       const radius = (hsva.s / 100) * 120;
       const angleRad = ((hsva.h - 180) * Math.PI) / 180;
       const hex = hsvaToHex(hsva);
       const hsl = hexToHSL(hex);
-      const adjustedL = (hsl.l * contrast) / 100;
+      const adjustedL = getAdjustedLightness(hsl.l);
 
       return {
         left: `${-radius * Math.sin(angleRad) + 120}px`,
@@ -105,6 +106,23 @@ const ColorPicker = React.forwardRef<HTMLDivElement, ColorPickerProps>(
         backgroundColor: `hsl(${hsl.h}, ${hsl.s}%, ${adjustedL}%)`,
       };
     }, [hsva, contrast]);
+
+    // Generate color wheel gradient with contrast adjustment
+    const wheelGradient = React.useMemo(() => {
+      const baseL = 50; // Base lightness for the color wheel
+      const adjustedL = getAdjustedLightness(baseL);
+
+      return `conic-gradient(
+        from 0deg,
+        hsl(0, 100%, ${adjustedL}%),
+        hsl(60, 100%, ${adjustedL}%),
+        hsl(120, 100%, ${adjustedL}%),
+        hsl(180, 100%, ${adjustedL}%),
+        hsl(240, 100%, ${adjustedL}%),
+        hsl(300, 100%, ${adjustedL}%),
+        hsl(360, 100%, ${adjustedL}%)
+      )`;
+    }, [contrast]);
 
     // Helper function to convert hex to HSL (same as in useTheme)
     function hexToHSL(hex: string) {
@@ -139,7 +157,7 @@ const ColorPicker = React.forwardRef<HTMLDivElement, ColorPickerProps>(
     // Get adjusted color for preview
     const previewColor = React.useMemo(() => {
       const hsl = hexToHSL(value);
-      const adjustedL = (hsl.l * contrast) / 100;
+      const adjustedL = getAdjustedLightness(hsl.l);
       return `hsl(${hsl.h}, ${hsl.s}%, ${adjustedL}%)`;
     }, [value, contrast]);
 
@@ -166,16 +184,7 @@ const ColorPicker = React.forwardRef<HTMLDivElement, ColorPickerProps>(
                 ref={wheelRef}
                 className="relative w-[240px] h-[240px] rounded-full cursor-crosshair"
                 style={{
-                  background: `conic-gradient(
-                    from 0deg,
-                    hsl(0, 100%, 50%),
-                    hsl(60, 100%, 50%),
-                    hsl(120, 100%, 50%),
-                    hsl(180, 100%, 50%),
-                    hsl(240, 100%, 50%),
-                    hsl(300, 100%, 50%),
-                    hsl(360, 100%, 50%)
-                  )`
+                  background: wheelGradient
                 }}
                 onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
