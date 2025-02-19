@@ -340,17 +340,17 @@ export function registerRoutes(app: Express): Server {
 
   // Update join room endpoint to handle invite codes properly
   app.post("/api/rooms/:roomId/join", async (req, res) => {
-    console.log(`POST request received for ${req.url}`);
-    console.log('Join room request:', {
+    console.log('Join room request received:', {
+      url: req.url,
       body: req.body,
       params: req.params,
-      auth: req.isAuthenticated(),
+      authenticated: req.isAuthenticated(),
       userId: req.user?.id
     });
 
     if (!req.isAuthenticated()) {
-      console.log('Unauthorized join attempt');
-      return res.sendStatus(401);
+      console.log('Unauthorized join attempt - no user session');
+      return res.status(401).json({ error: "You must be logged in to join rooms" });
     }
 
     try {
@@ -358,11 +358,7 @@ export function registerRoutes(app: Express): Server {
       const userId = req.user.id;
       const providedCode = req.body.inviteCode;
 
-      console.log('Processing join request:', {
-        roomId,
-        userId,
-        providedCode
-      });
+      console.log('Processing join request:', { roomId, userId, providedCode });
 
       // Get room details
       const [room] = await db
@@ -387,7 +383,7 @@ export function registerRoutes(app: Express): Server {
         return res.json(members);
       }
 
-      // For private rooms, verify the invite code
+      // For private rooms, verify the invite code properly
       if (!room.isPublic) {
         console.log('Private room join attempt:', {
           roomId,
@@ -408,9 +404,7 @@ export function registerRoutes(app: Express): Server {
             expected: room.inviteCode
           });
           return res.status(403).json({
-            error: "Invalid invite code",
-            provided: providedCode,
-            expected: room.inviteCode
+            error: "Invalid invite code"
           });
         }
 

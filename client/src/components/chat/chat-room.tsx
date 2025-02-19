@@ -296,110 +296,88 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
     },
   });
 
-
   const joinRoomMutation = useMutation({
     mutationFn: async (inviteCode?: string) => {
-      console.log('Starting join room mutation with:', { 
-        roomId: room.id, 
-        inviteCode,
-        isPublic: room.isPublic 
-      });
-
       try {
         const res = await apiRequest("POST", `/api/rooms/${room.id}/join`, {
           inviteCode
         });
 
         const text = await res.text();
-        console.log('Server response:', { status: res.status, text });
+        console.log('Join room response:', { status: res.status, text });
 
         if (!res.ok) {
           try {
             const error = JSON.parse(text);
-            throw new Error(JSON.stringify(error));
-          } catch {
-            throw new Error(text);
+            throw new Error(error.error || 'Failed to join room');
+          } catch (e) {
+            throw new Error(text || 'Failed to join room');
           }
         }
 
-        const data = JSON.parse(text);
-        console.log('Parsed response data:', data);
-        return data;
+        try {
+          return JSON.parse(text);
+        } catch (e) {
+          console.error('Failed to parse response:', e);
+          throw new Error('Invalid server response');
+        }
       } catch (error) {
-        console.error('Error in join mutation:', error);
+        console.error('Join room error:', error);
         throw error;
       }
-    },
-    onMutate: () => {
-      console.log('Join mutation starting...');
-      toast({
-        title: room.isPublic ? "Joining public room" : "Joining private room",
-        description: "Please wait...",
-      });
-    },
-    onSuccess: (data) => {
-      console.log('Join mutation succeeded:', data);
-      queryClient.invalidateQueries({ queryKey: [`/api/rooms/${room.id}/messages`] });
-      queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
-      toast({
-        title: "Successfully joined room",
-        description: room.isPublic ? 
-          "You have joined the public room." :
-          "Your invite code was accepted.",
-      });
-    },
-    onError: (error: Error) => {
-      console.error('Join mutation failed:', error);
-      let errorMessage = "Failed to join room";
-      try {
-        const parsedError = JSON.parse(error.message);
-        errorMessage = parsedError.error || error.message;
-      } catch (e) {
-        errorMessage = error.message;
-      }
-      toast({
-        title: "Failed to join room",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    },
+    }
   });
 
-  // Attempt to join room if not already a member
-  useEffect(() => {
-    if (!room.isPublic && !room.participants?.some(p => p.id === user?.id)) {
-      const inviteCode = prompt("Please enter the invite code to join this private room:");
-      console.log('Got invite code:', inviteCode);
+  const handleJoinRoom = useCallback(async (inviteCode?: string) => {
+    toast({
+      title: "Joining room...",
+      description: inviteCode ? "Verifying invite code..." : "Joining public room...",
+    });
 
-      if (inviteCode) {
-        console.log('Attempting to join private room:', {
-          roomId: room.id,
-          providedCode: inviteCode
-        });
+    try {
+      const result = await joinRoomMutation.mutateAsync(inviteCode);
+      console.log('Join room result:', result);
 
-        joinRoomMutation.mutateAsync(inviteCode)
-          .then(data => {
-            console.log('Successfully joined room:', data);
-          })
-          .catch(error => {
-            console.error('Failed to join room:', error);
-          });
-      }
-    } else if (!room.participants?.some(p => p.id === user?.id)) {
-      console.log('Attempting to join public room:', {
-        roomId: room.id,
-        isPublic: room.isPublic
+      queryClient.invalidateQueries({ queryKey: [`/api/rooms/${room.id}/messages`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
+
+      toast({
+        title: "Successfully joined room",
+        description: inviteCode ? "Your invite code was accepted." : "You have joined the public room.",
       });
-
-      joinRoomMutation.mutateAsync()
-        .then(data => {
-          console.log('Successfully joined public room:', data);
-        })
-        .catch(error => {
-          console.error('Failed to join public room:', error);
-        });
+    } catch (error) {
+      console.error('Failed to join room:', error);
+      toast({
+        title: "Failed to join room",
+        description: error instanceof Error ? error.message : "Unable to join room",
+        variant: "destructive",
+      });
     }
-  }, [room.id, room.isPublic, user?.id, room.participants]);
+  }, [room.id, joinRoomMutation]);
+
+  useEffect(() => {
+    const shouldJoinRoom = !room.participants?.some(p => p.id === user?.id);
+
+    if (shouldJoinRoom) {
+      if (!room.isPublic) {
+        const inviteCode = prompt("Please enter the invite code to join this private room:");
+        console.log('Attempting to join private room with code:', inviteCode);
+
+        if (inviteCode) {
+          handleJoinRoom(inviteCode);
+        } else {
+          toast({
+            title: "Join room cancelled",
+            description: "No invite code provided",
+            variant: "destructive",
+          });
+        }
+      } else {
+        console.log('Attempting to join public room');
+        handleJoinRoom();
+      }
+    }
+  }, [room.id, room.isPublic, user?.id, room.participants, handleJoinRoom]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -927,7 +905,7 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
             {Object.entries(typingUsers)
               .filter(([userId, isTyping]) => isTyping && userId !== user?.id.toString())
               .map(([userId]) => {
-                const typingUser = room.participants?.find(p => p.id.toString() === userId);
+                                const typingUser = room.participants?.find(p => p.id.toString() === userId);
                 return typingUser && (
                   <div key={userId} className="absolute -top-6 left-4 text-sm text-muted-foreground">
                     {typingUser.username} is typing...
