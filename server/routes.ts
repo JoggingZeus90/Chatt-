@@ -65,6 +65,10 @@ const db = drizzle({ client: pool, schema });
 
 type UserRoleType = UserRole;
 
+// Add function to generate random 6-digit code
+function generateInviteCode(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
@@ -188,22 +192,15 @@ export function registerRoutes(app: Express): Server {
     try {
       console.log('Creating room with data:', parsed.data);
 
-      // Create room first to get the ID
+      // Generate invite code for private rooms
+      const inviteCode = !parsed.data.isPublic ? generateInviteCode() : null;
+
+      // Create room with the invite code
       const room = await storage.createRoom({
         ...parsed.data,
         createdById: req.user.id,
-        inviteCode: null // Initially set to null
+        inviteCode
       });
-
-      // If it's a private room, update the invite code to be the room ID
-      if (!parsed.data.isPublic) {
-        const [updatedRoom] = await db
-          .update(schema.rooms)
-          .set({ inviteCode: room.id.toString() })
-          .where(eq(schema.rooms.id, room.id))
-          .returning();
-        room.inviteCode = updatedRoom.inviteCode;
-      }
 
       console.log('Room created:', room);
 
@@ -376,11 +373,11 @@ export function registerRoutes(app: Express): Server {
           providedCode
         });
 
-        if (!providedCode || providedCode !== roomId.toString()) {
+        if (!providedCode || providedCode !== room.inviteCode) {
           return res.status(403).json({
             error: "Invalid invite code",
             provided: providedCode,
-            expected: roomId.toString()
+            expected: room.inviteCode
           });
         }
       }

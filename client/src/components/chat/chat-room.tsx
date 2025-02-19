@@ -326,8 +326,8 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
       queryClient.invalidateQueries({ queryKey: ["/api/rooms"] });
       toast({
         title: "Successfully joined room",
-        description: room.isPublic ? 
-          "You have joined the public room." : 
+        description: room.isPublic ?
+          "You have joined the public room." :
           "Your invite code was accepted.",
       });
     },
@@ -768,11 +768,11 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
               <div className="flex flex-col min-w-0">
                 <h2 className="font-semibold truncate">{room.name}</h2>
                 <div className="flex items-center text-sm text-muted-foreground gap-1">
-                  {!room.isPublic && (
+                  {!room.isPublic && room.inviteCode && (
                     <div className="flex items-center gap-1 mr-2">
                       <Lock className="h-3 w-3 flex-shrink-0" />
                       <span className="truncate">
-                        Code: {room.id.toString()}
+                        Invite Code: {room.inviteCode}
                       </span>
                     </div>
                   )}
@@ -896,7 +896,7 @@ export function ChatRoom({ room, onToggleSidebar, onLeave }: { room: Room; onTog
             {Object.entries(typingUsers)
               .filter(([userId, isTyping]) => isTyping && userId !== user?.id.toString())
               .map(([userId]) => {
-                const typingUser = room.participants?.find(p => p.id.toString() === userId);
+                const typingUser = room.participants?.find(p => p.id.toString=== userId);
                 return typingUser && (
                   <div key={userId} className="absolute -top-6 left-4 text-sm text-muted-foreground">
                     {typingUser.username} is typing...
