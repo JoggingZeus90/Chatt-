@@ -36,13 +36,22 @@ export class DatabaseStorage implements IStorage {
   // Add method to update user role (admin only)
   async updateUserRole(userId: number, newRole: UserRoleType): Promise<User> {
     const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId));
+
+    if (!user) throw new Error("User not found");
+    if (user.role === UserRole.OWNER) {
+      throw new Error("Cannot modify the owner's role");
+    }
+
+    const [updatedUser] = await db
       .update(users)
       .set({ role: newRole })
       .where(eq(users.id, userId))
       .returning();
 
-    if (!user) throw new Error("User not found");
-    return user;
+    return updatedUser;
   }
 
   async getUser(id: number): Promise<User | undefined> {
@@ -256,6 +265,16 @@ export class DatabaseStorage implements IStorage {
 
   async suspendUser(userId: number, reason: string): Promise<User> {
     const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId));
+
+    if (!user) throw new Error("User not found");
+    if (user.role === UserRole.OWNER) {
+      throw new Error("Cannot suspend the owner");
+    }
+
+    const [updatedUser] = await db
       .update(users)
       .set({
         suspended: true,
@@ -265,8 +284,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, userId))
       .returning();
 
-    if (!user) throw new Error("User not found");
-    return user;
+    return updatedUser;
   }
 
   async unsuspendUser(userId: number): Promise<User> {
@@ -329,10 +347,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async muteUser(userId: number, duration: number, reason: string): Promise<User> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId));
+
+    if (!user) throw new Error("User not found");
+    if (user.role === UserRole.OWNER) {
+      throw new Error("Cannot mute the owner");
+    }
+
     const mutedUntil = new Date();
     mutedUntil.setMinutes(mutedUntil.getMinutes() + duration);
 
-    const [user] = await db
+    const [updatedUser] = await db
       .update(users)
       .set({
         muted: true,
@@ -342,8 +370,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, userId))
       .returning();
 
-    if (!user) throw new Error("User not found");
-    return user;
+    return updatedUser;
   }
 
   async unmuteUser(userId: number): Promise<User> {

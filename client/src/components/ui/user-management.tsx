@@ -23,10 +23,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { format } from "date-fns";
-import { Loader2 } from "lucide-react";
+import { Loader2, ShieldAlert } from "lucide-react";
 
 export function UserManagement() {
-  const { user: currentUser, isAdmin, isModerator } = useAuth();
+  const { user: currentUser, isAdmin } = useAuth();
   const { toast } = useToast();
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [muteReason, setMuteReason] = useState("");
@@ -35,10 +35,11 @@ export function UserManagement() {
 
   const { data: users, isLoading } = useQuery<User[]>({
     queryKey: ["/api/users"],
-    enabled: isAdmin || isModerator,
+    enabled: isAdmin,
   });
 
   // Separate users by role and status
+  const owners = users?.filter(user => user.role === UserRole.OWNER) || [];
   const admins = users?.filter(user => user.role === UserRole.ADMIN && !user.suspended) || [];
   const moderators = users?.filter(user => user.role === UserRole.MODERATOR && !user.suspended) || [];
   const activeUsers = users?.filter(user =>
@@ -49,7 +50,10 @@ export function UserManagement() {
   const updateRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: number; role: string }) => {
       const res = await apiRequest("PATCH", `/api/users/${userId}/role`, { role });
-      if (!res.ok) throw new Error("Failed to update role");
+      if (!res.ok) {
+        const error = await res.text();
+        throw new Error(error);
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -194,6 +198,7 @@ export function UserManagement() {
   };
 
   const UserCard = ({ user, showRoleSelect = true }: { user: User; showRoleSelect?: boolean }) => {
+    const isOwner = user.role === UserRole.OWNER;
     const [selectedRole, setSelectedRole] = useState(user.role);
     const [isChangingRole, setIsChangingRole] = useState(false);
     const [isMuteDialogOpen, setIsMuteDialogOpen] = useState(false);
@@ -264,6 +269,25 @@ export function UserManagement() {
       setIsSuspendDialogOpen(false);
     };
 
+    if (isOwner) {
+      return (
+        <div className="flex items-center justify-between p-4 border-2 border-primary rounded-lg bg-primary/5">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="w-5 h-5 text-primary" />
+              <p className="font-medium">{user.username}</p>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Role: Owner
+            </p>
+            <p className="text-sm text-primary/80">
+              This user is the owner of the application and cannot be modified by other administrators
+            </p>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="flex items-center justify-between p-4 border rounded-lg">
         <div>
@@ -286,11 +310,13 @@ export function UserManagement() {
                 <SelectValue placeholder="Select role" />
               </SelectTrigger>
               <SelectContent>
-                {Object.values(UserRole).map((role) => (
-                  <SelectItem key={role} value={role}>
-                    {role}
-                  </SelectItem>
-                ))}
+                {Object.values(UserRole)
+                  .filter(role => role !== UserRole.OWNER)
+                  .map((role) => (
+                    <SelectItem key={role} value={role}>
+                      {role}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
             {isChangingRole && (
@@ -406,7 +432,7 @@ export function UserManagement() {
     );
   };
 
-  if (!isAdmin && !isModerator) {
+  if (!isAdmin) {
     return null;
   }
 
@@ -416,6 +442,16 @@ export function UserManagement() {
 
   return (
     <div className="space-y-8">
+      {/* Owner Section */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold text-primary">Owner</h3>
+        <div className="space-y-4">
+          {owners.map((user) => (
+            <UserCard key={user.id} user={user} showRoleSelect={false} />
+          ))}
+        </div>
+      </div>
+
       {/* Admins Section */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-primary">Administrators</h3>
