@@ -91,6 +91,9 @@ export default function ChatPage() {
         throw new Error("Failed to clear mentions");
       }
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/mentions/unread"] });
+    },
   });
 
   const form = useForm({
@@ -107,7 +110,6 @@ export default function ChatPage() {
     if (hasUnreadMentions) {
       try {
         await clearMentionsMutation.mutateAsync(room.id);
-        await queryClient.invalidateQueries({ queryKey: ["/api/mentions/unread"] });
       } catch (error) {
         console.error("Failed to clear mentions:", error);
       }

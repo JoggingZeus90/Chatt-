@@ -32,25 +32,25 @@ interface ExtendedMessageWithUser extends MessageWithUser {
 function formatMessageContent(content: string | null) {
   if (!content) return "";
 
-  // Split content into parts based on mentions and URLs
+  // Updated regex to properly handle mention boundaries
   return content
-    .split(/(@[^@\s]+(?:\s+[^@\s]+)*\s|\b(?:https?:\/\/|www\.)[^\s]+\b)/g)
+    .split(/(@(?:everyone|admin|mod|[^@\s]+)(?:\s|$)|\b(?:https?:\/\/|www\.)[^\s]+\b)/g)
     .map((part, index) => {
-      if (part.startsWith('@')) {
+      if (part?.startsWith('@')) {
+        // Trim any trailing space from the mention
+        const mention = part.trim();
         return (
           <span
             key={index}
             className="text-blue-500 font-medium hover:underline cursor-pointer"
             onClick={() => {
-              // Could add user profile viewing functionality here
-              console.log('Clicked mention:', part);
+              console.log('Clicked mention:', mention);
             }}
           >
-            {part}
+            {mention}
           </span>
         );
-      } else if (/^(?:https?:\/\/|www\.)[^\s]+$/.test(part)) {
-        // Convert www. links to include https://
+      } else if (part && /^(?:https?:\/\/|www\.)[^\s]+$/.test(part)) {
         const href = part.startsWith('www.') ? `https://${part}` : part;
         return (
           <a
