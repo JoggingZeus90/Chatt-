@@ -213,7 +213,7 @@ export function MessageBubble({ message, roomId }: { message: ExtendedMessageWit
                     className="ml-1 w-4 h-4 inline-block"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
-                      target.onerror = null; 
+                      target.onerror = null;
                       target.style.display = 'none';
                       const span = document.createElement('span');
                       span.innerHTML = '👑';
@@ -302,7 +302,7 @@ export function MessageBubble({ message, roomId }: { message: ExtendedMessageWit
 
         <div className={cn(
           "absolute top-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2",
-          isOwn ? "-left-16" : "-right-16"
+          isOwn ? "-left-[4.5rem]" : "left-[100%] ml-2"
         )}>
           {canEdit && !isEditing && (
             <Button
