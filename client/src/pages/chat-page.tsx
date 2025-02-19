@@ -100,8 +100,9 @@ export default function ChatPage() {
     const hasUnreadMentions = unreadMentions?.some(m => m.roomId === room.id && m.count > 0);
     if (hasUnreadMentions) {
       try {
+        // Add proper await here to ensure it completes
         await apiRequest("POST", `/api/rooms/${room.id}/mentions/clear`);
-        queryClient.invalidateQueries({ queryKey: ["/api/mentions/unread"] });
+        await queryClient.invalidateQueries({ queryKey: ["/api/mentions/unread"] });
       } catch (error) {
         console.error("Failed to clear mentions:", error);
       }
@@ -198,24 +199,26 @@ export default function ChatPage() {
                 <Button
                   key={room.id}
                   variant={selectedRoom?.id === room.id ? "secondary" : "ghost"}
-                  className="w-full justify-start relative gap-2"
+                  className="w-full justify-start relative gap-2 px-3 min-h-[2.5rem]"
                   onClick={() => handleRoomSelect(room)}
                 >
-                  {!room.isPublic && <Lock className="h-4 w-4 flex-shrink-0" />}
-                  <span className="truncate flex-1">
-                    {room.name}
-                    {!room.isPublic && room.inviteCode && (
-                      <span className="ml-2 text-xs text-muted-foreground">
-                        ({room.inviteCode})
-                      </span>
+                  <div className="flex items-center gap-2 w-full">
+                    {!room.isPublic && <Lock className="h-4 w-4 flex-shrink-0" />}
+                    <span className="truncate">
+                      {room.name}
+                      {!room.isPublic && room.inviteCode && (
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          ({room.inviteCode})
+                        </span>
+                      )}
+                    </span>
+                    {hasUnreadMentions && (
+                      <div 
+                        className="ml-auto h-2 w-2 rounded-full bg-blue-500 animate-pulse"
+                        style={{ boxShadow: '0 0 0 2px var(--background)' }}
+                      />
                     )}
-                  </span>
-                  {hasUnreadMentions && (
-                    <div 
-                      className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 rounded-full bg-blue-500 animate-pulse"
-                      style={{ boxShadow: '0 0 0 2px var(--background)' }}
-                    />
-                  )}
+                  </div>
                 </Button>
               );
             })}
