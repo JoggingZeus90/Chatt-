@@ -15,6 +15,7 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   isOnline: boolean("is_online").notNull().default(false),
+  appearOffline: boolean("appear_offline").notNull().default(false),
   lastSeen: timestamp("last_seen").notNull().defaultNow(),
   avatarUrl: text("avatar_url"),
   role: text("role").notNull().default(UserRole.USER),
@@ -117,6 +118,7 @@ export const updateUserSchema = z.object({
   newPassword: z.string().optional().transform(val => val === "" ? undefined : val)
     .pipe(z.string().min(6, "Password must be at least 6 characters").optional()),
   avatarUrl: z.string().url().optional(),
+  appearOffline: z.boolean().optional(),
 }).refine((data) => {
   if (data.newPassword && !data.currentPassword) {
     return false;

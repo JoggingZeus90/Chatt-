@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Form, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { UserManagement } from "@/components/ui/user-management";
 import { ColorPicker } from "@/components/ui/color-picker";
+import { Switch } from "@/components/ui/switch";
 import {
   Avatar,
   AvatarImage,
@@ -35,7 +36,7 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useTheme } from "@/hooks/use-theme";
 
 export default function SettingsPage() {
-  const { user, logoutMutation, isAdmin } = useAuth();
+  const { user, logoutMutation, isAdmin, isModerator } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const { theme, setTheme } = useTheme();
@@ -47,6 +48,7 @@ export default function SettingsPage() {
       avatarUrl: user?.avatarUrl || "",
       currentPassword: "",
       newPassword: "",
+      appearOffline: user?.appearOffline || false,
     },
   });
 
@@ -105,6 +107,7 @@ export default function SettingsPage() {
         avatarUrl: updatedUser.avatarUrl,
         currentPassword: "",
         newPassword: "",
+        appearOffline: updatedUser.appearOffline,
       });
     },
     onError: (error: Error) => {
@@ -156,6 +159,22 @@ export default function SettingsPage() {
             <TabsContent value="profile" className="p-6">
               <Form {...form}>
                 <form onSubmit={form.handleSubmit((data) => updateProfileMutation.mutate(data))} className="space-y-6">
+                  {(isAdmin || isModerator) && (
+                    <div className="flex items-center justify-between p-4 bg-secondary/20 rounded-lg">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="appearOffline">Appear Offline</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Hide your online status from other users
+                        </p>
+                      </div>
+                      <Switch
+                        id="appearOffline"
+                        checked={form.watch("appearOffline")}
+                        onCheckedChange={(checked) => form.setValue("appearOffline", checked)}
+                      />
+                    </div>
+                  )}
+
                   <div className="flex flex-col items-center space-y-4">
                     <Avatar className="h-24 w-24">
                       <AvatarImage src={form.watch("avatarUrl")} />

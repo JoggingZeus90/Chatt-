@@ -15,14 +15,13 @@ async function main() {
   try {
     console.log('Running schema push...');
 
-    // Use the schema from shared/schema.ts
-    // This will create all tables defined in the schema
     await db.execute(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         username TEXT NOT NULL UNIQUE,
         password TEXT NOT NULL,
         is_online BOOLEAN NOT NULL DEFAULT false,
+        appear_offline BOOLEAN NOT NULL DEFAULT false,
         last_seen TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
         avatar_url TEXT,
         role TEXT NOT NULL DEFAULT 'user',

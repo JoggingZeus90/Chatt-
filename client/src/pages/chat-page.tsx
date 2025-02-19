@@ -148,7 +148,10 @@ export default function ChatPage() {
 
     const updateStatus = async () => {
       try {
-        await apiRequest("POST", `/api/users/${user.id}/status`, { isOnline: true });
+        // Only update status as online if user is not appearing offline
+        if (!user.appearOffline) {
+          await apiRequest("POST", `/api/users/${user.id}/status`, { isOnline: true });
+        }
       } catch (error) {
         if (error instanceof Error && error.message.includes("401")) {
           return;

@@ -6,6 +6,8 @@ import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
 import { MessageWithUser } from "@shared/schema";
+import { randomBytes } from "crypto";
+import { scryptAsync } from "./lib/scrypt";
 
 const PostgresSessionStore = connectPg(session);
 
@@ -201,6 +203,7 @@ export class DatabaseStorage implements IStorage {
     password?: string;
     avatarUrl?: string;
     updateUsernameTimestamp?: boolean;
+    appearOffline?: boolean;
   }): Promise<User> {
     const updateData: Record<string, any> = {};
 
@@ -212,6 +215,9 @@ export class DatabaseStorage implements IStorage {
     }
     if (updates.avatarUrl !== undefined) {
       updateData.avatarUrl = updates.avatarUrl;
+    }
+    if (updates.appearOffline !== undefined) {
+      updateData.appearOffline = updates.appearOffline;
     }
     if (updates.password) {
       const salt = randomBytes(16).toString("hex");
