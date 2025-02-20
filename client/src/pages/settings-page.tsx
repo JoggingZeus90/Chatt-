@@ -21,6 +21,7 @@ import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { updateUserSchema } from "@shared/schema";
+import { SiGithub, SiGoogle } from "react-icons/si";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -304,6 +305,35 @@ export default function SettingsPage() {
                       )}
                     />
                   </div>
+
+                  {/* Add social account linking section */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Connected Accounts</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Link your social accounts for easier login
+                    </p>
+                    <div className="space-y-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => window.location.href = '/api/auth/link/github'}
+                      >
+                        <SiGithub className="mr-2 h-4 w-4" />
+                        Link GitHub Account
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => window.location.href = '/api/auth/link/google'}
+                      >
+                        <SiGoogle className="mr-2 h-4 w-4" />
+                        Link Google Account
+                      </Button>
+                    </div>
+                  </div>
+
 
                   <div className="flex justify-end gap-4">
                     <AlertDialog>

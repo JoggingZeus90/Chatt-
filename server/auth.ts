@@ -140,12 +140,20 @@ export function setupAuth(app: Express) {
     passport.use(new GitHubStrategy({
       clientID: process.env.GITHUB_CLIENT_ID,
       clientSecret: process.env.GITHUB_CLIENT_SECRET,
-      callbackURL: `/api/auth/github/callback`
+      callbackURL: `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co/api/auth/github/callback`
     },
     async (_accessToken: string, _refreshToken: string, profile: GitHubProfile, done: (error: any, user?: any) => void) => {
       try {
-        const user = await findOrCreateUser(profile, 'github');
-        done(null, user);
+        if (profile.id) {
+          const existingUser = await storage.getUserByUsername(`github:${profile.id}`);
+          if (existingUser) {
+            return done(null, existingUser);
+          }
+          const user = await findOrCreateUser(profile, 'github');
+          done(null, user);
+        } else {
+          done(new Error('Invalid GitHub profile'));
+        }
       } catch (error) {
         console.error('GitHub auth error:', error);
         done(error);
@@ -158,12 +166,20 @@ export function setupAuth(app: Express) {
     passport.use(new GoogleStrategy({
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: `/api/auth/google/callback`
+      callbackURL: `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co/api/auth/google/callback`
     },
     async (_accessToken: string, _refreshToken: string, profile: GoogleProfile, done: (error: any, user?: any) => void) => {
       try {
-        const user = await findOrCreateUser(profile, 'google');
-        done(null, user);
+        if (profile.id) {
+          const existingUser = await storage.getUserByUsername(`google:${profile.id}`);
+          if (existingUser) {
+            return done(null, existingUser);
+          }
+          const user = await findOrCreateUser(profile, 'google');
+          done(null, user);
+        } else {
+          done(new Error('Invalid Google profile'));
+        }
       } catch (error) {
         console.error('Google auth error:', error);
         done(error);
@@ -238,6 +254,28 @@ export function setupAuth(app: Express) {
       res.redirect('/');
     }
   );
+
+  // Link social accounts
+  app.get('/api/auth/link/github',
+    (req, res, next) => {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Please login first" });
+      }
+      next();
+    },
+    passport.authenticate('github', { scope: ['user:email'] })
+  );
+
+  app.get('/api/auth/link/google',
+    (req, res, next) => {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Please login first" });
+      }
+      next();
+    },
+    passport.authenticate('google', { scope: ['profile', 'email'] })
+  );
+
 
   app.post("/api/logout", (req, res, next) => {
     req.logout((err) => {
