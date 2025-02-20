@@ -317,7 +317,10 @@ export default function SettingsPage() {
                         type="button"
                         variant="outline"
                         className="w-full"
-                        onClick={() => window.location.href = '/api/auth/link/github'}
+                        onClick={() => {
+                          const baseUrl = `https://${window.location.host}`;
+                          window.location.href = `${baseUrl}/api/auth/link/github`;
+                        }}
                       >
                         <SiGithub className="mr-2 h-4 w-4" />
                         Link GitHub Account
@@ -326,7 +329,10 @@ export default function SettingsPage() {
                         type="button"
                         variant="outline"
                         className="w-full"
-                        onClick={() => window.location.href = '/api/auth/link/google'}
+                        onClick={() => {
+                          const baseUrl = `https://${window.location.host}`;
+                          window.location.href = `${baseUrl}/api/auth/link/google`;
+                        }}
                       >
                         <SiGoogle className="mr-2 h-4 w-4" />
                         Link Google Account

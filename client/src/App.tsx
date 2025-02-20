@@ -16,13 +16,6 @@ function Router() {
       <Route path="/" component={() => <ProtectedRoute component={ChatPage} />} />
       <Route path="/settings" component={() => <ProtectedRoute component={SettingsPage} />} />
       <Route path="/auth" component={AuthPage} />
-      <Route path="/api/auth/:provider/callback">
-        {(params) => {
-          // Handle OAuth callbacks by redirecting to auth page
-          window.location.href = '/auth';
-          return null;
-        }}
-      </Route>
       <Route component={NotFound} />
     </Switch>
   );

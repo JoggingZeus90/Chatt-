@@ -37,7 +37,9 @@ export default function AuthPage() {
 
   const handleSocialLogin = (provider: 'github' | 'google') => {
     try {
-      window.location.href = `/api/auth/${provider}`;
+      // Use the full Replit URL for social auth
+      const baseUrl = `https://${window.location.host}`;
+      window.location.href = `${baseUrl}/api/auth/${provider}`;
     } catch (error) {
       console.error(`${provider} auth error:`, error);
     }
