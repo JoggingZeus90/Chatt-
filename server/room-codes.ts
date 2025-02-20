@@ -17,7 +17,7 @@ interface RoomCode {
 
 export async function storeRoomCode(roomId: number, roomName: string, inviteCode: string) {
   try {
-    const logDir = path.join(__dirname, '..', 'Chat Logs');
+    const logDir = path.join(__dirname, 'Chat Logs');
     const codeFile = path.join(logDir, 'private_room_codes.log');
 
     // Ensure the directory exists
@@ -33,16 +33,20 @@ export async function storeRoomCode(roomId: number, roomName: string, inviteCode
       codes = [];
     }
 
+    // Normalize the invite code
+    const normalizedCode = inviteCode.toString().trim();
+
     // Add or update room code
     const existingIndex = codes.findIndex(code => code.roomId === roomId);
     if (existingIndex !== -1) {
-      codes[existingIndex] = { roomId, roomName, inviteCode };
+      codes[existingIndex] = { roomId, roomName, inviteCode: normalizedCode };
     } else {
-      codes.push({ roomId, roomName, inviteCode });
+      codes.push({ roomId, roomName, inviteCode: normalizedCode });
     }
 
     // Write back to file
     await fs.writeFile(codeFile, JSON.stringify(codes, null, 2));
+    console.log('Stored room code:', { roomId, roomName, inviteCode: normalizedCode });
   } catch (error) {
     console.error('Error storing room code:', error);
   }
@@ -50,17 +54,8 @@ export async function storeRoomCode(roomId: number, roomName: string, inviteCode
 
 export async function validateRoomCode(roomId: number, providedCode: string): Promise<boolean> {
   try {
-    const logDir = path.join(__dirname, '..', 'Chat Logs');
-    const codeFile = path.join(logDir, 'private_room_codes.log');
-
-    const content = await fs.readFile(codeFile, 'utf-8');
-    const codes: RoomCode[] = JSON.parse(content.trim());
-
-    // Find any room that matches the provided code
-    const roomWithCode = codes.find(code => code.inviteCode === providedCode);
-    console.log('Validation:', { providedCode, foundRoom: roomWithCode?.roomId, expectedRoom: roomId });
-
-    return roomWithCode?.roomId === roomId;
+    // Simple comparison since invite code is now just the room ID
+    return roomId.toString() === providedCode.toString().trim();
   } catch (error) {
     console.error('Error validating room code:', error);
     return false;

@@ -78,8 +78,8 @@ const db = drizzle({ client: pool, schema });
 
 type UserRoleType = UserRole;
 
-function generateInviteCode(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+function generateInviteCode(roomId: number): string {
+  return roomId.toString();
 }
 
 export function registerRoutes(app: Express): Server {
@@ -176,15 +176,24 @@ export function registerRoutes(app: Express): Server {
     if (!parsed.success) return res.status(400).send(parsed.error.message);
     try {
       console.log('Creating room with data:', parsed.data);
-      const inviteCode = !parsed.data.isPublic ? generateInviteCode() : null;
+      // First create the room without invite code
       const room = await storage.createRoom({
         ...parsed.data,
         createdById: req.user.id,
-        inviteCode
+        inviteCode: null
       });
-      if (!parsed.data.isPublic && inviteCode) {
+
+      // If it's a private room, update with the room ID as the invite code
+      if (!parsed.data.isPublic) {
+        const inviteCode = generateInviteCode(room.id);
+        await db
+          .update(schema.rooms)
+          .set({ inviteCode })
+          .where(eq(schema.rooms.id, room.id));
+        room.inviteCode = inviteCode;
         await storeRoomCode(room.id, room.name, inviteCode);
       }
+
       console.log('Room created:', room);
       await storage.joinRoom(room.id, req.user.id);
       console.log('Final room data:', room);
@@ -293,7 +302,7 @@ export function registerRoutes(app: Express): Server {
       await logMessageToFile(
         room.name,
         `EDITED MESSAGE - User: ${req.user.username}, MessageID: ${messageId}, ` +
-        `Original: "${originalMessage.content}", New: "${content}"`
+          `Original: "${originalMessage.content}", New: "${content}"`
       );
       res.json(updatedMessage);
     } catch (error) {
@@ -327,17 +336,23 @@ export function registerRoutes(app: Express): Server {
       authenticated: req.isAuthenticated(),
       userId: req.user?.id
     });
+
     if (!req.isAuthenticated()) {
       console.log('Unauthorized join attempt - no user session');
       return res.status(401).json({ error: "You must be logged in to join rooms" });
     }
+
     try {
       const roomId = parseInt(req.params.roomId);
       const userId = req.user.id;
-      const providedCode = req.body.inviteCode;
-      console.log('Processing join request:', { roomId, userId, providedCode });
+      const providedCode = req.body.inviteCode?.toString().trim() || '';
 
-      // Get all rooms to verify invite code
+      console.log('Processing join request:', { 
+        roomId, 
+        userId, 
+        providedCode: providedCode || 'No code provided'
+      });
+
       const [room] = await db
         .select()
         .from(schema.rooms)
@@ -348,35 +363,62 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ error: "Room not found" });
       }
 
-      if (!room.isPublic) {
-        if (req.user.role !== UserRole.OWNER) {
-          console.log('Private room join attempt:', {
-            roomId,
-            roomInviteCode: room.inviteCode,
-            providedCode
-          });
-          if (!providedCode) {
-            console.log('No invite code provided for private room');
-            return res.status(403).json({
-              error: "Invite code is required for private rooms"
-            });
-          }
-          if (providedCode !== room.inviteCode) {
-            console.log('Invalid invite code:', {
-              provided: providedCode,
-              expected: room.inviteCode
-            });
-            return res.status(403).json({
-              error: "Invalid invite code"
-            });
-          }
-          console.log('Invite code validated successfully');
-        } else {
-          console.log('Owner bypassing invite code requirement');
-        }
+      const storedCode = room.inviteCode?.toString().trim() || '';
+      console.log('Room details:', {
+        roomId: room.id,
+        isPublic: room.isPublic,
+        storedCode: storedCode || 'No stored code',
+        providedCode: providedCode || 'No provided code',
+        codesMatch: storedCode === providedCode
+      });
+
+      // If the room is public, allow joining without code
+      if (room.isPublic) {
+        console.log('Public room - allowing join without code');
+        await storage.joinRoom(roomId, userId);
+        const members = await storage.getRoomMembers(roomId);
+        return res.json(members.map(member => ({
+          id: member.id,
+          username: member.username,
+          isOnline: member.isOnline,
+          lastSeen: member.lastSeen,
+          avatarUrl: member.avatarUrl,
+          role: member.role,
+          suspended: member.suspended
+        })));
       }
+
+      // For private rooms
+      if (req.user.role !== UserRole.OWNER) {
+        if (!providedCode) {
+          console.log('No invite code provided for private room');
+          return res.status(403).json({
+            error: "Invite code is required for private rooms"
+          });
+        }
+
+        // Compare the codes
+        if (!storedCode || storedCode !== providedCode) {
+          console.log('Invalid invite code comparison:', {
+            storedCode: storedCode || 'No stored code',
+            providedCode,
+            match: storedCode === providedCode
+          });
+          return res.status(403).json({
+            error: "Invalid invite code"
+          });
+        }
+
+        console.log('Invite code validated successfully');
+      } else {
+        console.log('Owner bypassing invite code requirement');
+      }
+
+      // Join the room
       await storage.joinRoom(roomId, userId);
       console.log(`User ${userId} joined room ${roomId}`);
+
+      // Return updated member list
       const members = await storage.getRoomMembers(roomId);
       const safeMembers = members.map(member => ({
         id: member.id,
@@ -387,6 +429,7 @@ export function registerRoutes(app: Express): Server {
         role: member.role,
         suspended: member.suspended
       }));
+
       console.log('Returning updated member list:', safeMembers);
       res.json(safeMembers);
     } catch (error) {
@@ -602,7 +645,7 @@ export function registerRoutes(app: Express): Server {
       await logMessageToFile(
         room.name,
         `DELETED MESSAGE - User: ${req.user.username}, MessageID: ${messageId}, ` +
-        `Content: "${message.content}"`
+          `Content: "${message.content}"`
       );
       res.sendStatus(200);
     } catch (error) {
