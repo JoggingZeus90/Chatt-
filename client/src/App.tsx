@@ -1,4 +1,3 @@
-
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -14,9 +13,16 @@ import { ProtectedRoute } from "./lib/protected-route";
 function Router() {
   return (
     <Switch>
-      <ProtectedRoute path="/" component={ChatPage} />
-      <ProtectedRoute path="/settings" component={SettingsPage} />
+      <Route path="/" component={() => <ProtectedRoute component={ChatPage} />} />
+      <Route path="/settings" component={() => <ProtectedRoute component={SettingsPage} />} />
       <Route path="/auth" component={AuthPage} />
+      <Route path="/api/auth/:provider/callback">
+        {(params) => {
+          // Handle OAuth callbacks by redirecting to auth page
+          window.location.href = '/auth';
+          return null;
+        }}
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );

@@ -1,12 +1,10 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
-import { Redirect, Route } from "wouter";
+import { Redirect } from "wouter";
 
 export function ProtectedRoute({
-  path,
   component: Component,
 }: {
-  path: string;
   component: () => React.JSX.Element;
 }) {
   const { user, isLoading } = useAuth();
@@ -14,21 +12,15 @@ export function ProtectedRoute({
   // Check for loading state
   if (isLoading) {
     return (
-      <Route path={path}>
-        <div className="flex items-center justify-center min-h-screen">
-          <Loader2 className="h-8 w-8 animate-spin text-border" />
-        </div>
-      </Route>
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-border" />
+      </div>
     );
   }
 
   // If not logged in, redirect to auth page
   if (!user) {
-    return (
-      <Route path={path}>
-        <Redirect to="/auth" />
-      </Route>
-    );
+    return <Redirect to="/auth" />;
   }
 
   // Block suspended users and force them to the auth page
@@ -36,14 +28,10 @@ export function ProtectedRoute({
     // Force the URL to be /auth and prevent navigation
     if (window.location.pathname !== '/auth') {
       window.location.href = `/auth?suspended=true&reason=${encodeURIComponent(user.suspendedReason || '')}`;
-      return null;
+      return <></>;
     }
-    return (
-      <Route path={path}>
-        <Redirect to={`/auth?suspended=true&reason=${encodeURIComponent(user.suspendedReason || '')}`} />
-      </Route>
-    );
+    return <Redirect to={`/auth?suspended=true&reason=${encodeURIComponent(user.suspendedReason || '')}`} />;
   }
 
-  return <Route path={path} component={Component} />;
+  return <Component />;
 }
