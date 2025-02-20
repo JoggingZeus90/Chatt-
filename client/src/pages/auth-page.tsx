@@ -13,9 +13,12 @@ import { Redirect } from "wouter";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Separator } from "@/components/ui/separator";
+import { useLocation } from "wouter";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
+  const [location] = useLocation();
 
   const loginForm = useForm<InsertUser>({
     resolver: zodResolver(insertUserSchema.omit({ consent: true })),
@@ -33,8 +36,15 @@ export default function AuthPage() {
   }
 
   const handleSocialLogin = (provider: 'github' | 'google') => {
-    window.location.href = `/api/auth/${provider}`;
+    try {
+      window.location.href = `/api/auth/${provider}`;
+    } catch (error) {
+      console.error(`${provider} auth error:`, error);
+    }
   };
+
+  const searchParams = new URLSearchParams(location.split('?')[1]);
+  const error = searchParams.get('error');
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
@@ -44,6 +54,18 @@ export default function AuthPage() {
             <CardTitle>Welcome to Chat App</CardTitle>
           </CardHeader>
           <CardContent>
+            {error && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertDescription>
+                  {error === 'github_failed'
+                    ? 'GitHub authentication failed. Please try again.'
+                    : error === 'google_failed'
+                    ? 'Google authentication failed. Please try again.'
+                    : 'Authentication failed. Please try again.'}
+                </AlertDescription>
+              </Alert>
+            )}
+
             <div className="space-y-4 mb-4">
               <Button
                 variant="outline"

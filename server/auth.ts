@@ -140,13 +140,14 @@ export function setupAuth(app: Express) {
     passport.use(new GitHubStrategy({
       clientID: process.env.GITHUB_CLIENT_ID,
       clientSecret: process.env.GITHUB_CLIENT_SECRET,
-      callbackURL: `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co/api/auth/github/callback`
+      callbackURL: `/api/auth/github/callback`
     },
     async (_accessToken: string, _refreshToken: string, profile: GitHubProfile, done: (error: any, user?: any) => void) => {
       try {
         const user = await findOrCreateUser(profile, 'github');
         done(null, user);
       } catch (error) {
+        console.error('GitHub auth error:', error);
         done(error);
       }
     }));
@@ -157,13 +158,14 @@ export function setupAuth(app: Express) {
     passport.use(new GoogleStrategy({
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co/api/auth/google/callback`
+      callbackURL: `/api/auth/google/callback`
     },
     async (_accessToken: string, _refreshToken: string, profile: GoogleProfile, done: (error: any, user?: any) => void) => {
       try {
         const user = await findOrCreateUser(profile, 'google');
         done(null, user);
       } catch (error) {
+        console.error('Google auth error:', error);
         done(error);
       }
     }));
@@ -211,24 +213,30 @@ export function setupAuth(app: Express) {
     res.status(200).json(req.user);
   });
 
-  // GitHub auth routes
+  // GitHub auth routes with error handling
   app.get('/api/auth/github',
     passport.authenticate('github', { scope: ['user:email'] })
   );
 
   app.get('/api/auth/github/callback',
-    passport.authenticate('github', { failureRedirect: '/auth' }),
-    (req, res) => res.redirect('/')
+    passport.authenticate('github', { failureRedirect: '/auth?error=github_failed' }),
+    (req, res) => {
+      console.log('GitHub auth successful');
+      res.redirect('/');
+    }
   );
 
-  // Google auth routes
+  // Google auth routes with error handling
   app.get('/api/auth/google',
     passport.authenticate('google', { scope: ['profile', 'email'] })
   );
 
   app.get('/api/auth/google/callback',
-    passport.authenticate('google', { failureRedirect: '/auth' }),
-    (req, res) => res.redirect('/')
+    passport.authenticate('google', { failureRedirect: '/auth?error=google_failed' }),
+    (req, res) => {
+      console.log('Google auth successful');
+      res.redirect('/');
+    }
   );
 
   app.post("/api/logout", (req, res, next) => {
