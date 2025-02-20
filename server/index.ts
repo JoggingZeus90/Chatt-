@@ -81,7 +81,7 @@ app.use((req, res, next) => {
         break;
       }
     } catch (error) {
-      log(`Failed to start server on port ${port}:`, error);
+      log(`Failed to start server on port ${port}:`, String(error));
       if (port === ports[ports.length - 1]) {
         throw error;
       }

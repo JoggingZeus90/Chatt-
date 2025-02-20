@@ -1,7 +1,7 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { Strategy as GitHubStrategy } from "passport-github2";
-import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import { Strategy as GitHubStrategy, Profile as GitHubProfile } from "passport-github2";
+import { Strategy as GoogleStrategy, Profile as GoogleProfile } from "passport-google-oauth20";
 import { Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
@@ -41,7 +41,7 @@ export function requireRole(role: UserRoleType) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const userRole = req.user.role;
+    const userRole = req.user.role as UserRoleType;
 
     if (userRole === UserRole.OWNER) {
       return next();
@@ -52,7 +52,7 @@ export function requireRole(role: UserRoleType) {
     }
 
     if (role === UserRole.MODERATOR && 
-        ![UserRole.ADMIN, UserRole.MODERATOR].includes(userRole as UserRoleType)) {
+        userRole !== UserRole.ADMIN && userRole !== UserRole.MODERATOR) {
       return res.status(403).json({ message: "Moderator access required" });
     }
 
@@ -77,17 +77,22 @@ function checkSuspension(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
-async function findOrCreateUser(profile: any, provider: string) {
+type OAuthProfile = GitHubProfile | GoogleProfile;
+
+async function findOrCreateUser(profile: OAuthProfile, provider: string) {
   let user = await storage.getUserByUsername(`${provider}:${profile.id}`);
 
   if (!user) {
     // Create a new user
-    user = await storage.createUser({
+    const newUser = {
       username: `${provider}:${profile.id}`,
       password: await hashPassword(randomBytes(32).toString('hex')), // Random password
       role: UserRole.USER,
       avatarUrl: profile.photos?.[0]?.value || null,
-    });
+      consent: true // OAuth signup implies consent
+    };
+
+    user = await storage.createUser(newUser);
   }
 
   return user;
@@ -120,11 +125,7 @@ export function setupAuth(app: Express) {
         }
 
         if (user.suspended) {
-          return done(null, false, { 
-            message: "Your account has been suspended",
-            reason: user.suspendedReason,
-            suspendedAt: user.suspendedAt
-          });
+          return done(null, false);
         }
 
         return done(null, user);
@@ -141,7 +142,7 @@ export function setupAuth(app: Express) {
       clientSecret: process.env.GITHUB_CLIENT_SECRET,
       callbackURL: `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co/api/auth/github/callback`
     },
-    async (accessToken, refreshToken, profile, done) => {
+    async (_accessToken: string, _refreshToken: string, profile: GitHubProfile, done: (error: any, user?: any) => void) => {
       try {
         const user = await findOrCreateUser(profile, 'github');
         done(null, user);
@@ -158,7 +159,7 @@ export function setupAuth(app: Express) {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
       callbackURL: `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co/api/auth/google/callback`
     },
-    async (accessToken, refreshToken, profile, done) => {
+    async (_accessToken: string, _refreshToken: string, profile: GoogleProfile, done: (error: any, user?: any) => void) => {
       try {
         const user = await findOrCreateUser(profile, 'google');
         done(null, user);
@@ -207,17 +208,6 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", passport.authenticate("local"), (req, res) => {
-    if (req.user?.suspended) {
-      req.logout((err) => {
-        if (err) console.error('Error logging out suspended user:', err);
-        res.status(403).json({
-          message: "Your account has been suspended",
-          reason: req.user?.suspendedReason,
-          suspendedAt: req.user?.suspendedAt
-        });
-      });
-      return;
-    }
     res.status(200).json(req.user);
   });
 
@@ -250,17 +240,6 @@ export function setupAuth(app: Express) {
 
   app.get("/api/user", (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    if (req.user.suspended) {
-      req.logout((err) => {
-        if (err) console.error('Error logging out suspended user:', err);
-        res.status(403).json({
-          message: "Your account has been suspended",
-          reason: req.user.suspendedReason,
-          suspendedAt: req.user.suspendedAt
-        });
-      });
-      return;
-    }
     res.json(req.user);
   });
 }

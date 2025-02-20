@@ -8,9 +8,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertUserSchema, type InsertUser } from "@shared/schema";
 import { Loader2 } from "lucide-react";
+import { SiGithub, SiGoogle } from "react-icons/si";
 import { Redirect } from "wouter";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Separator } from "@/components/ui/separator";
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
@@ -30,6 +32,10 @@ export default function AuthPage() {
     return <Redirect to="/" />;
   }
 
+  const handleSocialLogin = (provider: 'github' | 'google') => {
+    window.location.href = `/api/auth/${provider}`;
+  };
+
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
       <div className="flex items-center justify-center p-8">
@@ -38,6 +44,36 @@ export default function AuthPage() {
             <CardTitle>Welcome to Chat App</CardTitle>
           </CardHeader>
           <CardContent>
+            <div className="space-y-4 mb-4">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => handleSocialLogin('github')}
+              >
+                <SiGithub className="mr-2 h-4 w-4" />
+                Continue with GitHub
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => handleSocialLogin('google')}
+              >
+                <SiGoogle className="mr-2 h-4 w-4" />
+                Continue with Google
+              </Button>
+            </div>
+
+            <div className="relative mb-4">
+              <div className="absolute inset-0 flex items-center">
+                <Separator />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">
+                  Or continue with
+                </span>
+              </div>
+            </div>
+
             <Tabs defaultValue="login">
               <TabsList className="grid w-full grid-cols-2 mb-4">
                 <TabsTrigger value="login">Login</TabsTrigger>
